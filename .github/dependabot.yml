@@ -20,6 +20,13 @@ updates:
             "typescript",
             "@types/*",
           ]
+    ignore:
+      # typescript-eslint's peer range stops below TypeScript 6.1: wait for one that supports 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # 3.x drops the jest mock the UI tests load, and Expo SDK 58 pins 2.x for the native module.
+      - dependency-name: "@react-native-async-storage/async-storage"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
