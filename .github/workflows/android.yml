@@ -64,7 +64,7 @@ jobs:
           mkdir dist-android
           cp android/app/build/outputs/bundle/release/app-release.aab "dist-android/motoride-$version.aab"
           cp android/app/build/outputs/apk/release/app-release.apk "dist-android/motoride-$version.apk"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: steps.key.outputs.present == 'true'
         with:
           name: motoride-android
