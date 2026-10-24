@@ -175,9 +175,10 @@ test("the demo ends at the finish and says so", async () => {
   const shortest = prepared().sort((a, b) => a.totalM - b.totalM)[0]!;
   await render(<RideScreen rb={shortest} onBack={() => {}} />);
   await fireEvent.press(screen.getByText("Demo"));
-  await seconds(Math.ceil(shortest.totalM / DEMO_SPEED_MPS) + 5);
+  // A whole roadbook at demo speed is thousands of seconds: five per render keeps it quick on a shared CI runner.
+  await seconds(Math.ceil(shortest.totalM / DEMO_SPEED_MPS) + 5, 5);
   expect(screen.getByText("demo finished")).toBeTruthy();
-}, 30_000); // a whole roadbook at demo speed: slow on a shared CI runner
+});
 
 test.each(prepared().map((rb) => [rb.roadbook.name, rb] as const))(
   "%s: five minutes of demo never break the screen",
