@@ -1,7 +1,20 @@
 # MotoRide
 
-A motorcycle GPS for Android. It rides a **GPX roadbook** planned with
-[agentRide](../agentRide) and warns you of dangerous corners before you reach
+[![CI](https://github.com/bhoudebert/mobile-motoride/actions/workflows/ci.yml/badge.svg)](https://github.com/bhoudebert/mobile-motoride/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/bhoudebert/mobile-motoride/actions/workflows/codeql.yml/badge.svg)](https://github.com/bhoudebert/mobile-motoride/actions/workflows/codeql.yml)
+[![Android build](https://github.com/bhoudebert/mobile-motoride/actions/workflows/android.yml/badge.svg)](https://github.com/bhoudebert/mobile-motoride/actions/workflows/android.yml)
+[![iOS build](https://github.com/bhoudebert/mobile-motoride/actions/workflows/ios.yml/badge.svg)](https://github.com/bhoudebert/mobile-motoride/actions/workflows/ios.yml)
+[![Release](https://img.shields.io/github/v/release/bhoudebert/mobile-motoride?display_name=tag&sort=semver)](https://github.com/bhoudebert/mobile-motoride/releases)
+[![Platform Android and iOS](https://img.shields.io/badge/platform-Android%20%7C%20iOS-3ddc84)](docs/SHIPPING.md)
+[![Expo SDK 58](https://img.shields.io/badge/Expo-SDK%2058-000020?logo=expo&logoColor=white)](package.json)
+[![React Native 0.88](https://img.shields.io/badge/React%20Native-0.88-61dafb?logo=react&logoColor=white)](package.json)
+[![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Node 24](https://img.shields.io/badge/node-%E2%89%A524-339933?logo=node.js&logoColor=white)](.nvmrc)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+[![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196?logo=conventionalcommits&logoColor=white)](CONTRIBUTING.md)
+
+A motorcycle GPS for Android (iOS in progress). It rides a **GPX roadbook** planned with
+[agentRide](https://github.com/bhoudebert/agent-motoride) and warns you of dangerous corners before you reach
 them. Accounts are on the [roadmap](ROADMAP.md).
 
 > Status: early. Version 1 follows a bundled roadbook and warns of hairpins and
