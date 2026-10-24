@@ -31,3 +31,11 @@ jobs:
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
     secrets: inherit
+
+  ios:
+    # The same for iOS: an unsigned IPA attached to the release (ADR 0041). Free on a public repository.
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/ios.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
