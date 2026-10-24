@@ -5,11 +5,14 @@ export async function flush(times = 6) {
   for (let i = 0; i < times; i++) await act(async () => {});
 }
 
-/** Advance fake timers one second at a time, so each tick re-renders like on a phone. */
-export async function seconds(n: number) {
-  for (let i = 0; i < n; i++)
+/**
+ * Advance fake timers one second at a time, so each tick re-renders like on a phone. A long ride that only needs to get
+ * somewhere takes `step` seconds per render instead (the timers still fire every second inside it).
+ */
+export async function seconds(n: number, step = 1) {
+  for (let i = 0; i < n; i += step)
     await act(async () => {
-      jest.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(Math.min(step, n - i) * 1000);
     });
 }
 
