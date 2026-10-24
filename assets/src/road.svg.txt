@@ -1,0 +1,5 @@
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M330 850 C330 650 700 690 700 490 C700 340 380 390 380 200" stroke="PAPER" stroke-width="120"/>
+  <path d="M330 850 C330 650 700 690 700 490 C700 340 380 390 380 200" stroke="SIGNAL" stroke-width="16" stroke-dasharray="44 40"/>
+  <circle cx="700" cy="560" r="34" fill="RUST" stroke="PAPER" stroke-width="10"/>
+</g>

@@ -1,0 +1,11 @@
+node_modules
+package-lock.json
+CHANGELOG.md
+coverage
+android
+ios
+.expo
+src/data/bundled
+.smoke
+.expo-check
+coverage

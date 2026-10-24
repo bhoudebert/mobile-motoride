@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "MotoRide",
+    "slug": "mobile-motoride",
+    "scheme": "mobilemotoride",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.adequatefunction.motoride"
+    },
+    "android": {
+      "package": "com.adequatefunction.motoride",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "RECEIVE_BOOT_COMPLETED"],
+      "adaptiveIcon": {
+        "backgroundColor": "#24382d",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [
+            {
+              "scheme": "content",
+              "mimeType": "application/gpx+xml"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "text/xml"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/xml"
+            },
+            {
+              "scheme": "file",
+              "mimeType": "application/gpx+xml"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/octet-stream"
+            }
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "@maplibre/maplibre-react-native",
+      "expo-dev-client",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MotoRide follows your roadbook and warns you of corners ahead.",
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f3eee4",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      "expo-sharing",
+      "expo-secure-store"
+    ]
+  }
+}

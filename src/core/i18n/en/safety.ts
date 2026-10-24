@@ -1,0 +1,41 @@
+/** Crash and fall detection (spec crash-detection). */
+export const safety = {
+  "safety.alert.title": "Possible crash",
+  "safety.alert.body": "Are you all right? Tap the button.",
+  "safety.alert.count": "Alert in {n} s",
+  "safety.alert.ok": "I'm OK",
+  "safety.alert.say": "Crash detected. Tap the screen if you are all right.",
+  "safety.alert.test": "Test: nothing will be sent",
+  "safety.sent.title": "Alert",
+  "safety.sent.live":
+    "Your live ride now shows a possible crash and your position to anyone who has its page open. Nobody was called or texted.",
+  "safety.sent.none": "No one was told automatically. Send the message or call.",
+  "safety.sent.test": "The test is over. Nothing was sent.",
+  "safety.sms": "Message {name}",
+  "safety.sms.nobody": "Write the message",
+  "safety.call": "Call 112",
+  "safety.say.sent": "No answer. Alert sent.",
+  "safety.msg":
+    "MotoRide: I may have crashed. My last position: {link} (at {time}). This message was prepared by the app after a possible crash; I may not be able to answer.",
+  "safety.menu": "Safety",
+  "safety.menu.name": "Crash detection and emergency contact",
+  "safety.screen.title": "Safety",
+  "safety.screen.back": "Back to the map",
+  "safety.detect.on": "Crash detection: on",
+  "safety.detect.off": "Crash detection: off",
+  "safety.detect.hint": "Tap to change",
+  "safety.detect.explain":
+    "During a ride the phone's sensors look for a hard shock followed by ten seconds without moving. It asks you if you are all right for 30 seconds, then marks your live ride, if you share one, as a possible crash (people who have its page open see it) and prepares a message for your contact. The app calls and texts no one by itself. It can be wrong: you can always cancel.",
+  "safety.contact.title": "Emergency contact",
+  "safety.contact.name": "Name",
+  "safety.contact.number": "Phone number",
+  "safety.contact.save": "Save the contact",
+  "safety.contact.saved": "Saved.",
+  "safety.contact.invalid": "That is not a phone number.",
+  "safety.contact.remove": "Remove the contact",
+  "safety.contact.none": "No contact: after an alert you can call 112 or write a message yourself.",
+  "safety.test": "Try the alert",
+  "safety.test.hint": "Shows the alert for 10 seconds. Nothing is sent.",
+  "safety.live.note":
+    "Share your ride live with someone you trust: if they have the page open they see a possible crash and your position. Nobody is called or texted for you.",
+} as const;

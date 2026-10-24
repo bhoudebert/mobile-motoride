@@ -1,0 +1,118 @@
+{
+  "name": "mobile-motoride",
+  "version": "1.1.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "@maplibre/maplibre-react-native": "^11.5.0",
+    "@noble/ciphers": "^2.4.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@types/jest": "30.0.0",
+    "expo": "~58.0.14",
+    "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.14",
+    "expo-document-picker": "~58.0.4",
+    "expo-file-system": "~58.0.9",
+    "expo-font": "~58.0.8",
+    "expo-keep-awake": "~58.0.3",
+    "expo-location": "~58.0.17",
+    "expo-secure-store": "~58.0.2",
+    "expo-sensors": "~58.0.4",
+    "expo-sharing": "~58.0.19",
+    "expo-speech": "~58.0.3",
+    "expo-splash-screen": "~58.0.10",
+    "expo-status-bar": "~58.0.3",
+    "expo-task-manager": "~58.0.12",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.11",
+    "react": "19.3.1",
+    "react-native": "0.88.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@testing-library/react-native": "^14.1.0",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^26.6.5",
+    "@types/react": "~19.3.0",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "react-test-renderer": "^19.3.1",
+    "simple-git-hooks": "^2.14.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2"
+  },
+  "scripts": {
+    "start": "expo start --dev-client --localhost",
+    "android": "expo run:android",
+    "build:android": "expo prebuild --platform android --clean --no-install && cd android && ./gradlew bundleRelease assembleRelease",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/core/**\" --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=65 \"test/**/*.test.ts\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "bundle:roadbooks": "node scripts/bundle-roadbooks.ts",
+    "quality": "npm run typecheck && npm run lint && npm run format:check && npm run test:coverage && npm run test:ui && npm run bundle:check",
+    "prepare": "simple-git-hooks",
+    "test:ui": "jest --coverage",
+    "test:all": "npm test && npm run test:ui",
+    "smoke:device": "node scripts/device-smoke.ts",
+    "dev:server": "node scripts/dev-server.ts",
+    "bundle:check": "expo export --platform android --output-dir .expo-check && node -e \"require('fs').rmSync('.expo-check',{recursive:true,force:true})\""
+  },
+  "private": true,
+  "description": "MobileMotoRide: motorcycle GPS that rides a GPX roadbook and warns of dangerous corners",
+  "license": "MIT",
+  "author": "Benjamin Houdebert",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhoudebert/mobile-motoride.git"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged",
+    "commit-msg": "npx commitlint --edit $1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": "prettier --write"
+  },
+  "type": "module",
+  "jest": {
+    "preset": "jest-expo",
+    "testTimeout": 60000,
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@maplibre/.*|@noble/.*))"
+    ],
+    "testMatch": [
+      "<rootDir>/test/ui/**/*.test.tsx"
+    ],
+    "setupFiles": [
+      "<rootDir>/test/ui/setup.ts"
+    ],
+    "clearMocks": true,
+    "collectCoverageFrom": [
+      "src/ui/**/*.{ts,tsx}",
+      "App.tsx"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 90,
+        "branches": 80,
+        "functions": 85,
+        "lines": 90
+      }
+    }
+  }
+}

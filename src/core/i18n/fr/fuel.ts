@@ -1,0 +1,31 @@
+import type { Translated } from "../messages.ts";
+import type { fuel as English } from "../en/fuel.ts";
+
+export const fuel: Translated<typeof English> = {
+  "fuel.chip.next": "{distance}",
+  "fuel.chip.none": "Plus de carburant",
+  "fuel.chip.empty": "Pas de carburant",
+  "fuel.chip.failed": "Carburant ?",
+  "fuel.chip.name.next": "Prochaine station-service dans {distance}. Ouvrir les stations-service",
+  "fuel.chip.name.none": "Plus de station-service devant. Ouvrir les stations-service",
+  "fuel.chip.name.empty": "Aucune station-service trouvée sur cet itinéraire. Ouvrir les stations-service",
+  "fuel.chip.name.failed": "Stations-service non chargées. Ouvrir les stations-service",
+  "fuel.title": "Stations-service",
+  "fuel.count_one": "{count} station sur le trajet",
+  "fuel.count_other": "{count} stations sur le trajet",
+  "fuel.gap": "Plus longue étape sans carburant : {gap}",
+  "fuel.tight": "C'est plus de 80 % de votre autonomie : prévoyez un arrêt.",
+  "fuel.none": "Aucune station-service trouvée le long de cet itinéraire.",
+  "fuel.noMore": "Plus de station-service devant sur cet itinéraire.",
+  "fuel.loading": "Recherche des stations-service…",
+  "fuel.failed": "Les stations-service n'ont pas pu être chargées. Vérifiez le réseau.",
+  "fuel.retry": "Réessayer",
+  "fuel.range": "Autonomie : {km} km",
+  "fuel.range.hint": "Touchez pour changer",
+  "fuel.station": "Station-service",
+  "fuel.item.off": "dans {distance} · à {off} de l'itinéraire",
+  "fuel.item.on": "dans {distance} · sur l'itinéraire",
+  "fuel.close": "Fermer",
+  "fuel.say.next": "Station-service dans {distance}. La suivante est à {gap} après.",
+  "fuel.say.last": "Dernière station-service dans {distance}. Ensuite, {gap} jusqu'à l'arrivée.",
+};

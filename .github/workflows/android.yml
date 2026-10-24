@@ -1,0 +1,78 @@
+name: Android release build
+
+# Builds the signed Android App Bundle (for Google Play) and APK (to install on a phone). Run by hand (Actions ▸ Android
+# release build ▸ Run workflow) to try a build, and by the Release workflow with the new tag to attach both files to it.
+# The upload key lives in four repository secrets (docs/SHIPPING.md): without them the build is skipped, not faked.
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag to attach the files to
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      MOTORIDE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      MOTORIDE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      MOTORIDE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      MOTORIDE_REQUIRE_RELEASE_SIGNING: "1"
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    steps:
+      - name: The upload key is configured
+        id: key
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: Android build skipped (see docs/SHIPPING.md)"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.key.outputs.present == 'true'
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v7
+        if: steps.key.outputs.present == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-java@v5
+        if: steps.key.outputs.present == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci --ignore-scripts
+        if: steps.key.outputs.present == 'true'
+      - name: Build the signed bundle and APK
+        if: steps.key.outputs.present == 'true'
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.keystore"
+          export MOTORIDE_KEYSTORE_FILE="$RUNNER_TEMP/upload.keystore"
+          npm run build:android
+      - name: Name the files by version
+        if: steps.key.outputs.present == 'true'
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir dist-android
+          cp android/app/build/outputs/bundle/release/app-release.aab "dist-android/motoride-$version.aab"
+          cp android/app/build/outputs/apk/release/app-release.apk "dist-android/motoride-$version.apk"
+      - uses: actions/upload-artifact@v5
+        if: steps.key.outputs.present == 'true'
+        with:
+          name: motoride-android
+          path: dist-android/*
+          retention-days: 30
+      - name: Attach to the release
+        if: steps.key.outputs.present == 'true' && inputs.tag != ''
+        run: gh release upload "$TAG" dist-android/* --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
