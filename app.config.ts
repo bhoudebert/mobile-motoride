@@ -10,6 +10,7 @@ const { version } = JSON.parse(readFileSync(new URL("./package.json", import.met
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...(config as ExpoConfig),
   version,
+  ios: { ...config.ios, buildNumber: String(versionCode(version)) },
   android: { ...config.android, versionCode: versionCode(version) },
   plugins: [...(config.plugins ?? []), "./plugins/with-release-signing.cjs"],
 });

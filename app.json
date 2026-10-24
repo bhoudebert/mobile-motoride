@@ -7,7 +7,10 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.adequatefunction.motoride"
+      "bundleIdentifier": "com.adequatefunction.motoride",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "android": {
       "package": "com.adequatefunction.motoride",
@@ -58,7 +61,9 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "MotoRide follows your roadbook and warns you of corners ahead.",
-          "isAndroidForegroundServiceEnabled": true
+          "locationAlwaysAndWhenInUsePermission": "MotoRide keeps following your roadbook and warning you of corners ahead while the screen is off.",
+          "isAndroidForegroundServiceEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ],
       "expo-font",

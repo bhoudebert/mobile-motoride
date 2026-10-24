@@ -72,3 +72,20 @@ test("a build.gradle the plugin does not recognise stops the build instead of sh
     /release build type not found/,
   );
 });
+
+test("the app config gives iOS and Android the same growing build number, from package.json's version", async () => {
+  const { default: appConfig } = await import("../app.config.ts");
+  const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
+  const config = appConfig({
+    config: {
+      name: "MotoRide",
+      slug: "x",
+      ios: { bundleIdentifier: "com.example.app" },
+      android: { package: "com.example.app" },
+    },
+  } as Parameters<typeof appConfig>[0]);
+  assert.equal(config.version, version);
+  assert.equal(config.ios?.buildNumber, String(versionCode(version)));
+  assert.equal(config.android?.versionCode, versionCode(version));
+  assert.equal(config.ios?.bundleIdentifier, "com.example.app");
+});

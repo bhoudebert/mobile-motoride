@@ -1,0 +1,70 @@
+name: iOS build
+
+# Builds the iOS app on a GitHub macOS runner and keeps it as an unsigned IPA. Run by hand (Actions ▸ iOS build ▸ Run
+# workflow) to try a build, and by the Release workflow with the new tag to attach the file to it (ADR 0041).
+# The IPA has no signature: it is signed with a free or paid Apple ID when it is installed (docs/SHIPPING.md, section 9).
+on:
+  push:
+    branches: [build/ios-unsigned-ipa] # TEMPORARY while the workflow is not on main
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag to attach the file to
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Xcode in use
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+      - run: npm ci --ignore-scripts
+      - name: Generate the iOS project and its pods
+        run: npx expo prebuild --platform ios --clean
+      - name: Build without signing
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace MotoRide.xcworkspace \
+            -scheme MotoRide \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tail -n 60
+      - name: Pack the IPA
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir -p dist-ios/Payload
+          cp -R ios/build/Build/Products/Release-iphoneos/MotoRide.app dist-ios/Payload/
+          (cd dist-ios && zip -qry "motoride-$version.ipa" Payload && rm -rf Payload)
+          ls -lh dist-ios
+      - uses: actions/upload-artifact@v7
+        with:
+          name: motoride-ios
+          path: dist-ios/*
+          retention-days: 30
+      - name: Attach to the release
+        if: inputs.tag != ''
+        run: gh release upload "$TAG" dist-ios/* --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
