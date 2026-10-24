@@ -75,6 +75,12 @@
           "imageWidth": 200
         }
       ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "MotoRide reads the motion sensors to show your lean angle and to detect a crash."
+        }
+      ],
       "expo-sharing",
       "expo-secure-store"
     ]

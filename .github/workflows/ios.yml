@@ -2,10 +2,8 @@ name: iOS build
 
 # Builds the iOS app on a GitHub macOS runner and keeps it as an unsigned IPA. Run by hand (Actions ▸ iOS build ▸ Run
 # workflow) to try a build, and by the Release workflow with the new tag to attach the file to it (ADR 0041).
-# The IPA has no signature: it is signed with a free or paid Apple ID when it is installed (docs/SHIPPING.md, section 9).
+# The IPA has no signature: it is signed with a free or paid Apple ID when it is installed (docs/SHIPPING.md, section 8).
 on:
-  push:
-    branches: [build/ios-unsigned-ipa] # TEMPORARY while the workflow is not on main
   workflow_dispatch:
   workflow_call:
     inputs:
