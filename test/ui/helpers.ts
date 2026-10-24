@@ -4,7 +4,10 @@ import { bundledRoadbooks } from "../../src/data/bundled/index.ts";
 import { pointAt } from "../../src/core/track.ts";
 import type { LatLon, PreparedRoadbook } from "../../src/core/types.ts";
 
-export const prepared = (): PreparedRoadbook[] => bundledRoadbooks.map(prepareRoadbook);
+// Preparing a roadbook (corners, stops) is the slow part of a screen test and tests ask for it every simulated second:
+// do it once per test file. A copy of the list goes out so a test that sorts it does not reorder the next one's.
+let preparedCache: PreparedRoadbook[] | null = null;
+export const prepared = (): PreparedRoadbook[] => [...(preparedCache ??= bundledRoadbooks.map(prepareRoadbook))];
 export const first = (): PreparedRoadbook => prepared()[0]!;
 export const at = (rb: PreparedRoadbook, m: number): LatLon => pointAt(rb.roadbook.line, rb.cumulativeM, m);
 
