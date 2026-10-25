@@ -53,7 +53,7 @@ beforeEach(() => {
   }) as never);
   (globalThis.fetch as unknown as jest.Mock).mockImplementation(
     (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
-      if (!String(url).startsWith("https://rides.example.org")) return Promise.resolve({ ok: true });
+      if (!isShareServer(String(url))) return Promise.resolve({ ok: true });
       const call: Call = {
         method: init?.method ?? "GET",
         url: String(url),
@@ -577,6 +577,15 @@ test("an invitation with a bad address or code is refused, and a link while the 
 
 // Spec crash-detection: a possible crash is marked on a live ride, with the position, until the rider says they are fine (whoever has the page open sees it).
 import { Accelerometer, resetSensors } from "./sensors.mock.ts";
+
+/** Is this a request to the test share server? Compares the origin, not a prefix of the text. */
+const isShareServer = (url: string): boolean => {
+  try {
+    return new URL(url).origin === "https://rides.example.org";
+  } catch {
+    return false;
+  }
+};
 
 const UP = { x: 0, y: 1, z: 0 };
 const LYING_DOWN = { x: 1, y: 0.05, z: 0 };
