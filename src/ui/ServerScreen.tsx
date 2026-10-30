@@ -1,6 +1,7 @@
+import { TOP_INSET } from "./insets.ts";
 import * as Crypto from "expo-crypto";
 import { useEffect, useState } from "react";
-import { BackHandler, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { t, type MessageKey } from "../core/i18n/index.ts";
 import { isTokenShaped, maskToken, newChannel, normalizeServer } from "../core/liveShare.ts";
 import { joinServer, type JoinResult } from "../services/enrol.ts";
@@ -211,7 +212,7 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
 const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper },
-    content: { paddingTop: (StatusBar.currentHeight ?? 0) + 8, paddingHorizontal: 16, paddingBottom: 32, gap: 8 },
+    content: { paddingTop: TOP_INSET + 8, paddingHorizontal: 16, paddingBottom: 32, gap: 8 },
     back: { minHeight: 48, minWidth: 48, justifyContent: "center", alignSelf: "flex-start" },
     title: { color: colors.accent, fontFamily: fonts.bold, fontSize: 30 },
     help: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, paddingBottom: 8 },

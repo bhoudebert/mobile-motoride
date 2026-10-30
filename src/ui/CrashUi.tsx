@@ -1,15 +1,6 @@
+import { TOP_INSET } from "./insets.ts";
 import { useEffect, useState } from "react";
-import {
-  BackHandler,
-  Linking,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import {
   EMERGENCY_NUMBER,
   isPhoneNumber,
@@ -247,7 +238,7 @@ const styles = themed(() =>
       ...StyleSheet.absoluteFill,
       backgroundColor: colors.rust,
       zIndex: 100,
-      paddingTop: (StatusBar.currentHeight ?? 0) + 16,
+      paddingTop: TOP_INSET + 16,
     },
     body: { padding: 24, gap: 16, flexGrow: 1, justifyContent: "center" },
     title: { color: colors.onRust, fontFamily: fonts.bold, fontSize: 36 },
@@ -273,7 +264,7 @@ const styles = themed(() =>
       justifyContent: "center",
     },
     okText: { color: colors.onSignal, fontFamily: fonts.bold, fontSize: 40 },
-    page: { flex: 1, backgroundColor: colors.paper, paddingTop: (StatusBar.currentHeight ?? 0) + 8 },
+    page: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 8 },
     pageBody: { padding: 16, gap: 12, paddingBottom: 48 },
     back: { minHeight: 48, minWidth: 48, justifyContent: "center", alignSelf: "flex-start" },
     pageTitle: { color: colors.accent, fontFamily: fonts.bold, fontSize: 30 },

@@ -1,5 +1,6 @@
+import { TOP_INSET } from "./insets.ts";
 import { useEffect, useRef, useState } from "react";
-import { BackHandler, FlatList, Pressable, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
+import { BackHandler, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { searchable, type Place } from "../core/destination.ts";
 import { t } from "../core/i18n/index.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
@@ -109,7 +110,7 @@ export function DestinationScreen({
 
 const styles = themed(() =>
   StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: (StatusBar.currentHeight ?? 0) + 16 },
+    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 16 },
     back: { minHeight: 48, minWidth: 48, paddingHorizontal: 16, justifyContent: "center", alignSelf: "flex-start" },
     title: { color: colors.accent, fontFamily: fonts.bold, fontSize: 28, paddingHorizontal: 16, paddingBottom: 12 },
     searchRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },

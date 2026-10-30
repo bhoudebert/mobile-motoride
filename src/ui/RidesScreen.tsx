@@ -1,6 +1,7 @@
+import { TOP_INSET } from "./insets.ts";
 import * as Sharing from "expo-sharing";
 import { useCallback, useEffect, useState } from "react";
-import { BackHandler, FlatList, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
 import { formatDateTime, t } from "../core/i18n/index.ts";
 import { durationText, RIDE_STATE_LABEL, rideExtras, type RideMeta } from "../core/recording.ts";
@@ -128,7 +129,7 @@ export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview
 
 const styles = themed(() =>
   StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: (StatusBar.currentHeight ?? 0) + 8 },
+    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 8 },
     back: { minHeight: 48, minWidth: 48, paddingHorizontal: 16, justifyContent: "center", alignSelf: "flex-start" },
     title: { color: colors.accent, fontFamily: fonts.bold, fontSize: 30, paddingHorizontal: 16, paddingBottom: 12 },
     empty: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 15, paddingHorizontal: 16 },

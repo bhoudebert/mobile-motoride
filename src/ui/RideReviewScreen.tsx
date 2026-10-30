@@ -1,15 +1,7 @@
+import { TOP_INSET } from "./insets.ts";
 import { Camera, GeoJSONSource, Layer, Map } from "@maplibre/maplibre-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  BackHandler,
-  type LayoutChangeEvent,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { BackHandler, type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Feature, Point } from "geojson";
 import { boundsOf, formatDistance } from "../core/format.ts";
 import { formatDateTime, formatNumber, t } from "../core/i18n/index.ts";
@@ -424,7 +416,7 @@ function SeekBar({ progress, onSeek }: { progress: number; onSeek: (p: number) =
 
 const styles = themed(() =>
   StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: (StatusBar.currentHeight ?? 0) + 8 },
+    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 8 },
     header: { flexDirection: "row", alignItems: "center", paddingRight: 16 },
     back: { minHeight: 48, minWidth: 48, paddingHorizontal: 16, justifyContent: "center" },
     headerText: { flex: 1 },
