@@ -21,6 +21,8 @@ export const traffic: Translated<typeof English> = {
   "traffic.failed": "La circulation n’a pas pu être chargée depuis votre serveur.",
   "traffic.retry": "Réessayer",
   "traffic.disabled": "La circulation est désactivée : rien n’est demandé à votre serveur.",
+  "traffic.noData":
+    "Pas de données de circulation sur la route devant : la source de votre serveur ne la couvre pas. Rien ne cloche sur votre téléphone ni sur votre serveur.",
   "traffic.budget": "Votre serveur a utilisé ses requêtes de circulation du jour : certains points sont inconnus.",
   "traffic.note":
     "Une indication tous les 10 km, pas une carte du trafic. Votre roadbook ne change pas : c’est vous qui décidez.",

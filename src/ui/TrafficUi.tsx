@@ -117,6 +117,7 @@ export function TrafficCard({
         </>
       ) : null}
       {enabled && !budget ? <Text style={styles.warn}>{t("traffic.budget")}</Text> : null}
+      {enabled && outlook && !outlook.known ? <Text style={styles.warn}>{t("traffic.noData")}</Text> : null}
       {enabled && outlook
         ? outlook.readings.map((r, i) => {
             const where =

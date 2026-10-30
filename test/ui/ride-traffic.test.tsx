@@ -132,6 +132,22 @@ test("the chip is a picture alone, green when it flows, amber when slow, red whe
   expect(tint()).not.toBe("#3fc27a");
 });
 
+test("when every point is unknown the card says the source does not cover the road, and that nothing is wrong", async () => {
+  withServer();
+  levels = ["unknown", "unknown", "unknown", "unknown", "unknown", "unknown", "unknown"];
+  await open();
+  await fireEvent.press(chip());
+  expect(screen.getByText(/^No traffic data for the road ahead/)).toBeTruthy();
+});
+
+test("with some points known the card does not say there is no data", async () => {
+  withServer();
+  levels = ["unknown", "free", "free"];
+  await open();
+  await fireEvent.press(chip());
+  expect(screen.queryByText(/^No traffic data for the road ahead/)).toBeNull();
+});
+
 test("a jam ahead is on the chip with its distance, drawn on the map, and listed on the card", async () => {
   withServer();
   levels = ["free", "free", "free", "heavy", "heavy", "free", "free"];
