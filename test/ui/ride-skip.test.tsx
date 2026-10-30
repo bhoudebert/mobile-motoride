@@ -164,7 +164,7 @@ test("Undo takes the skip back, without the network, and the point is the next o
   expect(screen.getByText(/^Next: 1\. Mont/)).toBeTruthy();
 });
 
-test("the Undo is offered for 15 seconds, however often the screen updates", async () => {
+test("the Undo is offered for 7.5 seconds, however often the screen updates", async () => {
   const rb = skippableRoadbook();
   const here = at(rb, 100);
   route.mockResolvedValue([here, at(rb, 2000)]);
@@ -173,21 +173,21 @@ test("the Undo is offered for 15 seconds, however often the screen updates", asy
   await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
-  for (let i = 0; i < 13; i++) {
+  for (let i = 0; i < 6; i++) {
     await push(here);
     await seconds(1);
   }
   expect(screen.getByText("Undo")).toBeTruthy();
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     await push(here);
     await seconds(1);
   }
   expect(screen.queryByText("Undo")).toBeNull();
 });
 
-/** The square is the Undo for 15 seconds after a skip, so the next skip waits for it to be a skip again. */
+/** The square is the Undo for 7.5 seconds after a skip, so the next skip waits for it to be a skip again. */
 const waitOutUndo = async (p: LatLon) => {
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 8; i++) {
     await push(p);
     await seconds(1);
   }

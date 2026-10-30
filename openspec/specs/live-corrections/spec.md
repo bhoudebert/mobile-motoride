@@ -35,11 +35,11 @@ The route SHALL be requested from the public Valhalla service, once per skip, as
 
 ### Requirement: Undo
 
-For 15 seconds after a skip the rider SHALL be able to undo it, restoring the ride as it was and the point skipped. Undo SHALL need no network. During those 15 seconds the skip square SHALL be the undo button, labelled UNDO: yellow at first, it SHALL fade to the green of the skip button, which it then becomes again. A new skip is possible once it is the skip button again.
+For 7.5 seconds after a skip the rider SHALL be able to undo it, restoring the ride as it was and the point skipped. Undo SHALL need no network. During those 7.5 seconds the skip square SHALL be the undo button, labelled UNDO: yellow at first, it SHALL fade to the green of the skip button, which it then becomes again. A new skip is possible once it is the skip button again.
 
 #### Scenario: A mistaken skip
 
-- **WHEN** the rider skips a point by mistake and taps Undo within 15 seconds
+- **WHEN** the rider skips a point by mistake and taps Undo within 7.5 seconds
 - **THEN** the previous ride returns and the skipped point is the next one again
 
 ### Requirement: Not in the demo

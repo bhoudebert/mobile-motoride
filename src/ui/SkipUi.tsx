@@ -6,7 +6,7 @@ import type { SkipState } from "./useRide.ts";
 import { colors, fonts, themed } from "./theme.ts";
 
 export const CONFIRM_TIMEOUT_MS = 10_000;
-export const UNDO_TIMEOUT_MS = 15_000;
+export const UNDO_TIMEOUT_MS = 7_500;
 
 /**
  * The side of the skip square (dp), also the least height of a banner, so the two stand side by side as one row; and the width a
@@ -17,7 +17,7 @@ export const SKIP_GAP = 8;
 
 /**
  * At the top, in the row of the banners, at the right: the point that can be skipped. Always available, at any speed (spec
- * live-corrections): the rider who finds the road blocked is riding. The banners leave room for it. For 15 seconds after a skip
+ * live-corrections): the rider who finds the road blocked is riding. The banners leave room for it. For 7.5 seconds after a skip
  * it is the UNDO: yellow at first, it fades to the green of SKIP STEP, which it then is again.
  */
 export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: number; onPress: () => void }) {
@@ -25,7 +25,7 @@ export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: numbe
   const fade = useRef(new Animated.Value(0)).current;
   const forget = useRef(skip.forgetLast);
   forget.current = skip.forgetLast;
-  // Keyed on the skip itself, so the screen's own re-renders do not restart the 15 seconds.
+  // Keyed on the skip itself, so the screen's own re-renders do not restart the 7.5 seconds.
   useEffect(() => {
     if (!last) return;
     fade.setValue(0);
