@@ -44,6 +44,31 @@ export function parseImport(text: string, nameHint = ""): Roadbook {
   return { ...rb, name, id: libraryId(name, rb.line) };
 }
 
+/** Where an incoming roadbook goes among the kept ones (spec roadbook-library, "A refreshed roadbook"). */
+export type Placement = { kind: "new" } | { kind: "replace"; id: string } | { kind: "older"; kept: ImportedRoadbook };
+
+/**
+ * A roadbook that agentRide numbered (app, number and name all known) replaces the kept one with the same origin and
+ * keeps its local id, so the rides recorded on it stay linked. The same number under another name is another library's
+ * roadbook, so it is new. A file older than the kept one is not let in. Anything else is new (its hash id may still
+ * replace a copy of the same route).
+ */
+export function placeImport(incoming: Roadbook, kept: readonly ImportedRoadbook[]): Placement {
+  const o = incoming.origin;
+  if (!o || o.roadbook === undefined || !o.name) return { kind: "new" };
+  const same = kept.find(
+    (k) =>
+      k.roadbook.origin?.app === o.app &&
+      k.roadbook.origin.roadbook === o.roadbook &&
+      k.roadbook.origin.name === o.name,
+  );
+  if (!same) return { kind: "new" };
+  const a = incoming.generatedAt ? Date.parse(incoming.generatedAt) : NaN;
+  const b = same.roadbook.generatedAt ? Date.parse(same.roadbook.generatedAt) : NaN;
+  if (a < b) return { kind: "older", kept: same };
+  return { kind: "replace", id: same.roadbook.id };
+}
+
 /** "my ride.motoride.json" → "my ride". */
 export function nameFromFile(file: string): string {
   const last = file.split(/[\\/]/).pop() ?? file;

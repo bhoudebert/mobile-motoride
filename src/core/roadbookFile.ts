@@ -167,5 +167,8 @@ export function parseRoadbookFile(text: string, id?: string): Roadbook {
     junctions: junctionsOf(doc["junctions"], line.length - 1),
     countries: countriesOf(doc["countries"], line.length - 1),
     ...(originOf(doc["origin"]) ? { origin: originOf(doc["origin"])! } : {}),
+    ...(str(doc["generatedAt"]) && Number.isFinite(Date.parse(doc["generatedAt"]))
+      ? { generatedAt: doc["generatedAt"] }
+      : {}),
   };
 }

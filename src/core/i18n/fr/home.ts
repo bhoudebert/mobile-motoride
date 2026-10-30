@@ -92,6 +92,8 @@ export const home: Translated<typeof English> = {
     "Limitations de vitesse ajoutées. Les radars n'ont pas pu être recherchés ; réessayez depuis la liste.",
   "home.import.servicesDown": "Les services n'ont pas pu être joints.",
   "home.import.withoutLimits": "Importé sans limitations de vitesse. {why} Vous pouvez réessayer depuis la liste.",
+  "home.import.older":
+    "Une version plus récente de « {name} » est déjà gardée. Le fichier plus ancien n’a pas été importé.",
   "home.import.badLink": "Ce lien n'est pas un lien d'importation valide.",
   "home.import.unreadable": "Ce fichier n'a pas pu être lu. Est-ce un roadbook ou un fichier GPX ?",
   "home.import.tooBig": "Ce fichier est trop gros pour être un roadbook.",

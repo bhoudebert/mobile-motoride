@@ -62,11 +62,14 @@ available for other apps; the app reads a GPX too, but without limits or cameras
 - `countries`: the country of each stretch of the line, as indexes into `line` like `limits`, with an ISO 3166-1 alpha-2
   `code`. The app decides from it what it may say about a camera (`openspec/specs/danger-zones`, ADR 0021): its place and
   distance, only a danger zone, or nothing. **A roadbook without it gets no camera warning at all.** Optional.
+- `generatedAt`: when the file was made, ISO 8601. A reader that holds an older and a newer copy of one roadbook keeps
+  the newer. Optional.
 - `origin`: where the roadbook came from, when a program that numbers its roadbooks made it:
   `{ "app": "agentRide", "roadbook": 7, "ride": 12, "name": "Pays des Collines loop" }`. `roadbook` and `ride` are that
   program's own whole numbers, `name` its name for the roadbook. The app copies them into the GPX of a ride it records,
   so a reader can tell which roadbook the ride followed; **a number alone is not an identity** (they repeat from one
-  library to another), a reader matches on the number and the name together. Optional.
+  library to another), a reader matches on the number and the name together. Optional. MobileMotoRide uses the same
+  match to replace a kept roadbook with its refreshed file (spec roadbook-library).
 
 ## Rules for the producer
 

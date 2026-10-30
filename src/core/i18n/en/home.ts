@@ -87,6 +87,7 @@ export const home = {
   "home.import.camerasMissing": "Speed limits added. The cameras could not be looked up; try again from the list.",
   "home.import.servicesDown": "The services could not be reached.",
   "home.import.withoutLimits": "Imported without speed limits. {why} You can try again from the list.",
+  "home.import.older": "A newer version of “{name}” is already kept. The older file was not imported.",
   "home.import.badLink": "That link is not a valid import link.",
   "home.import.unreadable": "This file could not be read. Is it a roadbook or a GPX file?",
   "home.import.tooBig": "This file is too big to be a roadbook.",

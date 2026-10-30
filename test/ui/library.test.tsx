@@ -196,6 +196,50 @@ test("the same file twice is one roadbook", async () => {
   expect(kept()).toHaveLength(1);
 });
 
+const refreshed = (route: number, generatedAt: string, n = 7, name = "Agent loop") =>
+  roadbookFile(drawLine([{ straight: route }]), {
+    name,
+    generatedAt,
+    origin: { app: "agentRide", roadbook: n, ride: 1, name },
+    limits: [{ from: 0, to: 2, kmh: 70, posted: true }],
+  });
+const importAgain = async () => {
+  await fireEvent.press(screen.getByLabelText("Import a roadbook"));
+  await flush();
+  await revealButtons();
+  await fireEvent.press(screen.getByLabelText("Back to the list"));
+};
+
+test("a refreshed roadbook replaces its old copy in place, an older one does not", async () => {
+  await toList();
+  choose("a.motoride.json", refreshed(3000, "2026-10-10T00:00:00.000Z"));
+  await importAgain();
+  const [first] = kept();
+  choose("b.motoride.json", refreshed(5000, "2026-10-20T00:00:00.000Z"));
+  await importAgain();
+  expect(kept()).toEqual([first]);
+  expect(screen.getAllByText("Agent loop")).toHaveLength(1);
+  const stored = () => JSON.parse(files.get(first!)!);
+  const length = stored().roadbook.line.length;
+  expect(length).toBeGreaterThan(2);
+  // An older file: the newer copy stays, opens, and says so.
+  choose("c.motoride.json", refreshed(1000, "2026-10-01T00:00:00.000Z"));
+  await fireEvent.press(screen.getByLabelText("Import a roadbook"));
+  await flush();
+  expect(screen.getByText(/newer version of “Agent loop” is already kept/)).toBeTruthy();
+  expect(stored().roadbook.line).toHaveLength(length);
+  expect(kept()).toEqual([first]);
+});
+
+test("the same number under another name is a second roadbook", async () => {
+  await toList();
+  choose("a.motoride.json", refreshed(3000, "2026-10-10T00:00:00.000Z"));
+  await importAgain();
+  choose("b.motoride.json", refreshed(3000, "2026-10-10T00:00:00.000Z", 7, "Other loop"));
+  await importAgain();
+  expect(kept()).toHaveLength(2);
+});
+
 test("an imported roadbook is deleted after a question, a bundled one cannot be", async () => {
   choose("a.gpx", gpx("To delete"));
   await toList();
