@@ -9,7 +9,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.adequatefunction.motoride",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
