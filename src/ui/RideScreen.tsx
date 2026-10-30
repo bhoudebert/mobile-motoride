@@ -46,7 +46,7 @@ import { INSTRUCTION_BAR_HEIGHT, INSTRUCTION_BAR_TOP, InstructionBar } from "./I
 import { JunctionCard } from "./JunctionCard.tsx";
 import { ATTRIBUTION, BASEMAP_LABEL, BASEMAP_ORDER, BASEMAP_STYLES, type Basemap } from "./mapStyle.ts";
 import { EndConfirm, JoinCard, LegendCard, StartFromList } from "./RideControlUi.tsx";
-import { SKIP_GAP, SKIP_SQUARE, SkipConfirm, SkipSquare, UndoBar } from "./SkipUi.tsx";
+import { SKIP_GAP, SKIP_SQUARE, SkipConfirm, SkipSquare } from "./SkipUi.tsx";
 import { SpeedLimitSign } from "./SpeedLimitSign.tsx";
 import { colors, fonts, themed } from "./theme.ts";
 import { useRide, type RideMode } from "./useRide.ts";
@@ -234,7 +234,7 @@ export function RideScreen({
     return result;
   };
   /** A banner stops short of the skip square, so it is never hidden behind it. */
-  const bannerRight = skip.plan ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
+  const bannerRight = skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
   // A route being found, or the point passed, takes the question away.
   useEffect(() => {
     if (confirming && !skip.canSkip) setConfirming(false);
@@ -787,7 +787,6 @@ export function RideScreen({
           />
         ) : null}
 
-        <UndoBar skip={skip} top={BELOW_BAR} right={bannerRight} />
         <SkipSquare skip={skip} top={BELOW_BAR} onPress={() => setConfirming(true)} />
 
         {basemap !== "off" ? (

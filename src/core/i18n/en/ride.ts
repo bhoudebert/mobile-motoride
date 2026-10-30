@@ -117,7 +117,6 @@ export const ride = {
   "ride.skip.confirm": "Skip",
   "ride.skip.title": "Skip {name}?",
   "ride.skip.sub": "New route to {name}",
-  "ride.skip.undoText": "Skipped {skipped} · heading for {target}",
   "ride.skip.undoA11y": "Undo the skip",
   "ride.skip.undo": "Undo",
   "ride.skip.say": "Skipping {skipped}, heading for {target}",

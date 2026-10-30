@@ -120,7 +120,6 @@ export const ride: Translated<typeof English> = {
   "ride.skip.confirm": "Sauter",
   "ride.skip.title": "Sauter {name} ?",
   "ride.skip.sub": "Nouvel itinéraire vers {name}",
-  "ride.skip.undoText": "{skipped} sauté · direction {target}",
   "ride.skip.undoA11y": "Annuler le saut",
   "ride.skip.undo": "Annuler",
   "ride.skip.say": "Saut de {skipped}, direction {target}",
