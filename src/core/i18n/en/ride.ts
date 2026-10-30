@@ -111,7 +111,6 @@ export const ride = {
   "ride.legend.zoom": "Corner dots show when you zoom in.",
 
   "ride.skip.button": "Skip {name}",
-  "ride.skip.blocked": "Stop to skip {name}",
   "ride.skip.busy": "Finding a new route…",
   "ride.skip.confirmA11y": "Skip {skipped} and go to {target}",
   "ride.skip.confirm": "Skip",

@@ -1,3 +1,4 @@
+import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import * as Speech from "expo-speech";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
@@ -5,7 +6,7 @@ import { routeToStart } from "../../src/services/valhalla.ts";
 import * as location from "./location.mock.ts";
 import { resetMapMock } from "./maplibre.mock.tsx";
 import { flush, seconds } from "./flush.ts";
-import { at, skippableRoadbook, endRide } from "./helpers.ts";
+import { at, skippableRoadbook, endRide, revealButtons } from "./helpers.ts";
 import type { LatLon, PreparedRoadbook } from "../../src/core/types.ts";
 
 const route = routeToStart as jest.Mock;
@@ -54,15 +55,27 @@ test("while riding with GPS the next route point can be skipped, not the café",
   expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
 });
 
-test("moving at 10 km/h or more, skipping is refused and says so", async () => {
+test("moving at speed, the skip is still there and still asks first", async () => {
   const rb = skippableRoadbook();
   await start(rb, at(rb, 100));
-  await push(at(rb, 100), 12);
-  expect(screen.getByText("Stop to skip 1. Mont")).toBeTruthy();
-  await fireEvent.press(screen.getByText("Stop to skip 1. Mont"));
-  expect(screen.queryByText("Skip 1. Mont?")).toBeNull();
-  await push(at(rb, 100), 9);
-  expect(screen.getByText("Skip 1. Mont")).toBeTruthy();
+  await push(at(rb, 100), 80);
+  expect(screen.queryByText(/Stop to skip/)).toBeNull();
+  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  expect(screen.getByText("Skip 1. Mont?")).toBeTruthy();
+  expect(route).not.toHaveBeenCalled();
+});
+
+test("the skip is a square of at least 72 dp, and a banner stops short of it", async () => {
+  const rb = skippableRoadbook();
+  await start(rb, at(rb, 100));
+  await stopAt(rb, 100);
+  const flat = StyleSheet.flatten(screen.getByLabelText("Skip 1. Mont").props.style);
+  expect(flat.width).toBe(flat.height);
+  expect(flat.width).toBeGreaterThanOrEqual(72);
+  await revealButtons();
+  await fireEvent.press(screen.getByText("Pause"));
+  const banner = screen.getByText("Ride paused").parent!;
+  expect(StyleSheet.flatten(banner.props.style).right).toBe(12 + flat.width + 8);
 });
 
 test("a skip needs a second tap that names the point and where the rider goes, and can be cancelled", async () => {
@@ -92,16 +105,6 @@ test("the question cancels itself after 10 seconds, however often the screen upd
     await push(at(rb, 100));
     await seconds(1);
   }
-  expect(screen.queryByText("Skip 1. Mont?")).toBeNull();
-  expect(route).not.toHaveBeenCalled();
-});
-
-test("the question goes away when the rider sets off", async () => {
-  const rb = skippableRoadbook();
-  await start(rb, at(rb, 100));
-  await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
-  await push(at(rb, 110), 25);
   expect(screen.queryByText("Skip 1. Mont?")).toBeNull();
   expect(route).not.toHaveBeenCalled();
 });

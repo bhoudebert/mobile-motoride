@@ -8,21 +8,27 @@ import { colors, fonts, themed } from "./theme.ts";
 export const CONFIRM_TIMEOUT_MS = 10_000;
 export const UNDO_TIMEOUT_MS = 15_000;
 
-/** In the HUD: the point that can be skipped. Refused while moving (the app asks nothing of a rider who rides). */
-export function SkipButton({ skip, onPress }: { skip: SkipState; onPress: () => void }) {
+/** The side of the skip square (dp), and the width a banner next to it gives up: at least 72 dp to be hit with a glove on a moving bike. */
+export const SKIP_SQUARE = 76;
+export const SKIP_GAP = 8;
+
+/**
+ * At the top, in the row of the banners, at the right: the point that can be skipped. Always available, at any speed (spec
+ * live-corrections): the rider who finds the road blocked is riding. The banners and the undo bar leave room for it.
+ */
+export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: number; onPress: () => void }) {
   if (!skip.plan) return null;
   const name = skip.plan.skipped.name;
-  const allowed = skip.canSkip;
   return (
     <Pressable
-      style={[styles.skip, !allowed && styles.skipOff]}
-      onPress={allowed ? onPress : undefined}
+      style={[styles.skip, { top }]}
+      onPress={skip.canSkip ? onPress : undefined}
       accessibilityRole="button"
-      accessibilityLabel={allowed ? t("ride.skip.button", { name }) : t("ride.skip.blocked", { name })}
-      accessibilityState={{ disabled: !allowed }}
+      accessibilityLabel={t("ride.skip.button", { name })}
+      accessibilityState={{ disabled: !skip.canSkip }}
     >
-      <Text style={[styles.skipText, !allowed && styles.skipTextOff]} numberOfLines={1}>
-        {skip.busy ? t("ride.skip.busy") : allowed ? t("ride.skip.button", { name }) : t("ride.skip.blocked", { name })}
+      <Text style={styles.skipText} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.7}>
+        {skip.busy ? t("ride.skip.busy") : t("ride.skip.button", { name })}
       </Text>
     </Pressable>
   );
@@ -70,7 +76,7 @@ export function SkipConfirm({ skip, onClose, top }: { skip: SkipState; onClose: 
 }
 
 /** For 15 seconds after a skip: say what was done and let the rider take it back. */
-export function UndoBar({ skip, top }: { skip: SkipState; top: number }) {
+export function UndoBar({ skip, top, right }: { skip: SkipState; top: number; right: number }) {
   const last = skip.last;
   const forget = useRef(skip.forgetLast);
   forget.current = skip.forgetLast;
@@ -82,7 +88,7 @@ export function UndoBar({ skip, top }: { skip: SkipState; top: number }) {
   }, [last]);
   if (!last) return null;
   return (
-    <View style={[styles.undo, { top }]} accessibilityLiveRegion="polite">
+    <View style={[styles.undo, { top, right }]} accessibilityLiveRegion="polite">
       <Text style={styles.undoText} numberOfLines={2}>
         {t("ride.skip.undoText", { skipped: last.skipped, target: last.target })}
       </Text>
@@ -101,15 +107,18 @@ export function UndoBar({ skip, top }: { skip: SkipState; top: number }) {
 const styles = themed(() =>
   StyleSheet.create({
     skip: {
-      backgroundColor: colors.moss2,
+      position: "absolute",
+      right: 12,
+      width: SKIP_SQUARE,
+      height: SKIP_SQUARE,
+      backgroundColor: colors.moss,
       borderRadius: 4,
-      minHeight: 48,
+      alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 12,
+      padding: 6,
+      zIndex: 5,
     },
-    skipOff: { backgroundColor: colors.moss, borderWidth: 1, borderColor: colors.mossMuted },
-    skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 15 },
-    skipTextOff: { color: colors.mossMuted },
+    skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 15, textAlign: "center" },
     card: {
       position: "absolute",
       left: 12,
