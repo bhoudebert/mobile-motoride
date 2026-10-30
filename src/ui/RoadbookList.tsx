@@ -1,5 +1,6 @@
+import { TOP_INSET } from "./insets.ts";
 import { useEffect, useState } from "react";
-import { BackHandler, FlatList, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
 import { t } from "../core/i18n/index.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
@@ -127,7 +128,7 @@ export function RoadbookList({
 
 const styles = themed(() =>
   StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: (StatusBar.currentHeight ?? 0) + 8 },
+    screen: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 8 },
     title: { color: colors.accent, fontFamily: fonts.bold, fontSize: 30, paddingHorizontal: 16, paddingBottom: 4 },
     subtitle: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 14, paddingHorizontal: 16, paddingBottom: 12 },
     back: { minHeight: 48, minWidth: 48, paddingHorizontal: 16, justifyContent: "center", alignSelf: "flex-start" },

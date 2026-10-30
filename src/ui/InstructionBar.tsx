@@ -1,5 +1,6 @@
+import { TOP_INSET } from "./insets.ts";
 import { t } from "../core/i18n/index.ts";
-import { StatusBar, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
 import type { InstructionKind } from "../core/instruction.ts";
 import type { NavState } from "../core/navigator.ts";
@@ -20,7 +21,7 @@ const GLYPH: Record<InstructionKind, string> = {
 const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
 const arrowFor = (relativeDeg: number) => ARROWS[Math.round((((relativeDeg % 360) + 360) % 360) / 45) % 8]!;
 
-export const INSTRUCTION_BAR_TOP = (StatusBar.currentHeight ?? 0) + 8;
+export const INSTRUCTION_BAR_TOP = TOP_INSET + 8;
 export const INSTRUCTION_BAR_HEIGHT = 92;
 
 /** "Straight 1.2 km", "Left in 150 m, then right": what comes next, at the top (spec turn-instructions). */

@@ -1,6 +1,7 @@
+import { TOP_INSET } from "./insets.ts";
 import { Camera, GeoJSONSource, Layer, Map, type CameraRef } from "@maplibre/maplibre-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { Place } from "../core/destination.ts";
 import { formatDistance } from "../core/format.ts";
 import { t, type LanguageSetting } from "../core/i18n/index.ts";
@@ -318,7 +319,7 @@ export const roadbookDetail = (rb: PreparedRoadbook) =>
 const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper },
-    top: { position: "absolute", top: (StatusBar.currentHeight ?? 0) + 12, left: 12, right: 12, flexDirection: "row" },
+    top: { position: "absolute", top: TOP_INSET + 12, left: 12, right: 12, flexDirection: "row" },
     round: {
       width: 52,
       height: 52,

@@ -29,6 +29,16 @@ The system SHALL flag the rider as off route when the distance to the line excee
 - **WHEN** one fix is 80 m away and the next two are within 15 m
 - **THEN** the rider is never flagged off route
 
+### Requirement: Controls clear of the camera
+
+Every screen SHALL keep its first control and its first line of text below the system area at the top (the status bar on Android,
+the notch or Dynamic Island on iOS), so none is hidden behind the camera or too close to be reached.
+
+#### Scenario: An iPhone with a Dynamic Island
+
+- **WHEN** the ride screen is shown on an iPhone whose system area is 59 points high
+- **THEN** the instruction bar starts 8 points below that area
+
 ### Requirement: Ride screen
 
 The ride screen SHALL show the map with the roadbook line, the rider's position following the heading, speed, distance remaining and the next stop, and SHALL keep the screen on. It SHALL need no input while riding and SHALL show a plain-language notice when location permission is refused.

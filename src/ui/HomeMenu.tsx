@@ -1,5 +1,6 @@
+import { TOP_INSET } from "./insets.ts";
 import { useEffect } from "react";
-import { BackHandler, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
 import { nextThemeSetting, type Scheme, type ThemeSetting } from "../core/theme.ts";
 import { LANGUAGE_NAME, nextLanguageSetting, t, type LanguageSetting } from "../core/i18n/index.ts";
 import { nextVoice, voiceName, type VoiceMode } from "../core/voice.ts";
@@ -163,7 +164,7 @@ const styles = themed(() =>
       backgroundColor: colors.paper,
       borderTopRightRadius: radii.sheet,
       borderBottomRightRadius: radii.sheet,
-      paddingTop: (StatusBar.currentHeight ?? 0) + 12,
+      paddingTop: TOP_INSET + 12,
       paddingHorizontal: 12,
       paddingBottom: 24,
       ...lift,

@@ -1,4 +1,5 @@
-import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { TOP_INSET } from "./insets.ts";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { t } from "../core/i18n/index.ts";
 import type { ImportNotice } from "./useImport.ts";
 import { colors, fonts, lift, radii, themed } from "./theme.ts";
@@ -29,7 +30,7 @@ export function ImportNoticeBar({ notice, onDismiss }: { notice: ImportNotice; o
 
 const styles = themed(() =>
   StyleSheet.create({
-    wrap: { position: "absolute", left: 12, right: 12, top: (StatusBar.currentHeight ?? 0) + 76, zIndex: 10 },
+    wrap: { position: "absolute", left: 12, right: 12, top: TOP_INSET + 76, zIndex: 10 },
     bar: {
       backgroundColor: colors.ink,
       borderRadius: radii.card,
