@@ -179,6 +179,18 @@ version, the build number (`CFBundleVersion`, the same number as Android's `vers
 `audio`, `location` and `fetch` background modes. **Not tried: signing, the upload, or running it.** Expect a first round of
 fixes on a phone.
 
+### The development client, to work on an iPhone from Linux (ADR 0043)
+
+`.github/workflows/ios-dev.yml` (Actions ▸ iOS dev client ▸ Run workflow) builds the Debug app signed for development. One-time:
+
+1. Plug the iPhone in, tap **Trust**, turn on **Developer Mode** (Settings ▸ Privacy & Security). `idevice_id -l` (from
+   `nix shell nixpkgs#libimobiledevice nixpkgs#ideviceinstaller`) prints the UDID.
+2. Register it: developer.apple.com ▸ Certificates, Identifiers & Profiles ▸ Devices ▸ +.
+3. Run the workflow, `gh run download <id> -n motoride-ios-dev`, then `ideviceinstaller -i motoride-dev.ipa`.
+4. `npm start`, and open the app on the phone; give it the address of this machine on the local network (port 8081).
+
+Rebuild it only when native code changes. It is never attached to a release.
+
 ### The App Store
 
 Nothing past the build has been tried. Expect a first round of fixes, and treat the Android parity as unproven.

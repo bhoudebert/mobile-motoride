@@ -1,0 +1,62 @@
+name: iOS dev client
+
+# Builds the Debug configuration, the development client, signed with a development profile for the iPhones registered in the
+# Apple Developer account. It is not a release: it loads its JavaScript from Metro on the developer's machine (`npm start`), so a
+# JavaScript change shows on the phone in seconds. Rebuild it only when native code or a native dependency changes (ADR 0043).
+# Same four Apple secrets as the iOS build workflow (docs/SHIPPING.md, section 8); the phone's UDID must be registered first
+# (developer.apple.com ▸ Certificates, Identifiers & Profiles ▸ Devices).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Generate the iOS project and its pods
+        run: npx expo prebuild --platform ios --clean
+      - name: Build and sign for development
+        working-directory: ios
+        run: |
+          set -o pipefail
+          mkdir -p "$HOME/.private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/.private_keys/AuthKey_$ASC_KEY_ID.p8"
+          xcodebuild \
+            -workspace MotoRide.xcworkspace \
+            -scheme MotoRide \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.private_keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            build | tail -n 60
+      - name: Pack the IPA
+        run: |
+          mkdir -p dist-ios-dev/Payload
+          cp -R ios/build/Build/Products/Debug-iphoneos/MotoRide.app dist-ios-dev/Payload/
+          codesign -dv --verbose=2 dist-ios-dev/Payload/MotoRide.app 2>&1 | grep -E "Authority|TeamIdentifier" || true
+          (cd dist-ios-dev && zip -qry motoride-dev.ipa Payload && rm -rf Payload)
+          ls -lh dist-ios-dev
+      - uses: actions/upload-artifact@v7
+        with:
+          name: motoride-ios-dev
+          path: dist-ios-dev/*
+          retention-days: 14
