@@ -185,7 +185,7 @@ test("the skip button, its question and the undo are labelled buttons of at leas
     }
   };
   check();
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   expect(screen.getByText("Skip 1. Mont?")).toBeTruthy();
   check();
   expect(screen.getByLabelText(/^Skip 1\. Mont and go to 2\. Cassel$/)).toBeTruthy();

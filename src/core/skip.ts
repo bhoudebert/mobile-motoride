@@ -2,9 +2,6 @@ import { haversineM } from "./geo.ts";
 import { snapToLine } from "./track.ts";
 import type { LatLon, PreparedRoadbook, PreparedStop } from "./types.ts";
 
-/** Below this GPS speed the rider may skip a point: the app asks nothing of a rider who is riding. */
-export const SKIP_MAX_SPEED_MPS = 10 / 3.6;
-
 /** What skipping the next route point would do (spec live-corrections). */
 export interface SkipPlan {
   /** The route point the roadbook is heading for, which is dropped. */
@@ -29,11 +26,6 @@ export function planSkip(ride: PreparedRoadbook, progressM: number): SkipPlan | 
   const target = i >= 0 ? waypoints[i + 1] : undefined;
   if (!skipped || !target) return null;
   return { skipped, target, joinM: ride.joinM + Math.max(0, target.atM - ride.approachM) };
-}
-
-/** Skipping is refused while moving; an unknown speed is allowed. */
-export function canSkipAt(speedMps: number | null): boolean {
-  return speedMps === null || speedMps < SKIP_MAX_SPEED_MPS;
 }
 
 /** A route point the rider can start the roadbook from (spec ride-control). */

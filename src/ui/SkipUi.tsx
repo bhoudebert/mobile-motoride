@@ -1,29 +1,65 @@
 import { t } from "../core/i18n/index.ts";
 import { useEffect, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Sheet } from "./RideControlUi.tsx";
 import type { SkipState } from "./useRide.ts";
 import { colors, fonts, themed } from "./theme.ts";
 
 export const CONFIRM_TIMEOUT_MS = 10_000;
-export const UNDO_TIMEOUT_MS = 15_000;
+export const UNDO_TIMEOUT_MS = 7_500;
 
-/** In the HUD: the point that can be skipped. Refused while moving (the app asks nothing of a rider who rides). */
-export function SkipButton({ skip, onPress }: { skip: SkipState; onPress: () => void }) {
-  if (!skip.plan) return null;
-  const name = skip.plan.skipped.name;
-  const allowed = skip.canSkip;
+/**
+ * The side of the skip square (dp), also the least height of a banner, so the two stand side by side as one row; and the width a
+ * banner gives up for it. Large enough to be hit with a glove on a moving bike, and to read at a glance.
+ */
+export const SKIP_SQUARE = 92;
+export const SKIP_GAP = 8;
+
+/**
+ * At the top, in the row of the banners, at the right: the point that can be skipped. Always available, at any speed (spec
+ * live-corrections): the rider who finds the road blocked is riding. The banners leave room for it. For 7.5 seconds after a skip
+ * it is the UNDO: yellow at first, it fades to the green of SKIP STEP, which it then is again.
+ */
+export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: number; onPress: () => void }) {
+  const last = skip.last;
+  const fade = useRef(new Animated.Value(0)).current;
+  const forget = useRef(skip.forgetLast);
+  forget.current = skip.forgetLast;
+  // Keyed on the skip itself, so the screen's own re-renders do not restart the 7.5 seconds.
+  useEffect(() => {
+    if (!last) return;
+    fade.setValue(0);
+    const run = Animated.timing(fade, { toValue: 1, duration: UNDO_TIMEOUT_MS, useNativeDriver: false });
+    run.start();
+    const timer = setTimeout(() => forget.current(), UNDO_TIMEOUT_MS);
+    return () => {
+      run.stop();
+      clearTimeout(timer);
+    };
+  }, [last, fade]);
+  if (!skip.plan && !last) return null;
+  const undoing = last !== null;
+  const name = skip.plan?.skipped.name ?? "";
+  const background = fade.interpolate({ inputRange: [0, 1], outputRange: [colors.signal, colors.moss] });
+  const ink = fade.interpolate({ inputRange: [0, 1], outputRange: [colors.onSignal, colors.mossText] });
   return (
     <Pressable
-      style={[styles.skip, !allowed && styles.skipOff]}
-      onPress={allowed ? onPress : undefined}
+      onPress={undoing ? skip.undo : skip.canSkip ? onPress : undefined}
       accessibilityRole="button"
-      accessibilityLabel={allowed ? t("ride.skip.button", { name }) : t("ride.skip.blocked", { name })}
-      accessibilityState={{ disabled: !allowed }}
+      accessibilityLabel={undoing ? t("ride.skip.undoA11y") : t("ride.skip.button", { name })}
+      accessibilityState={{ disabled: !undoing && !skip.canSkip }}
+      style={[styles.skipPress, { top }]}
     >
-      <Text style={[styles.skipText, !allowed && styles.skipTextOff]} numberOfLines={1}>
-        {skip.busy ? t("ride.skip.busy") : allowed ? t("ride.skip.button", { name }) : t("ride.skip.blocked", { name })}
-      </Text>
+      <Animated.View style={[styles.skip, undoing ? { backgroundColor: background } : null]}>
+        <Animated.Text
+          style={[styles.skipText, undoing ? { color: ink, textTransform: "uppercase" } : null]}
+          numberOfLines={4}
+          adjustsFontSizeToFit
+          minimumFontScale={0.4}
+        >
+          {undoing ? t("ride.skip.undo") : skip.busy ? t("ride.skip.busy") : t("ride.skip.label")}
+        </Animated.Text>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -69,47 +105,18 @@ export function SkipConfirm({ skip, onClose, top }: { skip: SkipState; onClose: 
   );
 }
 
-/** For 15 seconds after a skip: say what was done and let the rider take it back. */
-export function UndoBar({ skip, top }: { skip: SkipState; top: number }) {
-  const last = skip.last;
-  const forget = useRef(skip.forgetLast);
-  forget.current = skip.forgetLast;
-  // Keyed on the skip itself, so the screen's own re-renders do not restart the 15 seconds.
-  useEffect(() => {
-    if (!last) return;
-    const timer = setTimeout(() => forget.current(), UNDO_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [last]);
-  if (!last) return null;
-  return (
-    <View style={[styles.undo, { top }]} accessibilityLiveRegion="polite">
-      <Text style={styles.undoText} numberOfLines={2}>
-        {t("ride.skip.undoText", { skipped: last.skipped, target: last.target })}
-      </Text>
-      <Pressable
-        style={styles.undoButton}
-        onPress={skip.undo}
-        accessibilityRole="button"
-        accessibilityLabel={t("ride.skip.undoA11y")}
-      >
-        <Text style={styles.undoButtonText}>{t("ride.skip.undo")}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = themed(() =>
   StyleSheet.create({
+    skipPress: { position: "absolute", right: 12, width: SKIP_SQUARE, height: SKIP_SQUARE, zIndex: 5 },
     skip: {
-      backgroundColor: colors.moss2,
+      flex: 1,
+      backgroundColor: colors.moss,
       borderRadius: 4,
-      minHeight: 48,
+      alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 12,
+      padding: 6,
     },
-    skipOff: { backgroundColor: colors.moss, borderWidth: 1, borderColor: colors.mossMuted },
-    skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 15 },
-    skipTextOff: { color: colors.mossMuted },
+    skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 26, textAlign: "center" },
     card: {
       position: "absolute",
       left: 12,
@@ -128,27 +135,5 @@ const styles = themed(() =>
     buttonText: { fontFamily: fonts.bold, fontSize: 18 },
     cancel: { backgroundColor: colors.moss2 },
     confirm: { backgroundColor: colors.rust },
-    undo: {
-      position: "absolute",
-      left: 12,
-      right: 12,
-      backgroundColor: colors.ink,
-      borderRadius: 4,
-      paddingLeft: 16,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    undoText: { flex: 1, color: colors.paper, fontFamily: fonts.sans, fontSize: 15, paddingVertical: 10 },
-    undoButton: {
-      minHeight: 52,
-      minWidth: 80,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.signal,
-      borderTopRightRadius: 4,
-      borderBottomRightRadius: 4,
-    },
-    undoButtonText: { color: colors.onSignal, fontFamily: fonts.bold, fontSize: 17 },
   }),
 );

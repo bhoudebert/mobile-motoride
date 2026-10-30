@@ -46,7 +46,7 @@ import { INSTRUCTION_BAR_HEIGHT, INSTRUCTION_BAR_TOP, InstructionBar } from "./I
 import { JunctionCard } from "./JunctionCard.tsx";
 import { ATTRIBUTION, BASEMAP_LABEL, BASEMAP_ORDER, BASEMAP_STYLES, type Basemap } from "./mapStyle.ts";
 import { EndConfirm, JoinCard, LegendCard, StartFromList } from "./RideControlUi.tsx";
-import { SkipButton, SkipConfirm, UndoBar } from "./SkipUi.tsx";
+import { SKIP_GAP, SKIP_SQUARE, SkipConfirm, SkipSquare } from "./SkipUi.tsx";
 import { SpeedLimitSign } from "./SpeedLimitSign.tsx";
 import { colors, fonts, themed } from "./theme.ts";
 import { useRide, type RideMode } from "./useRide.ts";
@@ -93,10 +93,10 @@ const DRAG_DP = 10;
 const ROW_BLOCK = 64;
 const OVERVIEW_PADDING = { top: BELOW_BAR + 20, right: 40, bottom: 320, left: 40 };
 
-function Banner({ tone, title, sub }: { tone: Tone; title: string; sub: string }) {
+function Banner({ tone, title, sub, right }: { tone: Tone; title: string; sub: string; right: number }) {
   const text = tone === "signal" ? colors.onSignal : tone === "rust" ? colors.onRust : colors.paper;
   return (
-    <View style={[styles.banner, { backgroundColor: colors[tone] }]} accessibilityLiveRegion="polite">
+    <View style={[styles.banner, { backgroundColor: colors[tone], right }]} accessibilityLiveRegion="polite">
       <Text style={[styles.bannerTitle, { color: text }]}>{title}</Text>
       <Text style={[styles.bannerSub, { color: text }]}>{sub}</Text>
     </View>
@@ -233,7 +233,9 @@ export function RideScreen({
     if ("done" in result) setCalibration(result.done);
     return result;
   };
-  // Moving off, or a route being found, takes the question away: nothing is asked of a rider who rides.
+  /** A banner stops short of the skip square, so it is never hidden behind it. */
+  const bannerRight = skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
+  // A route being found, or the point passed, takes the question away.
   useEffect(() => {
     if (confirming && !skip.canSkip) setConfirming(false);
   }, [confirming, skip.canSkip]);
@@ -707,6 +709,7 @@ export function RideScreen({
 
         {warning ? (
           <Banner
+            right={bannerRight}
             tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
             title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
               direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
@@ -720,6 +723,7 @@ export function RideScreen({
 
         {!warning && zone && nav ? (
           <Banner
+            right={bannerRight}
             tone="ink"
             title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
             sub={
@@ -734,15 +738,16 @@ export function RideScreen({
         ) : null}
 
         {paused && mode === "gps" ? (
-          <Banner tone="ink" title={t("ride.banner.paused")} sub={t("ride.banner.pausedSub")} />
+          <Banner right={bannerRight} tone="ink" title={t("ride.banner.paused")} sub={t("ride.banner.pausedSub")} />
         ) : null}
 
         {mode === "gps" && prep === "locating" ? (
-          <Banner tone="ink" title={t("ride.banner.locating")} sub={t("ride.banner.locatingSub")} />
+          <Banner right={bannerRight} tone="ink" title={t("ride.banner.locating")} sub={t("ride.banner.locatingSub")} />
         ) : null}
 
         {mode === "gps" && prep === "routing" ? (
           <Banner
+            right={bannerRight}
             tone="ink"
             title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
             sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
@@ -751,6 +756,7 @@ export function RideScreen({
 
         {nav?.phase === "approach" && ride.approachDirect ? (
           <Banner
+            right={bannerRight}
             tone="signal"
             title={
               ride.approachName
@@ -764,14 +770,24 @@ export function RideScreen({
         ) : null}
 
         {basemapFailed ? (
-          <Banner tone="ink" title={t("ride.banner.mapOffline")} sub={t("ride.banner.mapOfflineSub")} />
+          <Banner
+            right={bannerRight}
+            tone="ink"
+            title={t("ride.banner.mapOffline")}
+            sub={t("ride.banner.mapOfflineSub")}
+          />
         ) : null}
 
         {permission === "denied" ? (
-          <Banner tone="ink" title={t("ride.banner.locationOff")} sub={t("ride.banner.locationOffSub")} />
+          <Banner
+            right={bannerRight}
+            tone="ink"
+            title={t("ride.banner.locationOff")}
+            sub={t("ride.banner.locationOffSub")}
+          />
         ) : null}
 
-        <UndoBar skip={skip} top={BELOW_BAR} />
+        <SkipSquare skip={skip} top={BELOW_BAR} onPress={() => setConfirming(true)} />
 
         {basemap !== "off" ? (
           <Text style={[styles.attribution, { bottom: panelH + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
@@ -934,7 +950,6 @@ export function RideScreen({
               })}
             </Text>
           ) : null}
-          <SkipButton skip={skip} onPress={() => setConfirming(true)} />
           {!running ? <Text style={styles.note}>{t("ride.note.advisory")}</Text> : null}
           {!running && !modalOpen && server ? <LiveShareChoice on={shareWanted} onChange={setShareWanted} /> : null}
           {!running && basemap !== "off" ? (
@@ -1147,7 +1162,7 @@ const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper },
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-    banner: { position: "absolute", top: BELOW_BAR, left: 12, right: 12, borderRadius: 4, padding: 16 },
+    banner: { position: "absolute", top: BELOW_BAR, left: 12, borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
     bannerTitle: { fontFamily: fonts.bold, fontSize: 28 },
     bannerSub: { fontFamily: fonts.sans, fontSize: 18 },
     attribution: {

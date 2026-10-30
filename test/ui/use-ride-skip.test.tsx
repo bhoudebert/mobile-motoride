@@ -31,16 +31,16 @@ test("two confirmations in the same instant ask for one route", async () => {
   expect(route).toHaveBeenCalledTimes(1);
 });
 
-test("the skip is refused by the hook itself when the rider is moving", async () => {
+test("the skip is offered and done while the rider is moving", async () => {
   const rb = skippableRoadbook();
   const here = at(rb, 100);
   location.state.position = { latitude: here[0], longitude: here[1] };
   const { result } = await renderHook(() => useRide(rb, "gps"));
   await flush();
   await act(async () => location.pushFix(here[0], here[1], 20, 1000, 90));
-  expect(result.current.skip.canSkip).toBe(false);
+  expect(result.current.skip.canSkip).toBe(true);
   await act(async () => result.current.skip.confirm());
-  expect(route).not.toHaveBeenCalled();
+  expect(route).toHaveBeenCalledTimes(1);
 });
 
 test("without a GPS fix or in the demo there is nothing to skip", async () => {

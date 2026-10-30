@@ -12,7 +12,6 @@ import { haversineM } from "../core/geo.ts";
 import type { MotionReading } from "../core/instruments.ts";
 import { replayFixAt, type ReplayPhase } from "../core/replay.ts";
 import {
-  canSkipAt,
   joinOptions,
   planSkip,
   START_HERE_M,
@@ -261,7 +260,7 @@ export function useRide(
   /** Skip the next route point: a route from here to the one after it, ridden with the rest of the roadbook. */
   const confirm = () => {
     const fix = lastFix.current;
-    if (!plan || !fix || skipping.current || !canSkipAt(fix.speedMps)) return;
+    if (!plan || !fix || skipping.current) return;
     skipping.current = true;
     setBusy(true);
     const epochAt = ++epoch.current;
@@ -463,7 +462,7 @@ export function useRide(
 
   const skip: SkipState = {
     plan,
-    canSkip: plan !== null && !busy && canSkipAt(live.speedMps),
+    canSkip: plan !== null && !busy,
     busy,
     confirm,
     last,

@@ -4,7 +4,7 @@ import { withApproach } from "../src/core/approach.ts";
 import { createNavigator } from "../src/core/navigator.ts";
 import { parseRoadbookFile } from "../src/core/roadbookFile.ts";
 import { prepareRoadbook } from "../src/core/roadbook.ts";
-import { canSkipAt, joinOptions, planSkip, SKIP_MAX_SPEED_MPS, startChoices } from "../src/core/skip.ts";
+import { joinOptions, planSkip, startChoices } from "../src/core/skip.ts";
 import { pointAt } from "../src/core/track.ts";
 import { drawLine, fixAt } from "./helpers/path.ts";
 import { roadbookFile } from "./helpers/polyline.ts";
@@ -67,14 +67,6 @@ test("a roadbook with one route point or none offers nothing", () => {
   );
   assert.equal(planSkip(few, 0), null);
   assert.equal(planSkip(prepareRoadbook(parseRoadbookFile(roadbookFile(line))), 0), null);
-});
-
-test("skipping is refused at 10 km/h and over, allowed when slower or when the speed is unknown", () => {
-  assert.equal(canSkipAt(null), true);
-  assert.equal(canSkipAt(0), true);
-  assert.equal(canSkipAt(SKIP_MAX_SPEED_MPS - 0.01), true);
-  assert.equal(canSkipAt(SKIP_MAX_SPEED_MPS), false);
-  assert.equal(canSkipAt(20), false);
 });
 
 test("a skip is a join at the target: what lay before it is gone, and it is named", () => {

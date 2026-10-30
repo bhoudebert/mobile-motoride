@@ -14,7 +14,7 @@ The rider can **skip the next route point**. The app routes from where they are 
 stretch between, and goes on with the roadbook. It reuses the rejoin machinery (ADR 0012): one request to the public
 Valhalla service, a join point on the original roadbook, approach and roadbook as one line, a straight-line fallback.
 Only route points (`kind: waypoint`) can be skipped; planned service stops lie on the route and are left alone. It
-takes two taps, works only below 10 km/h, and can be undone for 15 seconds, because the app asks nothing of a rider
+takes two taps, works only below 10 km/h, and can be undone for 15 seconds (7.5 since the undo moved into the skip square), because the app asks nothing of a rider
 who is riding (`openspec/project.md`).
 
 ## Consequences

@@ -122,7 +122,7 @@ test("every card is a sheet with its buttons in the pinned footer", async () => 
   await fireEvent.press(screen.getByText("End"));
   expect(within(screen.getByTestId("sheet-footer")).getByText("End ride")).toBeTruthy();
   await fireEvent.press(screen.getByText("Keep riding"));
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   expect(within(screen.getByTestId("sheet-footer")).getByText("Skip")).toBeTruthy();
 });
 

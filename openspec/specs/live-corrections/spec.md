@@ -25,9 +25,9 @@ While riding with GPS, the rider SHALL be able to skip the next route point: the
 - **WHEN** the rider skips point 2 and, on the new route, skips point 3
 - **THEN** a new route is made from where they are to point 4
 
-### Requirement: Two taps, and only when stopped
+### Requirement: Two taps, at any speed
 
-Skipping SHALL ask for a confirmation naming the point skipped and the target, and SHALL be refused while the GPS speed is 10 km/h or more ("Stop to skip"); with an unknown speed it SHALL be allowed. A confirmation SHALL cancel itself after 10 seconds. The app asks nothing of a rider who is riding.
+Skipping SHALL ask for a confirmation naming the point skipped and the target, and SHALL be available at any speed: a rider who is riding is the one who finds the road blocked, and a button that only works when stopped cannot be used. A confirmation SHALL cancel itself after 10 seconds. The skip button SHALL be a square of at least 72 dp in the row of the warning banners at the top of the ride screen, at the right, never hidden behind a banner: a banner takes the width that is left. It SHALL name the point it skips.
 
 ### Requirement: The new route
 
@@ -35,11 +35,11 @@ The route SHALL be requested from the public Valhalla service, once per skip, as
 
 ### Requirement: Undo
 
-For 15 seconds after a skip the rider SHALL be able to undo it, restoring the ride as it was and the point skipped. Undo SHALL need no network.
+For 7.5 seconds after a skip the rider SHALL be able to undo it, restoring the ride as it was and the point skipped. Undo SHALL need no network. During those 7.5 seconds the skip square SHALL be the undo button, labelled UNDO: yellow at first, it SHALL fade to the green of the skip button, which it then becomes again. A new skip is possible once it is the skip button again.
 
 #### Scenario: A mistaken skip
 
-- **WHEN** the rider skips a point by mistake and taps Undo within 15 seconds
+- **WHEN** the rider skips a point by mistake and taps Undo within 7.5 seconds
 - **THEN** the previous ride returns and the skipped point is the next one again
 
 ### Requirement: Not in the demo

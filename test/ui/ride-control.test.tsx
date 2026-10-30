@@ -113,7 +113,7 @@ test("a skip can still be undone after a pause", async () => {
   await open(rb);
   await startGps(rb, here);
   await push(here);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await revealButtons();
@@ -122,7 +122,7 @@ test("a skip can still be undone after a pause", async () => {
   await fireEvent.press(screen.getByText("Resume"));
   await fireEvent.press(screen.getByText("Undo"));
   await push(here);
-  expect(screen.getByText("Skip 1. Mont")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 1. Mont")).toBeTruthy();
 });
 
 test("there is nothing to pause while the ride is still being prepared", async () => {
@@ -295,7 +295,7 @@ test("one tap on the nearest next point routes there and drops every point befor
   await push(here);
   expect(screen.getByText(/^To 2\. Cassel · /)).toBeTruthy();
   expect(screen.getByTestId("source-approach")).toBeTruthy();
-  expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 2. Cassel")).toBeTruthy();
   expect(screen.queryByText(/Mont|Café/)).toBeNull();
 });
 
@@ -328,7 +328,7 @@ test("any other point can be chosen from a list of the route points, whole rows,
   expect(to[1]).toBeCloseTo(at(rb, 3000)[1], 4);
   await push(beside(rb, 1200));
   expect(screen.getByText(/^To 3\. Bailleul · /)).toBeTruthy();
-  expect(screen.getByText("Skip 3. Bailleul")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 3. Bailleul")).toBeTruthy();
 });
 
 test("Cancel on the card means no ride, at once and with no question", async () => {
@@ -357,7 +357,7 @@ test("on the line there is no card: the ride begins at once where the rider is",
   await startGps(rb, at(rb, 1200));
   expect(screen.queryByText("Where do you join?")).toBeNull();
   await push(at(rb, 1200));
-  expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 2. Cassel")).toBeTruthy();
   expect(route).not.toHaveBeenCalled();
 });
 
