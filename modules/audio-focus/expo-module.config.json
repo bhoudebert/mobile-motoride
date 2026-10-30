@@ -1,6 +1,9 @@
 {
-  "platforms": ["android"],
+  "platforms": ["android", "apple"],
   "android": {
     "modules": ["expo.modules.audiofocus.AudioFocusModule"]
+  },
+  "apple": {
+    "modules": ["MotoRideAudioFocusModule"]
   }
 }

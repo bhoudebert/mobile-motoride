@@ -87,3 +87,21 @@ test("stopping the voice stops the speech engine", () => {
   stopSpeaking();
   expect(Speech.stop).toHaveBeenCalledTimes(1);
 });
+
+test("when the system will not release the audio at once, it is asked again shortly after (iOS)", () => {
+  mockFocus.abandon.mockReturnValueOnce(false);
+  speak("Hello");
+  options(speakMock.mock.calls.length - 1).onDone();
+  expect(mockFocus.abandon).toHaveBeenCalledTimes(1);
+  jest.advanceTimersByTime(400);
+  expect(mockFocus.abandon).toHaveBeenCalledTimes(2);
+});
+
+test("the second try is not made when a new message has started meanwhile", () => {
+  mockFocus.abandon.mockReturnValueOnce(false);
+  speak("old");
+  options(speakMock.mock.calls.length - 1).onDone();
+  speak("new");
+  jest.advanceTimersByTime(400);
+  expect(mockFocus.abandon).toHaveBeenCalledTimes(1);
+});

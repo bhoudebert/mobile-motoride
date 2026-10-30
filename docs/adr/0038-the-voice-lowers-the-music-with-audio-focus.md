@@ -19,7 +19,7 @@ talks over it at full volume. `expo-speech` has no option for it.
   stopped or failed (a count, so a message cut off by the next does not release the focus under it). A watchdog gives it back after 30 s whatever the engine says,
   so the music is never left low.
 - The module is optional at run time (`requireOptionalNativeModule`): in tests, on iOS or in a build made before it, `requestDuck` does nothing and the voice speaks as before.
-- iOS (later) does it with the audio session category, not with this module.
+- iOS: the same module (Swift) sets the audio session to `playback` with `duckOthers` and `interruptSpokenAudioAndMixWithOthers` and activates it; `abandon()` deactivates it with `notifyOthersOnDeactivation`, which makes the music come back. The session can still be busy when the speech says it is done, so `speech.ts` tries the release once more 400 ms later.
 
 ## Consequences
 
