@@ -385,6 +385,7 @@ test("a roadbook of the server is downloaded, then refreshed in place when its s
   const [first] = kept();
   expect(kept()).toHaveLength(1);
   expect(JSON.parse(files.get(first!)!).serverStamp).toBe("s1");
+  expect(JSON.parse(files.get(first!)!).serverId).toBe(7);
   await revealButtons();
   await fireEvent.press(screen.getByLabelText("Back to the list"));
   // Same stamp: up to date, no action.

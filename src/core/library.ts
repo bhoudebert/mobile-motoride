@@ -105,6 +105,8 @@ export interface ImportedRoadbook {
   completion?: "pending";
   /** The stamp of the server's version this copy came from, to tell when the server has a newer one. */
   serverStamp?: string;
+  /** The number the server listed it under; its stamp is only compared with an entry of that number. */
+  serverId?: number;
 }
 
 export const serializeStored = (entry: ImportedRoadbook): string => JSON.stringify({ v: 1, ...entry });
@@ -124,6 +126,9 @@ export function parseStored(text: string): ImportedRoadbook | null {
     return {
       importedAt: raw.importedAt,
       ...((raw as { completion?: unknown }).completion === "pending" ? { completion: "pending" as const } : {}),
+      ...(typeof (raw as { serverId?: unknown }).serverId === "number"
+        ? { serverId: (raw as { serverId: number }).serverId }
+        : {}),
       ...(typeof (raw as { serverStamp?: unknown }).serverStamp === "string"
         ? { serverStamp: (raw as { serverStamp: string }).serverStamp }
         : {}),

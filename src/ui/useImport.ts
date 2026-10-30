@@ -81,6 +81,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
         importedAt: Date.now(),
         ...(problem ? { completion: "pending" as const } : {}),
         ...(picked.stamp ? { serverStamp: picked.stamp } : {}),
+        ...(picked.serverId !== undefined ? { serverId: picked.serverId } : {}),
       };
       await saveImported(entry);
       setItems((list) => [entry, ...list.filter((i) => i.roadbook.id !== rb.id)]);
@@ -105,7 +106,12 @@ export function useImport(onImported: (rb: Roadbook) => void) {
         await finish(async () => {
           const got = await fetchServerRoadbook(server, listed.id);
           if (!got.ok) throw new ImportError(t(`home.server.problem.${got.reason}`));
-          return { text: got.text, name: `${listed.name}.motoride.json`, stamp: got.stamp ?? listed.stamp };
+          return {
+            text: got.text,
+            name: `${listed.name}.motoride.json`,
+            stamp: got.stamp ?? listed.stamp,
+            serverId: listed.id,
+          };
         });
       } finally {
         setFetching(null);
@@ -148,6 +154,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       importedAt: current.importedAt,
       ...(problem ? { completion: "pending" as const } : {}),
       ...(current.serverStamp ? { serverStamp: current.serverStamp } : {}),
+      ...(current.serverId !== undefined ? { serverId: current.serverId } : {}),
     };
     await saveImported(entry);
     setItems((list) => list.map((i) => (i.roadbook.id === id ? entry : i)));

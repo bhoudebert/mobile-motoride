@@ -29,14 +29,17 @@ export function parseServerList(body: unknown): ServerRoadbook[] {
 export type ServerAction = "download" | "refresh" | "current";
 
 /**
- * Matches a server roadbook to the kept one with the same origin (agentRide, same number AND same name, as
- * `placeImport` does) and compares stamps, never `generatedAt`, which changes on every download.
+ * Matches a server roadbook to the kept copy fetched under the same number, else to the one with the same origin
+ * (agentRide, same number AND same name, as `placeImport` does), and compares stamps, never `generatedAt`, which changes on every download.
  */
 export function serverAction(entry: ServerRoadbook, kept: readonly ImportedRoadbook[]): ServerAction {
-  const same = kept.find((k) => {
-    const o = k.roadbook.origin;
-    return o?.app === "agentRide" && o.roadbook === entry.id && o.name === entry.name;
-  });
+  // A roadbook pushed from a library lists under a number that is not its origin's: the copy remembers it.
+  const same =
+    kept.find((k) => k.serverId === entry.id) ??
+    kept.find((k) => {
+      const o = k.roadbook.origin;
+      return k.serverId === undefined && o?.app === "agentRide" && o.roadbook === entry.id && o.name === entry.name;
+    });
   if (!same) return "download";
   return same.serverStamp === entry.stamp ? "current" : "refresh";
 }

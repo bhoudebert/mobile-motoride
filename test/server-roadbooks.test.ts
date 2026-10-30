@@ -41,6 +41,16 @@ test("download when no kept roadbook has the origin, refresh when the stamp diff
   assert.equal(serverAction(entry, [keptWith({ serverStamp: "bbb" })]), "current");
 });
 
+test("a pushed roadbook, listed under a number that is not its origin's, is found by the number it was fetched under", () => {
+  const pushed = { ...entry, id: 1_000_003, name: "Pushed" };
+  const copy = keptWith({ serverId: 1_000_003, serverStamp: "bbb" }, { app: "agentRide", roadbook: 4, name: "Pushed" });
+  assert.equal(serverAction(pushed, []), "download");
+  assert.equal(serverAction(pushed, [copy]), "current");
+  assert.equal(serverAction({ ...pushed, stamp: "ccc" }, [copy]), "refresh");
+  // An entry whose number is another copy's origin number does not take a copy that came from another number.
+  assert.equal(serverAction({ ...entry, id: 4, name: "Pushed" }, [copy]), "download");
+});
+
 test("the stamp is the ETag without its quotes", () => {
   assert.equal(stampOfEtag('"abc123"'), "abc123");
   assert.equal(stampOfEtag('W/"abc"'), "abc");
