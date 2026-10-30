@@ -77,7 +77,7 @@ test("a roadbook file picked from the phone is kept and its ride opens", async (
   expect(kept()).toHaveLength(1);
   await revealButtons();
   await fireEvent.press(screen.getByLabelText("Back to the list"));
-  expect(screen.getByText("Imported")).toBeTruthy();
+  expect(screen.getByText("Imported from a file")).toBeTruthy();
   expect(screen.getByText("Sunday loop")).toBeTruthy();
 });
 
@@ -388,6 +388,11 @@ test("a roadbook of the server is downloaded, then refreshed in place when its s
   expect(JSON.parse(files.get(first!)!).serverId).toBe(7);
   await revealButtons();
   await fireEvent.press(screen.getByLabelText("Back to the list"));
+  // One card for it, no second row: marked as from the server, up to date, with its delete.
+  expect(screen.getAllByText("Agent loop")).toHaveLength(1);
+  expect(screen.getByText("From your server")).toBeTruthy();
+  expect(screen.queryByLabelText("Download Agent loop")).toBeNull();
+  expect(screen.getByLabelText("Delete Agent loop?")).toBeTruthy();
   // Same stamp: up to date, no action.
   expect(screen.queryByLabelText("Refresh Agent loop, a newer version is on your server")).toBeNull();
   expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
@@ -400,6 +405,23 @@ test("a roadbook of the server is downloaded, then refreshed in place when its s
   await flush();
   expect(kept()).toEqual([first]);
   expect(JSON.parse(files.get(first!)!).serverStamp).toBe("s2");
+  // Deleting it brings its download back.
+  await revealButtons();
+  await fireEvent.press(screen.getByLabelText("Back to the list"));
+  await fireEvent.press(screen.getByLabelText("Delete Agent loop?"));
+  await fireEvent.press(screen.getByLabelText("Delete Agent loop"));
+  await flush();
+  expect(kept()).toHaveLength(0);
+  expect(screen.getByLabelText("Download Agent loop")).toBeTruthy();
+});
+
+test("a roadbook the server has and the phone does not is a card of its own with a download", async () => {
+  await withServer();
+  serverSays([{ id: 7, name: "Agent loop", stamp: "s1" }], () => "");
+  await toList();
+  await flush();
+  expect(screen.getByText("On your server")).toBeTruthy();
+  expect(screen.getByLabelText("Download Agent loop")).toBeTruthy();
 });
 
 test("with no server there is no server section, and nothing is asked", async () => {

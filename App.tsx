@@ -104,6 +104,10 @@ export default function App() {
     () => new Set(library.items.filter((i) => i.completion === "pending").map((i) => i.roadbook.id)),
     [library.items],
   );
+  const fromServerIds = useMemo(
+    () => new Set(library.items.filter((i) => i.serverId !== undefined).map((i) => i.roadbook.id)),
+    [library.items],
+  );
   const importedIds = useMemo(() => new Set(imported.map((r) => r.roadbook.id)), [imported]);
   // What the rider brought in comes first, then the bundled ones.
   const roadbooks = useMemo(
@@ -170,6 +174,7 @@ export default function App() {
           imported={importedIds}
           onImport={() => void library.pick()}
           onDelete={(id) => void library.remove(id)}
+          fromServer={fromServerIds}
           pending={pendingIds}
           onComplete={(id) => void library.retry(id)}
           server={

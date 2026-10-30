@@ -6,7 +6,8 @@ import { listServerRoadbooks, type ServerProblem } from "../services/serverRoadb
 export type ServerList =
   | { status: "checking" }
   | { status: "ready"; items: ServerRoadbook[] }
-  | { status: "unreachable" | "problem"; reason: ServerProblem };
+  | { status: "unreachable"; reason: ServerProblem }
+  | { status: "problem"; reason: ServerProblem };
 
 /**
  * What the rider's server holds, asked each time the list opens (`enabled`), and again on request. A server with no
@@ -30,7 +31,9 @@ export function useServerRoadbooks(server: ServerSetting | null, enabled: boolea
       setList(
         answer.ok
           ? { status: "ready", items: answer.items }
-          : { status: answer.reason === "unreachable" ? "unreachable" : "problem", reason: answer.reason },
+          : answer.reason === "unreachable"
+            ? { status: "unreachable", reason: answer.reason }
+            : { status: "problem", reason: answer.reason },
       );
     });
     return () => {
