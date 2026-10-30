@@ -23,9 +23,9 @@ The vibration for riding over the speed limit SHALL NOT depend on the mode. The 
 
 ### Requirement: The music is lowered while the voice speaks
 
-While a message is spoken the system SHALL ask Android to lower other audio (music, a podcast, a call's audio is not touched) by taking
+While a message is spoken the system SHALL ask the phone (Android: audio focus; iOS: the audio session) to lower other audio (music, a podcast, a call's audio is not touched) by taking
 the audio focus for a short while ("transient, may duck"), and SHALL give the focus back when the last message of a series is done, stopped
-or has failed, so that the music returns to full volume. Several messages in a row keep the focus until the last one ends, and a message
+or has failed, so that the music returns to full volume (on iOS the release is tried again a moment later if the session was still busy). Several messages in a row keep the focus until the last one ends, and a message
 cut off by the next does not give it back under the new one. A voice that never says it is done SHALL NOT leave the music low: after 30 seconds
 the focus is given back. The music is never stopped or paused by the voice. On a phone or a build without the means to ask, the voice speaks as before.
 
@@ -33,6 +33,11 @@ the focus is given back. The music is never stopped or paused by the voice. On a
 
 - **WHEN** music is playing and a turn is spoken
 - **THEN** the music is lowered while the turn is said and back to full volume afterwards
+
+#### Scenario: The session is still busy on iOS
+
+- **WHEN** the voice is done but the system refuses to release the audio at once
+- **THEN** the release is tried once more shortly after, so the music does not stay lowered or stopped
 
 ### Requirement: Say the turns
 
