@@ -1,13 +1,15 @@
 import { fireEvent, screen } from "@testing-library/react-native";
 import { prepareRoadbook } from "../../src/core/roadbook.ts";
-import { bundledRoadbooks } from "../../src/data/bundled/index.ts";
+import { fixtureRoadbooks } from "../fixtures/roadbooks.ts";
+import { serializeStored } from "../../src/core/library.ts";
+import { dirs, files } from "./filesystem.mock.ts";
 import { pointAt } from "../../src/core/track.ts";
 import type { LatLon, PreparedRoadbook } from "../../src/core/types.ts";
 
 // Preparing a roadbook (corners, stops) is the slow part of a screen test and tests ask for it every simulated second:
 // do it once per test file. A copy of the list goes out so a test that sorts it does not reorder the next one's.
 let preparedCache: PreparedRoadbook[] | null = null;
-export const prepared = (): PreparedRoadbook[] => [...(preparedCache ??= bundledRoadbooks.map(prepareRoadbook))];
+export const prepared = (): PreparedRoadbook[] => [...(preparedCache ??= fixtureRoadbooks.map(prepareRoadbook))];
 export const first = (): PreparedRoadbook => prepared()[0]!;
 export const at = (rb: PreparedRoadbook, m: number): LatLon => pointAt(rb.roadbook.line, rb.cumulativeM, m);
 
@@ -119,5 +121,13 @@ export function turnRoadbook(): PreparedRoadbook {
     parseRoadbookFile(
       roadbookFile(drawLine([{ straight: 3000 }, { arc: 30, deg: 90, dir: "left" }, { straight: 3000 }])),
     ),
+  );
+}
+
+/** The fixture roadbooks kept on the phone, as if the rider had imported them: the app ships none (ADR 0044). */
+export function keepFixtures(): void {
+  dirs.add("file:///document/library");
+  fixtureRoadbooks.forEach((roadbook, i) =>
+    files.set(`file:///document/library/${roadbook.id}.json`, serializeStored({ roadbook, importedAt: 100 - i })),
   );
 }

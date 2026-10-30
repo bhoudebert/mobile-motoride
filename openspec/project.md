@@ -10,7 +10,7 @@ danger zones, and it can navigate to a destination.
 
 - TypeScript, React Native with Expo (development build), MapLibre Native, `expo-location`, `expo-speech`.
 - Core logic in `src/core/`, pure, tested by Node 24 (`node --test`, type stripping, no build step).
-- Data: roadbooks as GPX from agentRide, bundled into the app (ADR 0005). Map tiles from a MapLibre-compatible provider.
+- Data: roadbooks from agentRide, imported from a file or fetched from the rider's server (ADR 0044; none ships with the app). Map tiles from a MapLibre-compatible provider.
 
 ## Project Conventions
 
@@ -27,7 +27,7 @@ danger zones, and it can navigate to a destination.
 
 ### Testing Strategy
 
-- Unit tests in `test/` for everything in `src/core/`, with synthetic tracks (a straight, an arc, a hairpin) and one real bundled roadbook as a regression.
+- Unit tests in `test/` for everything in `src/core/`, with synthetic tracks (a straight, an arc, a hairpin) and real roadbooks kept in `test/fixtures` as a regression.
 - A change is not "verified" until it ran on a phone; say so in the PR when it did not.
 
 ### Git Workflow

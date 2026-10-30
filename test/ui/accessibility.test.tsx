@@ -7,7 +7,8 @@ import { PALETTES, type Palette } from "../../src/ui/theme.ts";
 import { SCHEMES } from "../../src/core/theme.ts";
 import { resetMapMock } from "./maplibre.mock.tsx";
 import { flush, seconds } from "./flush.ts";
-import { at, first, prepared, skippableRoadbook, revealButtons } from "./helpers.ts";
+import { at, first, keepFixtures, prepared, skippableRoadbook, revealButtons } from "./helpers.ts";
+import { resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
 
 const lum = (hex: string) => {
@@ -154,9 +155,11 @@ test("every roadbook card on the list is a button a screen reader can name", asy
 });
 
 test("the whole app is reachable with buttons only: map, list, ride, back", async () => {
+  resetFiles();
+  keepFixtures();
   await render(<App />);
   await fireEvent.press(screen.getByRole("button", { name: "Roadbooks" }));
-  await fireEvent.press(screen.getByRole("button", { name: /Pays des Collines/ }));
+  await fireEvent.press(screen.getAllByRole("button", { name: /Pays des Collines/ })[0]!);
   await revealButtons();
   expect(screen.getByRole("button", { name: "Back to the list" })).toBeTruthy();
   await revealButtons();

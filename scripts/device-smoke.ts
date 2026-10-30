@@ -1,6 +1,6 @@
 // Drives the real app on a connected, unlocked phone through the whole ride flow and checks it did not break:
 // no crash in the log, every screen laid out sanely (nothing off screen, no overlapping or tiny buttons).
-// Needs adb, Metro on :8081 (npm start) and the dev build installed.
+// Needs adb, Metro on :8081 (npm start; SMOKE_METRO_PORT for another port), agentRide next to this repository and the dev build installed.
 // Usage: npm run smoke:device                    the whole run, before a release (about 5 minutes)
 //        npm run smoke:device -- --only key,join  just those sections, while working on them
 // Sections: voice, demo, roadbooks, gps, background, safety, destination, import, rides, share, control, key, join, zone, offline. The app opening and the list are always checked.
@@ -12,8 +12,10 @@ import { webcrypto } from "node:crypto";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import type { Roadbook } from "../src/core/types.ts";
 import { createServer } from "node:http";
+import { encodePolyline } from "../test/helpers/polyline.ts";
 import {
   above,
   appCrashes,
@@ -31,7 +33,9 @@ import {
 const PKG = "com.adequatefunction.motoride";
 // disableOnboarding: a fresh install shows the developer menu intro on every start, which would cover the whole script.
 // The &, escaped, so the phone's shell does not take it for the end of the command.
-const LINK = "exp+mobile-motoride://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081\\&disableOnboarding=1";
+/** Where Metro runs; SMOKE_METRO_PORT says otherwise when 8081 is held by an older dev server. */
+const METRO_PORT = Number(process.env["SMOKE_METRO_PORT"] ?? 8081);
+const LINK = `exp+mobile-motoride://expo-development-client/?url=http%3A%2F%2Flocalhost%3A${METRO_PORT}\\&disableOnboarding=1`;
 const OUT = `.smoke/${new Date().toISOString().replace(/[:.]/g, "-")}`;
 mkdirSync(OUT, { recursive: true });
 
@@ -246,6 +250,118 @@ async function setNetwork(on: boolean) {
   await sleep(on ? 6000 : 3000);
 }
 
+/** The roadbooks kept for the tests: real ones made by agentRide, pushed to the test server in file order. */
+const fixtureRoadbooks: Roadbook[] = readdirSync(new URL("../test/fixtures/roadbooks/", import.meta.url))
+  .filter((f) => f.endsWith(".json"))
+  .sort()
+  .map(
+    (f) => JSON.parse(readFileSync(new URL(`../test/fixtures/roadbooks/${f}`, import.meta.url), "utf8")) as Roadbook,
+  );
+
+let seedServer: ChildProcess | null = null;
+let seedDir: string | null = null;
+
+/** A fixture roadbook as the file agentRide hands out (`motoride-roadbook`, docs/roadbook-format.md). */
+function fileOf(rb: Roadbook, n: number): string {
+  const { id: _id, line, ...rest } = rb;
+  return JSON.stringify({
+    format: "motoride-roadbook",
+    version: 1,
+    ...rest,
+    line: encodePolyline(line),
+    origin: { app: "agentRide", roadbook: n, name: rb.name },
+  });
+}
+
+/**
+ * The app ships no roadbook (ADR 0044): the ones the smoke rides come from a server, as a rider's do. agentRide's
+ * server runs on this computer with a test rider, the fixture roadbooks are pushed to it, the phone is pointed at it and
+ * downloads each from the list. Leaves the app on the map; false when it could not be done.
+ */
+async function seedRoadbooksFromServer(): Promise<boolean> {
+  const agentRide = resolve("../agentRide");
+  if (!existsSync(join(agentRide, "src/pushedRoadbooks.ts"))) {
+    check("roadbooks: agentRide with the push to a server is next to this repository (../agentRide)", false);
+    return false;
+  }
+  seedDir = mkdtempSync(join(tmpdir(), "smoke-roadbooks-"));
+  const port = 19000 + Math.floor(Math.random() * 1000);
+  const env = { ...process.env, RIDE_DATA_DIR: seedDir, RIDE_SERVER_PORT: String(port) };
+  const added = execFileSync("node", ["src/admin.ts", "add", "smoke-roadbooks@example.org"], {
+    cwd: agentRide,
+    env,
+    encoding: "utf8",
+  });
+  const token = /mrt_[A-Za-z0-9_-]+/.exec(added)![0];
+  seedServer = spawn("node", ["src/serve.ts"], { cwd: agentRide, env, stdio: "ignore" });
+  let up = false;
+  for (let i = 0; i < 30 && !up; i++) {
+    up = await fetch(`http://127.0.0.1:${port}/health`)
+      .then((r) => r.ok)
+      .catch(() => false);
+    if (!up) await sleep(500);
+  }
+  check("roadbooks: the test server is up", up);
+  if (!up) return false;
+  adb("reverse", `tcp:${port}`, `tcp:${port}`);
+  let pushed = 0;
+  for (const [i, rb] of fixtureRoadbooks.entries()) {
+    const res = await fetch(`http://127.0.0.1:${port}/roadbooks`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: fileOf(rb, i + 1),
+    });
+    if (res.ok) pushed++;
+  }
+  const kept = pushed === fixtureRoadbooks.length;
+  check("roadbooks: the server keeps the roadbooks pushed to it", kept, `${pushed}`);
+  if (!kept) return false;
+  adb(
+    "shell",
+    "am",
+    "start",
+    "-a",
+    "android.intent.action.VIEW",
+    "-d",
+    `'mobilemotoride://server?url=${encodeURIComponent(`http://localhost:${port}`)}&token=${token}'`,
+    PKG,
+  );
+  check(
+    "roadbooks: the phone is pointed at the server",
+    !!(await waitFor("Use this server?", 20)) && (await tap(/^use it$/i)),
+  );
+  await waitFor(/^Server set: /, 10);
+  // Wherever the link left the app (the map, the Server screen), the list is one or two taps away.
+  if (find(screenNow(), /^Back to the map$/)) await tap(/^Back to the map$/);
+  if (!find(screenNow(), "Pick a roadbook")) await tap("Roadbooks");
+  // Offered to download, or already kept by an earlier run (the same roadbooks come back with the same origin).
+  const offered = await waitFor(/^(Download |FROM YOUR SERVER,)/i, 30);
+  check("roadbooks: the list offers them on the server", !!offered);
+  for (let i = 0; i < fixtureRoadbooks.length; i++) {
+    if (!(await tap(/^Download /))) break;
+    await waitFor("Demo", 30);
+    await tap("Back to the list");
+    await waitFor("Pick a roadbook", 10);
+    await waitFor(/corners to watch/, 10);
+  }
+  const cards = screenNow().filter((n) => /^FROM YOUR SERVER,/i.test(n.desc)).length;
+  check(
+    "roadbooks: they are downloaded and kept, marked from the server",
+    !find(screenNow(), /^Download /) && cards >= 2,
+    `${cards} on screen`,
+  );
+  await tap("Back to the map");
+  return true;
+}
+
+/** Stop the test server of `seedRoadbooksFromServer` and forget its data. */
+function stopSeedServer() {
+  seedServer?.kill();
+  seedServer = null;
+  if (seedDir) rmSync(seedDir, { recursive: true, force: true });
+  seedDir = null;
+}
+
 async function run() {
   const devices = adb("devices")
     .split("\n")
@@ -271,12 +387,12 @@ async function run() {
   if (adb("shell", "dumpsys", "window").includes("isKeyguardShowing=true")) {
     throw new Abort("the phone is locked: unlock it and keep it awake, then run again");
   }
-  adb("reverse", "tcp:8081", "tcp:8081");
-  const metro = await fetch("http://localhost:8081/status").then(
+  adb("reverse", `tcp:${METRO_PORT}`, `tcp:${METRO_PORT}`);
+  const metro = await fetch(`http://localhost:${METRO_PORT}/status`).then(
     (r) => r.text(),
     () => "",
   );
-  if (!metro.includes("running")) throw new Abort("Metro is not running on :8081: run npm start first");
+  if (!metro.includes("running")) throw new Abort(`Metro is not running on :${METRO_PORT}: run npm start first`);
 
   const screen = screenInfo();
   adb("logcat", "-c");
@@ -309,6 +425,7 @@ async function run() {
   shot("00-home-menu");
   layout("home menu", screen);
   await tap("Close menu");
+  if (!(await seedRoadbooksFromServer())) throw new Abort("no roadbook to ride: the server could not give any");
   check("home: Roadbooks opens the list", (await tap("Roadbooks")) && !!(await waitFor("Pick a roadbook", 10)));
   shot("01-list");
   layout("list", screen);
@@ -771,7 +888,10 @@ async function run() {
     // Bring roadbooks in through the import link (ADR 0025): the files are served from this computer to the phone.
     // A real stretch of road (the start of a bundled loop), so the services can match it and complete it.
     const real = JSON.parse(
-      readFileSync(new URL("../src/data/bundled/r2-coutiches-hollain-ere-peaceful-loop.json", import.meta.url), "utf8"),
+      readFileSync(
+        new URL("../test/fixtures/roadbooks/r2-coutiches-hollain-ere-peaceful-loop.json", import.meta.url),
+        "utf8",
+      ),
     ) as {
       line: Array<[number, number]>;
     };
@@ -1341,6 +1461,7 @@ async function main() {
   } catch (e) {
     check("the smoke test ran to the end", false, e instanceof Error ? e.message : String(e));
   } finally {
+    stopSeedServer();
     // The run turns the network off for a step: never leave the phone like that.
     try {
       await setNetwork(true);

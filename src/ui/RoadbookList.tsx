@@ -86,6 +86,7 @@ export function RoadbookList({
         data={rows}
         keyExtractor={(row) => (row.kind === "server" ? `server-${row.entry.id}` : row.rb.roadbook.id)}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={<Text style={styles.empty}>{t(server ? "home.list.emptyServer" : "home.list.empty")}</Text>}
         ListHeaderComponent={server ? <ServerNotes list={server.list} onRetry={server.onRetry} /> : undefined}
         renderItem={({ item: row }) => {
           if (row.kind === "server")
@@ -295,6 +296,7 @@ const styles = themed(() =>
     },
     danger: { color: colors.limitRed, fontFamily: fonts.bold, fontSize: 15 },
     keep: { color: colors.accent, fontFamily: fonts.bold, fontSize: 15 },
+    empty: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 15, paddingVertical: 12 },
     serverCard: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
     cardRow: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
     cardBody: { flex: 1, gap: 6 },

@@ -7,7 +7,7 @@ import { dirs, files, resetFiles } from "./filesystem.mock.ts";
 import { getDocumentAsync, picked } from "./picker.mock.ts";
 import { resetMapMock } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
-import { revealButtons } from "./helpers.ts";
+import { keepFixtures, revealButtons } from "./helpers.ts";
 import { EnrichError, enrichRoadbook } from "../../src/services/enrich.ts";
 import { serializeStored } from "../../src/core/library.ts";
 import type { Roadbook } from "../../src/core/types.ts";
@@ -243,7 +243,7 @@ test("the same number under another name is a second roadbook", async () => {
   expect(kept()).toHaveLength(2);
 });
 
-test("an imported roadbook is deleted after a question, a bundled one cannot be", async () => {
+test("an imported roadbook is deleted after a question", async () => {
   choose("a.gpx", gpx("To delete"));
   await toList();
   await fireEvent.press(screen.getByLabelText("Import a roadbook"));
@@ -260,10 +260,10 @@ test("an imported roadbook is deleted after a question, a bundled one cannot be"
   await flush();
   expect(screen.queryByText("To delete")).toBeNull();
   expect(kept()).toHaveLength(0);
-  expect(screen.getByText("Pays des Collines loop")).toBeTruthy();
+  expect(screen.getByText(/^No roadbook yet\./)).toBeTruthy();
 });
 
-test("roadbooks kept on the phone are there at launch, newest first and before the bundled ones; a damaged one is skipped", async () => {
+test("roadbooks kept on the phone are there at launch, newest first; a damaged one is skipped", async () => {
   const old = parseImport(gpx("Old one"));
   const fresh = parseImport(gpx("Fresh one"));
   files.set(`file:///document/library/${old.id}.json`, serializeStored({ roadbook: old, importedAt: 1 }));
@@ -271,8 +271,8 @@ test("roadbooks kept on the phone are there at launch, newest first and before t
   files.set("file:///document/library/broken.json", "{not json");
   dirs.add("file:///document/library");
   await toList();
-  const names = screen.getAllByText(/^(Fresh one|Old one|Pays des Collines loop)$/).map((n) => n.props.children);
-  expect(names).toEqual(["Fresh one", "Old one", "Pays des Collines loop"]);
+  const names = screen.getAllByText(/^(Fresh one|Old one)$/).map((n) => n.props.children);
+  expect(names).toEqual(["Fresh one", "Old one"]);
 });
 
 test("a file the phone opens the app with is imported", async () => {
@@ -433,6 +433,7 @@ test("with no server there is no server section, and nothing is asked", async ()
 });
 
 test("a server that cannot be reached leaves the list as it was and offers to try again", async () => {
+  keepFixtures();
   await withServer();
   fetchMock.mockImplementation(async () => Promise.reject(new TypeError("down")));
   await toList();

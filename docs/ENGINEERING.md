@@ -7,7 +7,7 @@ agentRide ──GPX──▶ [bundle script] ──JSON──▶ app
                                               │
    src/core   pure TypeScript, tested by Node │  gpx · geo · track · corners · navigator
    src/ui     React Native screens, thin      │  roadbook list · ride screen (map + HUD)
-   src/data   bundled roadbooks (generated)   │
+   test/fixtures  real roadbooks, tests only  │
 ```
 
 - **Expo** (managed workflow with a development build, ADR 0002) and

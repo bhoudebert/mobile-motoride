@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { Place } from "./src/core/destination.ts";
 import { prepareRoadbook } from "./src/core/roadbook.ts";
 import type { PreparedRoadbook } from "./src/core/types.ts";
-import { bundledRoadbooks } from "./src/data/bundled/index.ts";
 import spaceGroteskBold from "./assets/fonts/SpaceGrotesk-Bold.ttf";
 import spaceGroteskMedium from "./assets/fonts/SpaceGrotesk-Medium.ttf";
 import jetBrainsMono from "./assets/fonts/JetBrainsMono-Regular.ttf";
@@ -64,7 +63,6 @@ export default function App() {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
 
-  const bundled = useMemo(() => bundledRoadbooks.map(prepareRoadbook), []);
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const { recents, remember, clear } = useRecents();
   // What happened on its own: a ride that was saved. The import's own messages come first.
@@ -110,11 +108,8 @@ export default function App() {
     [library.items],
   );
   const importedIds = useMemo(() => new Set(imported.map((r) => r.roadbook.id)), [imported]);
-  // What the rider brought in comes first, then the bundled ones.
-  const roadbooks = useMemo(
-    () => [...imported, ...bundled.filter((b) => !importedIds.has(b.roadbook.id))],
-    [imported, bundled, importedIds],
-  );
+  // The app ships no roadbook (ADR 0044): the list is what the rider brought in or fetched from the server.
+  const roadbooks = imported;
 
   if (!ready) return null;
 
