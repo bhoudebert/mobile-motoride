@@ -34,6 +34,25 @@ An imported roadbook SHALL be kept on the phone, as the same roadbook the app re
 - **WHEN** the rider deletes an imported roadbook and confirms
 - **THEN** it is gone from the list and from the phone
 
+### Requirement: A refreshed roadbook replaces its old copy
+
+A roadbook file that carries an `origin` with an app, a roadbook number and a name SHALL replace the kept roadbook with the same app, number AND name, in place, keeping its local id so the rides recorded on it stay linked. The same number under another name is another library's roadbook and SHALL be kept as a new one. A file with no origin, and a GPX, SHALL behave as before (the same name and line replace). When both files carry `generatedAt` and the incoming one is older than the kept one, the app SHALL NOT replace it: the newer copy stays, opens, and a message says the older file was not imported. The same time, or no time, replaces.
+
+#### Scenario: The route changed
+
+- **WHEN** the rider imports a file of origin agentRide, number 7, name "Loop", then a refreshed file of the same origin with another route
+- **THEN** the list has one "Loop", with the new route and the id of the first
+
+#### Scenario: Same number, other name
+
+- **WHEN** a kept roadbook is agentRide 7 "Loop" and the rider imports agentRide 7 "Coast"
+- **THEN** the list has both
+
+#### Scenario: An older file
+
+- **WHEN** the kept copy was generated on 20 October and the rider imports the same roadbook generated on 10 October
+- **THEN** the kept copy is unchanged, it opens, and a message says a newer version is already kept
+
 ### Requirement: Complete an imported GPX
 
 A roadbook that comes in with no speed limits and no countries (a GPX) SHALL be completed once, at import, with what public services know of its roads (ADR 0026): the speed limit of each stretch (the posted one, else the legal default of the country, capped on minor roads and 50 at most in a built-up area), the country of each stretch, the roundabouts with their exits, and the fixed speed cameras along it. The line SHALL be sent thinned to about one point in thirty metres, in pieces for a long route, and matched to the roads; what comes back SHALL be laid on the imported line. While it runs the screen SHALL show that it is working with a percentage. The result SHALL be kept with the roadbook and ridden like an agentRide roadbook, with the camera policy of the country (spec danger-zones). A roadbook file that already has limits or countries SHALL NOT be sent.

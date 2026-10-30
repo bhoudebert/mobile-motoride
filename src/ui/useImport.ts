@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 import { t } from "../core/i18n/index.ts";
-import { ImportError, importUrlOf, isFileLink, isImportLink, parseImport } from "../core/library.ts";
+import { ImportError, importUrlOf, isFileLink, isImportLink, parseImport, placeImport } from "../core/library.ts";
 import type { ImportedRoadbook } from "../core/library.ts";
 import type { Roadbook } from "../core/types.ts";
 import { deleteImported, listImported, saveImported } from "./libraryStore.ts";
@@ -60,7 +60,14 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     try {
       const picked = await get();
       if (!picked) return setNotice(null);
-      const parsed = parseImport(picked.text, picked.name);
+      const imported = parseImport(picked.text, picked.name);
+      const place = placeImport(imported, await listImported());
+      if (place.kind === "older") {
+        // Never downgrade silently: the newer copy stays, and is the one that opens.
+        setNotice({ kind: "info", text: t("home.import.older", { name: place.kept.roadbook.name }) });
+        return handler.current(place.kept.roadbook);
+      }
+      const parsed = place.kind === "replace" ? { ...imported, id: place.id } : imported;
       // A GPX has no limits, countries or cameras: ask for them once, now, while there is a network (ADR 0026).
       const { roadbook: rb, problem } = needsCompletion(parsed)
         ? await complete(parsed, setNotice)

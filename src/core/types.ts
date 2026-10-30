@@ -80,6 +80,8 @@ export interface Roadbook {
   countries?: CountryStretch[];
   /** Where the roadbook came from, when a program that numbers its roadbooks made it (agentRide). */
   origin?: RoadbookOrigin;
+  /** When the file was made (ISO 8601), so a refreshed roadbook is told from an older one. */
+  generatedAt?: string;
 }
 
 /** The limit of a stretch as a distance range along the line. */

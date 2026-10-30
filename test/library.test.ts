@@ -8,6 +8,7 @@ import {
   libraryId,
   nameFromFile,
   parseImport,
+  placeImport,
 } from "../src/core/library.ts";
 import { drawLine } from "./helpers/path.ts";
 import { roadbookFile } from "./helpers/polyline.ts";
@@ -107,4 +108,47 @@ test("a kept roadbook is read back as it was, and a damaged file is skipped", ()
     parseStored(`{"v":1,"importedAt":1,"roadbook":{"id":"a","name":"b","stops":[],"line":[[1,2],["x",3]]}}`),
     null,
   );
+});
+
+const fromAgentRide = (n: number, name: string, generatedAt?: string) =>
+  parseImport(
+    roadbookFile(line, {
+      name,
+      origin: { app: "agentRide", roadbook: n, ride: 1, name },
+      ...(generatedAt ? { generatedAt } : {}),
+    }),
+  );
+const keptOf = (rb: ReturnType<typeof parseImport>, id = "local-id") => ({ roadbook: { ...rb, id }, importedAt: 1 });
+
+test("a refreshed roadbook of the same origin replaces the kept one and keeps its local id", () => {
+  const kept = keptOf(fromAgentRide(7, "Loop", "2026-10-01T00:00:00.000Z"));
+  assert.deepEqual(placeImport(fromAgentRide(7, "Loop", "2026-10-20T00:00:00.000Z"), [kept]), {
+    kind: "replace",
+    id: "local-id",
+  });
+  assert.deepEqual(placeImport(fromAgentRide(7, "Loop", "2026-10-01T00:00:00.000Z"), [kept]).kind, "replace");
+  assert.deepEqual(placeImport(fromAgentRide(7, "Loop"), [kept]).kind, "replace");
+});
+
+test("the same number under another name, or another number, is a new roadbook", () => {
+  const kept = keptOf(fromAgentRide(7, "Loop"));
+  assert.deepEqual(placeImport(fromAgentRide(7, "Coast"), [kept]), { kind: "new" });
+  assert.deepEqual(placeImport(fromAgentRide(8, "Loop"), [kept]), { kind: "new" });
+});
+
+test("a file with no origin, and a GPX, are new whatever is kept", () => {
+  const kept = keptOf(fromAgentRide(7, "Loop"));
+  assert.deepEqual(placeImport(parseImport(roadbookFile(line, { name: "Loop" })), [kept]), { kind: "new" });
+  assert.deepEqual(placeImport(parseImport(gpx("Loop")), [kept]), { kind: "new" });
+});
+
+test("an older file than the kept one is not let in", () => {
+  const kept = keptOf(fromAgentRide(7, "Loop", "2026-10-20T00:00:00.000Z"));
+  const placed = placeImport(fromAgentRide(7, "Loop", "2026-10-10T00:00:00.000Z"), [kept]);
+  assert.equal(placed.kind, "older");
+});
+
+test("generatedAt is read, and ignored when it is not a date", () => {
+  assert.equal(fromAgentRide(1, "A", "2026-10-20T00:00:00.000Z").generatedAt, "2026-10-20T00:00:00.000Z");
+  assert.equal(fromAgentRide(1, "A", "soon").generatedAt, undefined);
 });
