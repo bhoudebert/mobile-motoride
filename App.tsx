@@ -22,6 +22,7 @@ import { useCrashSettings } from "./src/ui/crashStore.ts";
 import { useServerLink } from "./src/ui/useServerLink.ts";
 import { ImportNoticeBar } from "./src/ui/ImportNoticeBar.tsx";
 import { RoadbookList } from "./src/ui/RoadbookList.tsx";
+import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer } from "./src/ui/serverSetting.ts";
 import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
@@ -159,36 +160,46 @@ export default function App() {
           onBack={home}
         />
       ) : screen.name === "server" ? (
-        <ServerScreen onBack={home} />
+        <SwipeBack onBack={home}>
+          <ServerScreen onBack={home} />
+        </SwipeBack>
       ) : screen.name === "review" ? (
-        <RideReviewScreen ride={screen.ride} onBack={() => setScreen({ name: "rides" })} />
+        <SwipeBack onBack={() => setScreen({ name: "rides" })}>
+          <RideReviewScreen ride={screen.ride} onBack={() => setScreen({ name: "rides" })} />
+        </SwipeBack>
       ) : screen.name === "rides" ? (
-        <RidesScreen onBack={home} onReview={(ride) => setScreen({ name: "review", ride })} />
+        <SwipeBack onBack={home}>
+          <RidesScreen onBack={home} onReview={(ride) => setScreen({ name: "review", ride })} />
+        </SwipeBack>
       ) : screen.name === "search" ? (
-        <DestinationScreen onBack={home} onRoute={openRoute} />
+        <SwipeBack onBack={home}>
+          <DestinationScreen onBack={home} onRoute={openRoute} />
+        </SwipeBack>
       ) : screen.name === "roadbooks" ? (
-        <RoadbookList
-          roadbooks={roadbooks}
-          onOpen={(rb) => openRoadbook(rb, "roadbooks")}
-          onBack={home}
-          imported={importedIds}
-          onImport={() => void library.pick()}
-          onDelete={(id) => void library.remove(id)}
-          fromServer={fromServerIds}
-          pending={pendingIds}
-          onComplete={(id) => void library.retry(id)}
-          server={
-            server
-              ? {
-                  list: serverRoadbooks.list,
-                  kept: library.items,
-                  fetching: library.fetching,
-                  onGet: (entry) => void library.fromServer(server, entry),
-                  onRetry: serverRoadbooks.reload,
-                }
-              : undefined
-          }
-        />
+        <SwipeBack onBack={home}>
+          <RoadbookList
+            roadbooks={roadbooks}
+            onOpen={(rb) => openRoadbook(rb, "roadbooks")}
+            onBack={home}
+            imported={importedIds}
+            onImport={() => void library.pick()}
+            onDelete={(id) => void library.remove(id)}
+            fromServer={fromServerIds}
+            pending={pendingIds}
+            onComplete={(id) => void library.retry(id)}
+            server={
+              server
+                ? {
+                    list: serverRoadbooks.list,
+                    kept: library.items,
+                    fetching: library.fetching,
+                    onGet: (entry) => void library.fromServer(server, entry),
+                    onRetry: serverRoadbooks.reload,
+                  }
+                : undefined
+            }
+          />
+        </SwipeBack>
       ) : (
         <HomeScreen
           roadbooks={roadbooks}

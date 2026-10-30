@@ -113,21 +113,44 @@ export function RoadbookList({
           const link = linked.get(id);
           return (
             <View>
-              <Pressable style={styles.card} onPress={() => onOpen(rb)} accessibilityRole="button">
+              <View style={[styles.card, styles.cardRow]}>
                 <RouteThumb line={rb.roadbook.line} />
-                {imported?.has(id) ? (
-                  <Text style={styles.tag}>
-                    {t(fromServer?.has(id) ? "home.list.fromServer" : "home.list.imported")}
+                <Pressable style={styles.cardBody} onPress={() => onOpen(rb)} accessibilityRole="button">
+                  {imported?.has(id) ? (
+                    <Text style={styles.tag}>
+                      {t(fromServer?.has(id) ? "home.list.fromServer" : "home.list.imported")}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.name}>{rb.roadbook.name}</Text>
+                  <Text style={styles.meta}>
+                    {formatDistance(rb.totalM)} · {t(rb.loop ? "home.list.loop" : "home.list.oneway")} ·{" "}
+                    {t("home.list.stops", { count: Math.max(0, rb.stops.length - 2) })} ·{" "}
+                    {t("home.list.corners", { count: danger })}
                   </Text>
+                  {rb.roadbook.description ? <Text style={styles.desc}>{rb.roadbook.description}</Text> : null}
+                </Pressable>
+                {imported?.has(id) && onDelete && confirming !== id ? (
+                  <View style={styles.column}>
+                    {link ? (
+                      <ServerIcon
+                        action={link.action}
+                        name={rb.roadbook.name}
+                        busy={server?.fetching === link.entry.id}
+                        disabled={server?.fetching != null}
+                        onPress={() => server?.onGet(link.entry)}
+                      />
+                    ) : null}
+                    <Pressable
+                      style={styles.serverAction}
+                      onPress={() => setConfirming(id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("home.list.deleteAsk", { name: rb.roadbook.name })}
+                    >
+                      <Icon name="trash-outline" color={colors.rustText} />
+                    </Pressable>
+                  </View>
                 ) : null}
-                <Text style={styles.name}>{rb.roadbook.name}</Text>
-                <Text style={styles.meta}>
-                  {formatDistance(rb.totalM)} · {t(rb.loop ? "home.list.loop" : "home.list.oneway")} ·{" "}
-                  {t("home.list.stops", { count: Math.max(0, rb.stops.length - 2) })} ·{" "}
-                  {t("home.list.corners", { count: danger })}
-                </Text>
-                {rb.roadbook.description ? <Text style={styles.desc}>{rb.roadbook.description}</Text> : null}
-              </Pressable>
+              </View>
               {pending?.has(id) && onComplete ? (
                 <Pressable
                   style={styles.complete}
@@ -162,33 +185,7 @@ export function RoadbookList({
                       <Text style={styles.keep}>{t("home.list.keep")}</Text>
                     </Pressable>
                   </View>
-                ) : (
-                  <View style={styles.actions}>
-                    {link ? (
-                      <Text style={styles.syncText}>
-                        {link.action === "refresh" ? t("home.server.newer") : t("home.server.current")}
-                      </Text>
-                    ) : null}
-                    <View style={styles.serverGrow} />
-                    {link ? (
-                      <ServerIcon
-                        action={link.action}
-                        name={rb.roadbook.name}
-                        busy={server?.fetching === link.entry.id}
-                        disabled={server?.fetching != null}
-                        onPress={() => server?.onGet(link.entry)}
-                      />
-                    ) : null}
-                    <Pressable
-                      style={styles.serverAction}
-                      onPress={() => setConfirming(id)}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("home.list.deleteAsk", { name: rb.roadbook.name })}
-                    >
-                      <Icon name="trash-outline" color={colors.rustText} />
-                    </Pressable>
-                  </View>
-                )
+                ) : null
               ) : null}
             </View>
           );
@@ -299,8 +296,9 @@ const styles = themed(() =>
     danger: { color: colors.limitRed, fontFamily: fonts.bold, fontSize: 15 },
     keep: { color: colors.accent, fontFamily: fonts.bold, fontSize: 15 },
     serverCard: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-    actions: { flexDirection: "row", alignItems: "center", paddingLeft: 12 },
-    syncText: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 13 },
+    cardRow: { flexDirection: "row", alignItems: "center", paddingRight: 4 },
+    cardBody: { flex: 1, gap: 6 },
+    column: { alignSelf: "stretch", justifyContent: "space-between" },
     serverNote: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 14 },
     serverRow: {
       flexDirection: "row",
