@@ -35,12 +35,17 @@ A point the server answers `slow` SHALL be drawn amber, `heavy` or `closed` red,
 
 ### Requirement: The traffic chip and card
 
-A round chip with a car picture alone (no word, which takes the same place in every language) SHALL stand beside Find and the weather. The picture SHALL be **green** when the points ahead flow, **amber** when the first jam is slow, **red** when it is heavy or closed, and grey when nothing is known, while it loads, when it could not be loaded, and dimmed when traffic is off. Its name SHALL be the whole sentence ("Traffic: Heavy in 30.0 km", "Traffic: flowing for the next 60 km", "Traffic unknown", "Traffic not loaded", "Traffic is off"). Pressing it SHALL open the card: the level at each point (here, in 10 km, ...) with its colour, the note that this is an indication every 10 km and that the roadbook does not change, a notice when the server used its daily requests, Try again when it could not be loaded, the switch of traffic, and the credit "Traffic data: TomTom, through your server".
+A round chip with a car picture alone (no word, which takes the same place in every language) SHALL stand beside Find and the weather. The picture SHALL be **green** when the points ahead flow, **amber** when the first jam is slow, **red** when it is heavy or closed, and grey when nothing is known, while it loads, when it could not be loaded, and dimmed when traffic is off. Its name SHALL be the whole sentence ("Traffic: Heavy in 30.0 km", "Traffic: flowing for the next 60 km", "Traffic unknown", "Traffic not loaded", "Traffic is off"). Pressing it SHALL open the card: the level at each point (here, in 10 km, ...) with its colour, the note that this is an indication every 10 km and that the roadbook does not change, a notice when the server used its daily requests, a notice when every point is unknown (the server's traffic source does not cover the road ahead, which is not an error), Try again when it could not be loaded, the switch of traffic, and the credit "Traffic data: TomTom, through your server".
 
 #### Scenario: Colour tells it
 
 - **WHEN** the first jam ahead is at 30 km and heavy
 - **THEN** the picture is red and the chip is named "Traffic: Heavy in 30.0 km"
+
+#### Scenario: Nothing known on this road
+
+- **WHEN** the server answers "unknown" for every point
+- **THEN** the picture is grey and the card says there is no traffic data for the road ahead, and that nothing is wrong
 
 #### Scenario: Not loaded
 

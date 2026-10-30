@@ -18,6 +18,8 @@ export const traffic = {
   "traffic.failed": "The traffic could not be loaded from your server.",
   "traffic.retry": "Try again",
   "traffic.disabled": "Traffic is off: nothing is asked of your server.",
+  "traffic.noData":
+    "No traffic data for the road ahead: your server's traffic source does not cover it. Nothing is wrong with your phone or your server.",
   "traffic.budget": "Your server has used its traffic requests for today: some points are unknown.",
   "traffic.note": "An indication every 10 km, not a map of the traffic. Your roadbook does not change: you decide.",
   "traffic.toggle.on": "Traffic: on",
