@@ -11,8 +11,9 @@ holding the signing material, for something `xcodebuild` does on the runner we a
 
 ## Decision
 
-- `.github/workflows/ios.yml` archives and exports the app with `xcodebuild`, signed automatically through an App Store Connect
-  API key (`-allowProvisioningUpdates` with the key): Apple creates and keeps the distribution certificate and the profile, so no
+- `.github/workflows/ios.yml` archives the app unsigned with `xcodebuild` and signs it on export, automatically,
+  through an App Store Connect API key (`-allowProvisioningUpdates` with the key). Archiving signed would ask for a development
+  profile and so for a registered device; a distribution build needs none. Apple creates and keeps the distribution certificate and the profile, so no
   certificate file is stored in the repository's secrets.
 - The signed IPA goes to TestFlight with `xcrun altool --upload-app` and the same key. The Release workflow runs it with the new
   tag; by hand it runs with an option to skip the upload.
