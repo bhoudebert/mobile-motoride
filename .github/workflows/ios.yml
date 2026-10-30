@@ -1,10 +1,15 @@
 name: iOS build
 
-# Builds the iOS app on a GitHub macOS runner and keeps it as an unsigned IPA. Run by hand (Actions ▸ iOS build ▸ Run
-# workflow) to try a build, and by the Release workflow with the new tag to attach the file to it (ADR 0041).
-# The IPA has no signature: it is signed with a free or paid Apple ID when it is installed (docs/SHIPPING.md, section 8).
+# Builds the iOS app on a GitHub macOS runner. With the four Apple secrets (docs/SHIPPING.md, section 8) it signs the app
+# with the paid account and uploads it to TestFlight; without them it keeps an unsigned IPA, as before (ADR 0042, ADR 0041).
+# Run by hand (Actions ▸ iOS build ▸ Run workflow) to try a build, and by the Release workflow with the new tag.
 on:
   workflow_dispatch:
+    inputs:
+      testflight:
+        description: Upload the signed build to TestFlight (needs the Apple secrets)
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       tag:
@@ -19,7 +24,21 @@ jobs:
   build:
     runs-on: macos-latest
     timeout-minutes: 90
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
     steps:
+      - name: The Apple secrets are configured
+        id: apple
+        run: |
+          if [ -n "$APPLE_TEAM_ID" ] && [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Apple secrets missing: building an unsigned IPA, nothing goes to TestFlight (docs/SHIPPING.md)"
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
@@ -36,6 +55,7 @@ jobs:
       - name: Generate the iOS project and its pods
         run: npx expo prebuild --platform ios --clean
       - name: Build without signing
+        if: steps.apple.outputs.signed != 'true'
         working-directory: ios
         run: |
           set -o pipefail
@@ -48,7 +68,59 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build | tail -n 60
+      - name: Archive and sign
+        if: steps.apple.outputs.signed == 'true'
+        working-directory: ios
+        run: |
+          set -o pipefail
+          mkdir -p "$HOME/.private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/.private_keys/AuthKey_$ASC_KEY_ID.p8"
+          xcodebuild archive \
+            -workspace MotoRide.xcworkspace \
+            -scheme MotoRide \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/MotoRide.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.private_keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic | tail -n 60
+          cat > build/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>destination</key><string>export</string>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/MotoRide.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.private_keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -n 30
+      - name: Collect the signed IPA
+        if: steps.apple.outputs.signed == 'true'
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir -p dist-ios
+          cp ios/build/export/MotoRide.ipa "dist-ios/motoride-$version-appstore.ipa"
+          ls -lh dist-ios
+      - name: Upload to TestFlight
+        if: steps.apple.outputs.signed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.testflight)
+        run: |
+          xcrun altool --upload-app --type ios \
+            --file dist-ios/*-appstore.ipa \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
       - name: Pack the IPA
+        if: steps.apple.outputs.signed != 'true'
         run: |
           version=$(node -p "require('./package.json').version")
           mkdir -p dist-ios/Payload
@@ -61,7 +133,7 @@ jobs:
           path: dist-ios/*
           retention-days: 30
       - name: Attach to the release
-        if: inputs.tag != ''
+        if: inputs.tag != '' && steps.apple.outputs.signed != 'true'
         run: gh release upload "$TAG" dist-ios/* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

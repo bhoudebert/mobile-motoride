@@ -48,7 +48,6 @@ Decide these once, then the rest of this page is routine.
      must run a **closed test with at least 12 testers opted in for 14 days** before Production can be requested; an
      organisation account does not (check the current rule, section 9).
    - Apple Developer Program: US$99 a year. Needed even for TestFlight.
-   - Expo account (free) only if you build iOS with EAS (section 5); Android does not need it.
 2. **Identity.** The application id / bundle identifier `com.adequatefunction.motoride` cannot change after publication.
    Keep it, or change it **now** in `app.json` (`ios.bundleIdentifier`, `android.package`) and regenerate `android/`.
 3. **Privacy policy** at a public URL; both stores require it. It must be truthful about what the app does:
@@ -73,8 +72,7 @@ Decide these once, then the rest of this page is routine.
   `versionCode` (the ever-increasing number Play checks) is computed from it, `major × 1,000,000 + minor × 1,000 + patch`
   (`src/core/release.ts`): `1.0.0` is `1000000`, `1.2.3` is `1002003`. Nothing to maintain by hand, and a re-upload of the
   same version is refused by Play, as it should be.
-- iOS needs its own build number (`CFBundleVersion`); with EAS use `"appVersionSource": "remote"` and
-  `"autoIncrement": true` in `eas.json`.
+- iOS needs its own build number (`CFBundleVersion`): `app.config.ts` gives it the same number as `versionCode`.
 
 ## 5. Build
 
@@ -117,37 +115,9 @@ To build on your own machine instead (in the Nix shell): put the same four value
 `npm run build:android` regenerates `android/` (`expo prebuild --clean`), so run it only when you can afford to lose
 hand edits there, and rebuild the development client after (`npm run android`) to go back to developing.
 
-### iOS: EAS Build (or a Mac)
+### iOS
 
-EAS builds in the cloud, holds the signing credentials, and is the practical way to produce an **iOS build from this Linux
-machine** (a local iOS build needs a Mac with Xcode 26). Android does not need it: it is built by the repository itself, above.
-
-```bash
-npm install --global eas-cli      # or: npx eas-cli
-eas login
-eas build:configure               # writes eas.json (do it once, commit it)
-```
-
-A minimal `eas.json`:
-
-```json
-{
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
-  "build": {
-    "development": { "developmentClient": true, "distribution": "internal" },
-    "preview": { "distribution": "internal", "android": { "buildType": "apk" } },
-    "production": { "autoIncrement": true }
-  },
-  "submit": { "production": {} }
-}
-```
-
-- `preview` (an APK) is what you install on a phone to test the **release** build, which is not the development client.
-- `production` makes the Android App Bundle (`.aab`) for Play and the `.ipa` for App Store Connect.
-- EAS can generate and keep the Android upload key and the iOS certificates and provisioning profile for you (it asks for
-  your Apple ID the first time). Let it, and **also download a backup of the Android keystore**: `eas credentials`.
-
-The free EAS plan has a monthly build quota in a low-priority queue; a release a few times a month fits.
+Built on a GitHub macOS runner, not on this Linux machine and not with EAS: see section 8 (ADR 0042).
 
 ## 6. Before every release
 
@@ -176,45 +146,59 @@ The free EAS plan has a monthly build quota in a low-priority queue; a release a
 
 ## 8. iOS
 
-### The unsigned IPA (no Apple account needed to build it)
+### The signed build and TestFlight (ADR 0042)
 
-`.github/workflows/ios.yml` (Actions ▸ iOS build ▸ Run workflow) runs `expo prebuild --platform ios`, builds the Release
-configuration with Xcode on a GitHub macOS runner without signing, and keeps `motoride-X.Y.Z.ipa` as the `motoride-ios`
-artifact for 30 days. The Release workflow runs it with the new tag and attaches the IPA to the GitHub release. macOS
-runner minutes are free on a public repository (a private one pays ten times the Linux rate).
+`.github/workflows/ios.yml` (Actions ▸ iOS build ▸ Run workflow, and the Release workflow with each new tag) runs
+`expo prebuild --platform ios`, archives and exports the app with Xcode on a GitHub macOS runner, signs it with your paid
+account and uploads it to TestFlight. No Expo account, no EAS. macOS runner minutes are free on a public repository.
 
-The IPA cannot be installed as it is: iOS only runs signed code. Sign it as you install it:
+One-time setup:
 
-- **A free Apple ID**: Sideloadly (Linux, macOS, Windows) or AltStore sign it with your Apple ID and install it on a
-  phone with Developer Mode on. The signature lasts **7 days**, so reinstall (a new IPA resets the clock) or let the tool
-  refresh it; a free account has 3 sideloaded apps and 10 app IDs a week.
-- **The paid Apple Developer Program (US$99 a year)**: signing in CI with a distribution certificate and a provisioning
-  profile, then TestFlight (below). A build then lasts 90 days and installs over the air.
+1. **App Store Connect API key**: App Store Connect ▸ Users and Access ▸ Integrations ▸ App Store Connect API ▸ Team Keys ▸ +,
+   role **Admin** (it must be allowed to create the distribution certificate). Download the `.p8` once; note the **Key ID** and
+   the **Issuer ID** shown above the table.
+2. **Team ID**: developer.apple.com ▸ Account ▸ Membership details.
+3. **Four repository secrets** (Settings ▸ Secrets and variables ▸ Actions):
+
+   | Secret          | Value                                               |
+   | --------------- | --------------------------------------------------- |
+   | `APPLE_TEAM_ID` | the 10-character Team ID                            |
+   | `ASC_KEY_ID`    | the key's ID                                        |
+   | `ASC_ISSUER_ID` | the issuer UUID                                     |
+   | `ASC_KEY_P8`    | the whole content of the `.p8` file, with its lines |
+
+4. Run the workflow by hand once. After 10 to 30 minutes of processing the build shows in App Store Connect ▸ TestFlight;
+   add yourself as an internal tester (no review) and install from the TestFlight app.
+
+Without the secrets the workflow still builds an **unsigned IPA** (ADR 0041) and attaches it to the release; sign it with
+Sideloadly or AltStore (free Apple ID, 7 days). App Store Connect refuses a build number it has already received, so a
+second run of the same version fails at the upload: bump the version, or untick "Upload the signed build to TestFlight".
 
 Tried so far: the build compiles, MapLibre and every native module link, and the Info.plist carries the identifier, the
 version, the build number (`CFBundleVersion`, the same number as Android's `versionCode`), the location strings and the
-`audio`, `location` and `fetch` background modes. **Not tried: running it.** Expect a first round of fixes on a phone.
+`audio`, `location` and `fetch` background modes. **Not tried: signing, the upload, or running it.** Expect a first round of
+fixes on a phone.
 
 ### The App Store
 
 Nothing past the build has been tried. Expect a first round of fixes, and treat the Android parity as unproven.
 
-1. **The iOS settings are in `app.json`** (the `location` and `audio` background modes and the strings that say _why_). Still to
-   decide is `ios.infoPlist.ITSAppUsesNonExemptEncryption`: the app
-   encrypts live-share positions (AES-256-GCM) — answer Apple's export-compliance question with the standard-encryption
-   exemption if that is what applies, or ask for advice. The Android foreground service has no iOS equivalent: background
+1. **The iOS settings are in `app.json`** (the `location` and `audio` background modes and the strings that say _why_).
+   `ios.infoPlist.ITSAppUsesNonExemptEncryption` is `false`: the app only encrypts live-share positions (AES-256-GCM), a
+   standard algorithm. Re-check that with the export-compliance questions in App Store Connect (France asks for a
+   declaration of some encryption); change it if they say otherwise. The Android foreground service has no iOS equivalent: background
    updates come from the location background mode and the blue status-bar pill.
-2. **Prebuild and build**: `eas build --platform ios --profile preview` (internal distribution, needs your device's UDID
-   registered) to check that MapLibre and every native module build and run; fix what breaks.
-3. **App Store Connect**: create the app record with the bundle identifier; fill the **App Privacy** labels (same truth as
-   section 3) and the age rating.
-4. **TestFlight**: `eas build --platform ios --profile production` then `eas submit --platform ios`; testers install from
-   TestFlight (internal testers need no review; external ones need a short Beta App Review).
+2. **Build and run**: the workflow above, then install from TestFlight on your iPhone to check that MapLibre and every native
+   module run; fix what breaks.
+3. **App Store Connect**: the app record exists with the bundle identifier; fill the **App Privacy** labels (same truth as
+   section 3), the age rating and the EU **trader status**.
+4. **TestFlight**: testers install from TestFlight (internal testers need no review; external ones need a short Beta App
+   Review).
 5. **App Review**: submit for review with **review notes**: what the app does, why it uses location in the background
    (turn-by-turn corner warnings while the screen is off), a demo roadbook to open, and, for live sharing, a server and an
    **invitation or token that works** for the reviewer (or say sharing is optional and off by default). An app that cannot
    be exercised without a private server is a common reason for rejection.
-6. Builds must come from the iOS 26 SDK / Xcode 26 since 28 Apr 2026; check that the EAS build image for Expo SDK 58 uses it (Expo's note covers SDK 54 and 55).
+6. Builds must come from the iOS 26 SDK / Xcode 26 since 28 Apr 2026; check that `macos-latest` has Xcode 26 (the workflow prints the version).
 7. Release manually or automatically once approved; use phased release.
 
 ## 9. Facts to re-check, with their sources (as of 19 Oct 2026)
@@ -226,12 +210,8 @@ Nothing past the build has been tried. Expect a first round of fixes, and treat 
   [developer.android.com](https://developer.android.com/google/play/requirements/target-sdk).
 - Apple: iOS 26 SDK / Xcode 26 for submissions since 28 Apr 2026 —
   [Expo's note](https://expo.dev/blog/app-store-connect-minimum-sdk-26).
-- EAS plans and the free quota (sources disagree on the split of builds; look at the page) —
-  [docs.expo.dev/billing/plans](https://docs.expo.dev/billing/plans/).
 
 ## 10. What to automate later
 
 Android is built on every release; **uploading** to Play is still by hand (the first upload must be, and Play needs a
-service-account key to do it from a workflow). For iOS, a job on the release that runs `eas build --non-interactive
---profile production` and `eas submit` (a secret `EXPO_TOKEN` and the store keys in GitHub secrets), or a build on a Mac
-you own. Not before one release has gone through by hand: the first one shows what the stores ask.
+service-account key to do it from a workflow). iOS already goes to TestFlight from the release (section 8). Not before one release has gone through by hand: the first one shows what the stores ask.

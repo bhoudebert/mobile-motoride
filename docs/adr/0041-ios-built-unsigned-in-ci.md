@@ -1,6 +1,6 @@
 # 0041. Build iOS unsigned in CI, sign it on the way to the phone
 
-- Status: accepted
+- Status: superseded by 0042
 - Date: 2026-10-24
 
 ## Context

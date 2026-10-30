@@ -6,7 +6,7 @@ Done work is removed from this list; what was learnt is added.
 
 - **Ship to the stores** ([`docs/SHIPPING.md`](docs/SHIPPING.md)): the Android files are built and signed on each release
   (ADR 0030; waiting for the upload key's secrets and a first run on a real phone). Still missing: the iOS app on a real iPhone
-  (it builds unsigned in CI, ADR 0041; installing it needs an Apple ID, or the paid account for TestFlight), a privacy policy, the store declarations, and the upload to Play.
+  (CI signs it and uploads it to TestFlight once the four Apple secrets are set, ADR 0042; never run on a phone), a privacy policy, the store declarations, and the upload to Play.
 
 - **Run on a real phone.** Nothing here has been ridden yet; v1 was built and
   tested on a PC (core tests only).
