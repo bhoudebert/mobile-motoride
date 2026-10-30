@@ -38,21 +38,21 @@ const stopAt = (rb: PreparedRoadbook, m: number) => push(at(rb, m));
 test("nothing to skip before a ride, or in the demo", async () => {
   const rb = skippableRoadbook();
   await render(<RideScreen rb={rb} onBack={() => {}} />);
-  expect(screen.queryByText(/^Skip /)).toBeNull();
+  expect(screen.queryByLabelText(/^Skip /)).toBeNull();
   await fireEvent.press(screen.getByText("Demo"));
   await seconds(5);
-  expect(screen.queryByText(/^Skip /)).toBeNull();
+  expect(screen.queryByLabelText(/^Skip /)).toBeNull();
   expect(screen.queryByText(/Stop to skip/)).toBeNull();
 });
 
 test("while riding with GPS the next route point can be skipped, not the café", async () => {
   const rb = skippableRoadbook();
   await start(rb, at(rb, 100));
-  expect(screen.queryByText(/^Skip /)).toBeNull();
+  expect(screen.queryByLabelText(/^Skip /)).toBeNull();
   await stopAt(rb, 100);
-  expect(screen.getByText("Skip 1. Mont")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 1. Mont")).toBeTruthy();
   await stopAt(rb, 1000);
-  expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 2. Cassel")).toBeTruthy();
 });
 
 test("moving at speed, the skip is still there and still asks first", async () => {
@@ -60,7 +60,7 @@ test("moving at speed, the skip is still there and still asks first", async () =
   await start(rb, at(rb, 100));
   await push(at(rb, 100), 80);
   expect(screen.queryByText(/Stop to skip/)).toBeNull();
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   expect(screen.getByText("Skip 1. Mont?")).toBeTruthy();
   expect(route).not.toHaveBeenCalled();
 });
@@ -82,7 +82,7 @@ test("a skip needs a second tap that names the point and where the rider goes, a
   const rb = skippableRoadbook();
   await start(rb, at(rb, 100));
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   expect(screen.getByText("Skip 1. Mont?")).toBeTruthy();
   expect(screen.getByText("New route to 2. Cassel")).toBeTruthy();
   expect(route).not.toHaveBeenCalled();
@@ -95,7 +95,7 @@ test("the question cancels itself after 10 seconds, however often the screen upd
   const rb = skippableRoadbook();
   await start(rb, at(rb, 100));
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   for (let i = 0; i < 8; i++) {
     await push(at(rb, 100));
     await seconds(1);
@@ -114,7 +114,7 @@ test("confirming asks Valhalla once for a route from here to the target, and say
   const here = at(rb, 100);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   expect(route).toHaveBeenCalledTimes(1);
@@ -134,7 +134,7 @@ test("with the route: the skipped point is gone, the target is named, it is said
   route.mockResolvedValue([here, [here[0] + 0.0004, here[1] + 0.004], at(rb, 2000)]);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   expect(Speech.speak).toHaveBeenCalledWith("Skipping 1. Mont, heading for 2. Cassel", expect.anything());
@@ -151,7 +151,7 @@ test("Undo takes the skip back, without the network, and the point is the next o
   route.mockResolvedValue([here, at(rb, 2000)]);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   route.mockClear();
@@ -160,7 +160,7 @@ test("Undo takes the skip back, without the network, and the point is the next o
   expect(screen.queryByText(/^Skipped /)).toBeNull();
   expect(screen.queryByTestId("source-approach")).toBeNull();
   await stopAt(rb, 100);
-  expect(screen.getByText("Skip 1. Mont")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 1. Mont")).toBeTruthy();
   expect(screen.getByText(/^Next: 1\. Mont/)).toBeTruthy();
 });
 
@@ -170,7 +170,7 @@ test("the Undo is offered for 15 seconds, however often the screen updates", asy
   route.mockResolvedValue([here, at(rb, 2000)]);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   for (let i = 0; i < 13; i++) {
@@ -191,15 +191,15 @@ test("a rider can skip again and again, each time from where they are", async ()
   route.mockResolvedValue([here, at(rb, 2000)]);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await push(here);
-  expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 2. Cassel")).toBeTruthy();
   const second: LatLon = [here[0] + 0.0005, here[1] + 0.002];
   route.mockResolvedValue([second, at(rb, 3000)]);
   await push(second);
-  await fireEvent.press(screen.getByText("Skip 2. Cassel"));
+  await fireEvent.press(screen.getByLabelText("Skip 2. Cassel"));
   expect(screen.getByText("New route to 3. Bailleul")).toBeTruthy();
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
@@ -217,17 +217,17 @@ test("two undos walk back through two skips", async () => {
   route.mockResolvedValue([here, at(rb, 2000)]);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await push(here);
   route.mockResolvedValue([here, at(rb, 3000)]);
-  await fireEvent.press(screen.getByText("Skip 2. Cassel"));
+  await fireEvent.press(screen.getByLabelText("Skip 2. Cassel"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await fireEvent.press(screen.getByText("Undo"));
   await push(here);
-  expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 2. Cassel")).toBeTruthy();
 });
 
 test("without a connection the skip still goes, on a straight line, and says so", async () => {
@@ -236,7 +236,7 @@ test("without a connection the skip still goes, on a straight line, and says so"
   route.mockResolvedValue(null);
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await push(here);
@@ -249,9 +249,9 @@ test("the last point cannot be skipped, the one before it can", async () => {
   const rb = skippableRoadbook();
   await start(rb, at(rb, 2500));
   await stopAt(rb, 2500);
-  expect(screen.getByText("Skip 3. Bailleul")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 3. Bailleul")).toBeTruthy();
   await stopAt(rb, 3500);
-  expect(screen.queryByText(/^Skip /)).toBeNull();
+  expect(screen.queryByLabelText(/^Skip /)).toBeNull();
   expect(screen.queryByText(/Stop to skip/)).toBeNull();
 });
 
@@ -262,7 +262,7 @@ test("a route that arrives after Stop is ignored", async () => {
   route.mockImplementation(() => new Promise((r) => (resolve = r)));
   await start(rb, here);
   await stopAt(rb, 100);
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await endRide();
@@ -285,7 +285,7 @@ test("a way back asked for before the skip does not undo it when it arrives late
   await flush();
   expect(route).toHaveBeenCalledTimes(1); // the way back to the line
   await push(away, 0);
-  await fireEvent.press(screen.getByText("Skip 2. Cassel"));
+  await fireEvent.press(screen.getByLabelText("Skip 2. Cassel"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   expect(route).toHaveBeenCalledTimes(2);

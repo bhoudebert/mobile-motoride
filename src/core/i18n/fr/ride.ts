@@ -114,6 +114,7 @@ export const ride: Translated<typeof English> = {
   "ride.legend.zoom": "Les points de virage apparaissent quand vous zoomez.",
 
   "ride.skip.button": "Sauter {name}",
+  "ride.skip.label": "SAUTER\nÉTAPE",
   "ride.skip.busy": "Recherche d'un nouvel itinéraire…",
   "ride.skip.confirmA11y": "Sauter {skipped} et aller à {target}",
   "ride.skip.confirm": "Sauter",

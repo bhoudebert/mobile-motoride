@@ -1163,7 +1163,7 @@ const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper },
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-    banner: { position: "absolute", top: BELOW_BAR, left: 12, borderRadius: 4, padding: 16 },
+    banner: { position: "absolute", top: BELOW_BAR, left: 12, borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
     bannerTitle: { fontFamily: fonts.bold, fontSize: 28 },
     bannerSub: { fontFamily: fonts.sans, fontSize: 18 },
     attribution: {

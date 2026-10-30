@@ -84,8 +84,8 @@ test("skip: parked on the line, the next point can be skipped, and the skip goes
   route.mockImplementation(async (from: LatLon, to: LatLon) => [from, to]);
   await open(rb);
   await link("skip");
-  expect(screen.getByText("Skip 1. Mont")).toBeTruthy();
-  await fireEvent.press(screen.getByText("Skip 1. Mont"));
+  expect(screen.getByLabelText("Skip 1. Mont")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Skip 1. Mont"));
   await fireEvent.press(screen.getByText("Skip"));
   await flush();
   await seconds(2);
@@ -164,7 +164,7 @@ test("startfrom: parked far away with the third route point chosen, it routes to
   expect(screen.getByText(/^To 2\. Cassel · /)).toBeTruthy();
   expect(screen.queryByText(/^To the start/)).toBeNull();
   expect(screen.queryByText("Where do you join?")).toBeNull();
-  expect(screen.getByText("Skip 2. Cassel")).toBeTruthy();
+  expect(screen.getByLabelText("Skip 2. Cassel")).toBeTruthy();
 });
 
 test("join: beside the road between the second and third points, the card offers the nearest next point", async () => {

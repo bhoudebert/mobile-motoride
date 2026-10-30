@@ -8,8 +8,11 @@ import { colors, fonts, themed } from "./theme.ts";
 export const CONFIRM_TIMEOUT_MS = 10_000;
 export const UNDO_TIMEOUT_MS = 15_000;
 
-/** The side of the skip square (dp), and the width a banner next to it gives up: at least 72 dp to be hit with a glove on a moving bike. */
-export const SKIP_SQUARE = 76;
+/**
+ * The side of the skip square (dp), also the least height of a banner, so the two stand side by side as one row; and the width a
+ * banner gives up for it. Large enough to be hit with a glove on a moving bike, and to read at a glance.
+ */
+export const SKIP_SQUARE = 92;
 export const SKIP_GAP = 8;
 
 /**
@@ -27,8 +30,8 @@ export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: numbe
       accessibilityLabel={t("ride.skip.button", { name })}
       accessibilityState={{ disabled: !skip.canSkip }}
     >
-      <Text style={styles.skipText} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.7}>
-        {skip.busy ? t("ride.skip.busy") : t("ride.skip.button", { name })}
+      <Text style={styles.skipText} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.4}>
+        {skip.busy ? t("ride.skip.busy") : t("ride.skip.label")}
       </Text>
     </Pressable>
   );
@@ -118,7 +121,7 @@ const styles = themed(() =>
       padding: 6,
       zIndex: 5,
     },
-    skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 15, textAlign: "center" },
+    skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 26, textAlign: "center" },
     card: {
       position: "absolute",
       left: 12,
