@@ -8,6 +8,9 @@ import { deleteImported, listImported, saveImported } from "./libraryStore.ts";
 import { download, pickFile, readOpened, type PickedText } from "./importSources.ts";
 import { needsCompletion } from "../core/enrich.ts";
 import { EnrichError, enrichRoadbook } from "../services/enrich.ts";
+import { fetchServerRoadbook } from "../services/serverRoadbooks.ts";
+import type { ServerRoadbook } from "../core/serverRoadbooks.ts";
+import type { ServerSetting } from "../core/liveShare.ts";
 
 /** Ask the services for what a GPX lacks; the roadbook as it was, and what to tell the rider, when they cannot give it. */
 async function complete(
@@ -40,6 +43,7 @@ export type ImportNotice =
 export function useImport(onImported: (rb: Roadbook) => void) {
   const [items, setItems] = useState<ImportedRoadbook[]>([]);
   const [notice, setNotice] = useState<ImportNotice>(null);
+  const [fetching, setFetching] = useState<number | null>(null);
   const seen = useRef(new Set<string>());
   const itemsRef = useRef<ImportedRoadbook[]>([]);
   itemsRef.current = items;
@@ -76,6 +80,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
         roadbook: rb,
         importedAt: Date.now(),
         ...(problem ? { completion: "pending" as const } : {}),
+        ...(picked.stamp ? { serverStamp: picked.stamp } : {}),
       };
       await saveImported(entry);
       setItems((list) => [entry, ...list.filter((i) => i.roadbook.id !== rb.id)]);
@@ -91,6 +96,23 @@ export function useImport(onImported: (rb: Roadbook) => void) {
   }, []);
 
   const pick = useCallback(() => finish(pickFile), [finish]);
+
+  /** Fetch a roadbook from the rider's server and keep it, replacing the copy of the same origin (spec roadbook-library). */
+  const fromServer = useCallback(
+    async (server: ServerSetting, listed: ServerRoadbook) => {
+      setFetching(listed.id);
+      try {
+        await finish(async () => {
+          const got = await fetchServerRoadbook(server, listed.id);
+          if (!got.ok) throw new ImportError(t(`home.server.problem.${got.reason}`));
+          return { text: got.text, name: `${listed.name}.motoride.json`, stamp: got.stamp ?? listed.stamp };
+        });
+      } finally {
+        setFetching(null);
+      }
+    },
+    [finish],
+  );
 
   const handleLink = useCallback(
     (link: string | null | undefined) => {
@@ -125,6 +147,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       roadbook,
       importedAt: current.importedAt,
       ...(problem ? { completion: "pending" as const } : {}),
+      ...(current.serverStamp ? { serverStamp: current.serverStamp } : {}),
     };
     await saveImported(entry);
     setItems((list) => list.map((i) => (i.roadbook.id === id ? entry : i)));
@@ -136,5 +159,5 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     setItems((list) => list.filter((i) => i.roadbook.id !== id));
   }, []);
 
-  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry };
+  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry, fromServer, fetching };
 }

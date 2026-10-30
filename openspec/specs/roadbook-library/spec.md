@@ -53,6 +53,32 @@ A roadbook file that carries an `origin` with an app, a roadbook number and a na
 - **WHEN** the kept copy was generated on 20 October and the rider imports the same roadbook generated on 10 October
 - **THEN** the kept copy is unchanged, it opens, and a message says a newer version is already kept
 
+### Requirement: Roadbooks on the rider's server
+
+When the rider has a server (spec server-features), the roadbook list SHALL ask it, with the rider's token, for the roadbooks it holds (`GET /roadbooks`) and show them under "On your server" with their name, distance and riding time. Each SHALL carry one action: a download icon when no kept roadbook has the same origin (agentRide, same number AND same name; spec above), a refresh icon when one has but its kept stamp differs from the server's stamp (or it has none), and no action, marked up to date, when the stamps are the same. The action SHALL fetch the file (`GET /roadbook/<id>`, up to 60 seconds, with a spinner on that row), keep the stamp the server answered with (its `ETag`) beside the roadbook, and import it by the rules of "A refreshed roadbook replaces its old copy", so a refresh keeps the local id. The file's `generatedAt` SHALL NOT be compared with the server's stamp. The section SHALL NOT be shown when the rider has no server, and the app SHALL NOT ask a server that does not answer `/roadbooks` (404) again during that visit.
+
+The list SHALL work offline: when the server cannot be reached the kept and bundled roadbooks SHALL be shown as usual with a short note that the server could not be reached and a way to try again. A refused token (401), too many requests (429), a roadbook that no longer exists (404) and a route the server could not make (502) SHALL each say so in words; nothing SHALL be thrown, and no kept roadbook SHALL change.
+
+#### Scenario: A roadbook not yet on the phone
+
+- **WHEN** the server lists agentRide roadbook 7 "Loop" and no kept roadbook has that origin
+- **THEN** the row shows a download icon, and pressing it keeps the roadbook with the server's stamp and opens its ride
+
+#### Scenario: The server has a newer version
+
+- **WHEN** a kept roadbook has origin agentRide 7 "Loop" and stamp "aaa", and the server lists it with stamp "bbb"
+- **THEN** the row shows a refresh icon, and pressing it replaces the kept copy in place, keeping its local id, and stores stamp "bbb"
+
+#### Scenario: Up to date
+
+- **WHEN** the kept stamp and the server's stamp are the same
+- **THEN** the row says it is up to date and offers no action
+
+#### Scenario: Server unreachable
+
+- **WHEN** the phone has no network
+- **THEN** the list shows the kept roadbooks, a note says the server could not be reached, and "Try again" asks again
+
 ### Requirement: Complete an imported GPX
 
 A roadbook that comes in with no speed limits and no countries (a GPX) SHALL be completed once, at import, with what public services know of its roads (ADR 0026): the speed limit of each stretch (the posted one, else the legal default of the country, capped on minor roads and 50 at most in a built-up area), the country of each stretch, the roundabouts with their exits, and the fixed speed cameras along it. The line SHALL be sent thinned to about one point in thirty metres, in pieces for a long route, and matched to the roads; what comes back SHALL be laid on the imported line. While it runs the screen SHALL show that it is working with a percentage. The result SHALL be kept with the roadbook and ridden like an agentRide roadbook, with the camera policy of the country (spec danger-zones). A roadbook file that already has limits or countries SHALL NOT be sent.

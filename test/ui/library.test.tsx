@@ -12,6 +12,8 @@ import { EnrichError, enrichRoadbook } from "../../src/services/enrich.ts";
 import { serializeStored } from "../../src/core/library.ts";
 import type { Roadbook } from "../../src/core/types.ts";
 import { parseImport } from "../../src/core/library.ts";
+import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
+import { stored } from "./securestore.mock.ts";
 
 const line = drawLine([{ straight: 3000 }]);
 const gpx = (name: string) =>
@@ -52,6 +54,7 @@ beforeEach(() => {
   (globalThis.fetch as unknown as jest.Mock).mockImplementation(() => Promise.resolve({ ok: true }));
 });
 afterEach(() => jest.restoreAllMocks());
+afterEach(() => resetServerSetting());
 
 const choose = (name: string, text: string) => {
   files.set(`file:///cache/${name}`, text);
@@ -349,4 +352,102 @@ test("an imported roadbook is among the recent rides", async () => {
   await fireEvent.press(screen.getByLabelText("Back to the map"));
   await flush();
   expect(screen.getByLabelText("Ride Recent one")).toBeTruthy();
+});
+
+// Spec roadbook-library, "Roadbooks on the rider's server".
+const SERVER = { url: "https://rides.example.org", token: "mrt_" + "A".repeat(43) };
+const fetchMock = globalThis.fetch as unknown as jest.Mock;
+type Listed = { id: number; name: string; stamp: string };
+const serverSays = (listed: Listed[], file: (id: number) => string, etag = "s1") =>
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === `${SERVER.url}/roadbooks`)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ roadbooks: listed.map((l) => ({ ...l, distanceKm: 3, ridingMinutes: 5 })) }),
+      };
+    const m = /\/roadbook\/(\d+)$/.exec(url);
+    if (m) return { ok: true, status: 200, text: async () => file(Number(m[1])), headers: { get: () => `"${etag}"` } };
+    return { ok: true };
+  });
+const withServer = async () => {
+  await resetServerSetting();
+  await saveServer(SERVER);
+};
+
+test("a roadbook of the server is downloaded, then refreshed in place when its stamp changes", async () => {
+  await withServer();
+  serverSays([{ id: 7, name: "Agent loop", stamp: "s1" }], () => refreshed(3000, "2026-10-10T00:00:00.000Z"));
+  await toList();
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  const [first] = kept();
+  expect(kept()).toHaveLength(1);
+  expect(JSON.parse(files.get(first!)!).serverStamp).toBe("s1");
+  await revealButtons();
+  await fireEvent.press(screen.getByLabelText("Back to the list"));
+  // Same stamp: up to date, no action.
+  expect(screen.queryByLabelText("Refresh Agent loop, a newer version is on your server")).toBeNull();
+  expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+  // The server has a newer one.
+  serverSays([{ id: 7, name: "Agent loop", stamp: "s2" }], () => refreshed(5000, "2026-10-20T00:00:00.000Z"), "s2");
+  await fireEvent.press(screen.getByLabelText("Back to the map"));
+  await fireEvent.press(screen.getByLabelText("Roadbooks"));
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Refresh Agent loop, a newer version is on your server"));
+  await flush();
+  expect(kept()).toEqual([first]);
+  expect(JSON.parse(files.get(first!)!).serverStamp).toBe("s2");
+});
+
+test("with no server there is no server section, and nothing is asked", async () => {
+  stored.clear();
+  await resetServerSetting();
+  await toList();
+  expect(screen.queryByText("On your server")).toBeNull();
+  expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/roadbooks"))).toBe(false);
+});
+
+test("a server that cannot be reached leaves the list as it was and offers to try again", async () => {
+  await withServer();
+  fetchMock.mockImplementation(async () => Promise.reject(new TypeError("down")));
+  await toList();
+  await flush();
+  expect(screen.getByText(/Your server could not be reached/)).toBeTruthy();
+  expect(screen.getByText("Pays des Collines loop")).toBeTruthy();
+  serverSays([{ id: 7, name: "Agent loop", stamp: "s1" }], () => "");
+  await fireEvent.press(screen.getByLabelText("Try again"));
+  await flush();
+  expect(screen.getByLabelText("Download Agent loop")).toBeTruthy();
+});
+
+test("a server that does not offer roadbooks shows no section", async () => {
+  await withServer();
+  fetchMock.mockImplementation(async () => ({ ok: false, status: 404 }));
+  await toList();
+  await flush();
+  expect(screen.queryByText("On your server")).toBeNull();
+});
+
+test("a roadbook that fails to come says why and keeps nothing", async () => {
+  await withServer();
+  serverSays([{ id: 7, name: "Agent loop", stamp: "s1" }], () => "");
+  fetchMock.mockImplementation(async (url: string) =>
+    url.endsWith("/roadbooks")
+      ? {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            roadbooks: [{ id: 7, name: "Agent loop", stamp: "s1", distanceKm: 1, ridingMinutes: 1 }],
+          }),
+        }
+      : { ok: false, status: 502 },
+  );
+  await toList();
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  expect(screen.getByText(/could not make this roadbook/)).toBeTruthy();
+  expect(kept()).toHaveLength(0);
 });

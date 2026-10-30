@@ -1,10 +1,14 @@
 import { TOP_INSET } from "./insets.ts";
 import { useEffect, useState } from "react";
-import { BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
 import { t } from "../core/i18n/index.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
+import { serverAction, type ServerRoadbook } from "../core/serverRoadbooks.ts";
+import type { ImportedRoadbook } from "../core/library.ts";
 import { BackButton } from "./BackButton.tsx";
+import { Icon } from "./Icon.tsx";
+import type { ServerList } from "./useServerRoadbooks.ts";
 import { RouteThumb } from "./RouteThumb.tsx";
 import { colors, fonts, radii, themed } from "./theme.ts";
 
@@ -17,6 +21,7 @@ export function RoadbookList({
   onDelete,
   pending,
   onComplete,
+  server,
 }: {
   roadbooks: PreparedRoadbook[];
   onOpen: (rb: PreparedRoadbook) => void;
@@ -27,6 +32,15 @@ export function RoadbookList({
   /** Imported roadbooks still lacking speed limits and cameras, and the way to try again. */
   pending?: ReadonlySet<string>;
   onComplete?: (id: string) => void;
+  /** The roadbooks of the rider's server, with what is kept to compare them with; absent with no server. */
+  server?: {
+    list: ServerList | null;
+    kept: readonly ImportedRoadbook[];
+    /** The server number being fetched. */
+    fetching: number | null;
+    onGet: (entry: ServerRoadbook) => void;
+    onRetry: () => void;
+  };
   /** Back to the home screen, with the phone's Back button too. */
   onBack?: () => void;
 }) {
@@ -58,6 +72,7 @@ export function RoadbookList({
         data={roadbooks}
         keyExtractor={(rb) => rb.roadbook.id}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={server ? <ServerSection {...server} /> : undefined}
         renderItem={({ item: rb }) => {
           const danger = rb.corners.filter((c) => c.severity !== "bend").length;
           return (
@@ -126,6 +141,84 @@ export function RoadbookList({
   );
 }
 
+/** What the server holds, one row each with its one action; nothing for a server that does not offer roadbooks. */
+function ServerSection({
+  list,
+  kept,
+  fetching,
+  onGet,
+  onRetry,
+}: NonNullable<Parameters<typeof RoadbookList>[0]["server"]>) {
+  if (!list || (list.status === "problem" && list.reason === "unsupported")) return null;
+  return (
+    <View style={styles.server}>
+      <Text style={styles.serverTitle}>{t("home.server.title")}</Text>
+      {list.status === "checking" ? <Text style={styles.serverNote}>{t("home.server.checking")}</Text> : null}
+      {list.status === "unreachable" || list.status === "problem" ? (
+        <View style={styles.serverRow}>
+          <Text style={[styles.serverNote, styles.serverGrow]}>
+            {list.status === "unreachable" ? t("home.server.unreachable") : t(`home.server.problem.${list.reason}`)}
+          </Text>
+          <Pressable
+            style={styles.serverAction}
+            onPress={onRetry}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.server.retry")}
+          >
+            <Text style={styles.completeText}>{t("home.server.retry")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {list.status === "ready" && list.items.length === 0 ? (
+        <Text style={styles.serverNote}>{t("home.server.empty")}</Text>
+      ) : null}
+      {list.status === "ready"
+        ? list.items.map((entry) => {
+            const action = serverAction(entry, kept);
+            return (
+              <View key={entry.id} style={styles.serverRow}>
+                <View style={styles.serverGrow}>
+                  <Text style={styles.serverName}>{entry.name}</Text>
+                  <Text style={styles.meta}>
+                    {t("home.server.meta", { km: entry.distanceKm.toFixed(1), minutes: entry.ridingMinutes })}
+                  </Text>
+                </View>
+                {fetching === entry.id ? (
+                  <View
+                    accessibilityLabel={t("home.server.fetching", { name: entry.name })}
+                    style={styles.serverAction}
+                  >
+                    <ActivityIndicator color={colors.accent} />
+                  </View>
+                ) : action === "current" ? (
+                  <View
+                    style={styles.serverAction}
+                    accessible
+                    accessibilityLabel={`${entry.name}: ${t("home.server.current")}`}
+                  >
+                    <Icon name="checkmark" color={colors.ink2} />
+                  </View>
+                ) : (
+                  <Pressable
+                    style={styles.serverAction}
+                    disabled={fetching !== null}
+                    onPress={() => onGet(entry)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(action === "refresh" ? "home.server.refresh" : "home.server.download", {
+                      name: entry.name,
+                    })}
+                  >
+                    <Icon name={action === "refresh" ? "refresh" : "download-outline"} />
+                  </Pressable>
+                )}
+              </View>
+            );
+          })
+        : null}
+    </View>
+  );
+}
+
 const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 8 },
@@ -158,6 +251,28 @@ const styles = themed(() =>
     },
     danger: { color: colors.limitRed, fontFamily: fonts.bold, fontSize: 15 },
     keep: { color: colors.accent, fontFamily: fonts.bold, fontSize: 15 },
+    server: { gap: 4, paddingBottom: 12 },
+    serverTitle: {
+      color: colors.accent,
+      fontFamily: fonts.mono,
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+    },
+    serverNote: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 14 },
+    serverRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      borderRadius: radii.card,
+      borderWidth: 1,
+      borderColor: colors.rule,
+      paddingLeft: 16,
+      paddingVertical: 4,
+    },
+    serverGrow: { flex: 1 },
+    serverName: { color: colors.ink, fontFamily: fonts.bold, fontSize: 16 },
+    serverAction: { minHeight: 48, minWidth: 56, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
     list: { paddingHorizontal: 16, gap: 12, paddingBottom: 24 },
     card: {
       backgroundColor: colors.card,

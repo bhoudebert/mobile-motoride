@@ -43,8 +43,8 @@ Done work is removed from this list; what was learnt is added.
   not say their countries get no camera warning: agentRide writes them for new exports.
 - **The share target (ACTION_SEND)** so a route app's Share button reaches the app, and our own Valhalla and Overpass
   when many riders complete GPX files (the public ones are slow on a busy day, ADR 0026).
-- **The server, the rest of it** (ADR 0028): the setting and **live sharing** are built (ADR 0029); still to come are the
-  roadbooks of the rider's library listed and downloaded in the app, a recorded ride sent back for review, an in-app scanner
+- **The server, the rest of it** (ADR 0028): the setting, **live sharing** (ADR 0029) and the **roadbooks of the rider's
+  library, listed with download and refresh in the app**, are built; still to come are a recorded ride sent back for review, an in-app scanner
   for the invitation's QR code (the phone's camera opens it today), alerts to followers (no news for 10 minutes, a long stop) and a self-hosted copy of the map library on the
   follower's page.
 - **`rides push`** in agentRide: send a roadbook to a phone with the import link (adb or the local network).
