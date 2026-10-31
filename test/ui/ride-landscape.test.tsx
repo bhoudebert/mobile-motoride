@@ -153,3 +153,15 @@ test("turning the phone before the ride fits the route to the new size, and not 
   expect(camera.fitBounds).toHaveBeenCalledTimes(1);
   expect(camera.fitBounds.mock.calls[0]![1]).toMatchObject({ padding: expect.objectContaining({ bottom: 40 }) });
 });
+
+test("upright, the map buttons are one column when it fits, and a grid of two columns on a short screen", async () => {
+  size(390, 1000);
+  await render(<RideScreen rb={first()} onBack={() => {}} />);
+  await flush(30);
+  expect(style("map-buttons").width).toBeUndefined();
+  size(390, 600);
+  await screen.rerender(<RideScreen rb={first()} onBack={() => {}} />);
+  await flush(30);
+  expect(style("map-buttons").width).toBe(104);
+  expect(style("map-buttons").flexWrap).toBe("wrap");
+});

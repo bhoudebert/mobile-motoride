@@ -65,7 +65,7 @@ test("moving at speed, the skip is still there and still asks first", async () =
   expect(route).not.toHaveBeenCalled();
 });
 
-test("the skip is a square of at least 72 dp, and a banner stops short of it", async () => {
+test("the skip is a square of at least 72 dp at the top left, and a banner starts after it", async () => {
   const rb = skippableRoadbook();
   await start(rb, at(rb, 100));
   await stopAt(rb, 100);
@@ -75,7 +75,11 @@ test("the skip is a square of at least 72 dp, and a banner stops short of it", a
   await revealButtons();
   await fireEvent.press(screen.getByText("Pause"));
   const banner = screen.getByText("Ride paused").parent!;
-  expect(StyleSheet.flatten(banner.props.style).right).toBe(12 + flat.width + 8);
+  // At the left, so the column of map buttons on the right can never meet it.
+  expect(flat.left).toBe(12);
+  expect(flat.right).toBeUndefined();
+  expect(StyleSheet.flatten(banner.props.style).left).toBe(12 + flat.width + 8);
+  expect(StyleSheet.flatten(banner.props.style).right).toBe(12);
 });
 
 test("a skip needs a second tap that names the point and where the rider goes, and can be cancelled", async () => {

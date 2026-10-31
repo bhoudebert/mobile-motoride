@@ -27,7 +27,7 @@ While riding with GPS, the rider SHALL be able to skip the next route point: the
 
 ### Requirement: Two taps, at any speed
 
-Skipping SHALL ask for a confirmation naming the point skipped and the target, and SHALL be available at any speed: a rider who is riding is the one who finds the road blocked, and a button that only works when stopped cannot be used. A confirmation SHALL cancel itself after 10 seconds. The skip button SHALL be a square of at least 72 dp in the row of the warning banners at the top of the ride screen, at the right, never hidden behind a banner: a banner takes the width that is left. It SHALL name the point it skips.
+Skipping SHALL ask for a confirmation naming the point skipped and the target, and SHALL be available at any speed: a rider who is riding is the one who finds the road blocked, and a button that only works when stopped cannot be used. A confirmation SHALL cancel itself after 10 seconds. The skip button SHALL be a square of at least 72 dp in the row of the warning banners at the top of the ride screen, at the left (upright and sideways, above the left gauges), never hidden behind a banner: a banner takes the width that is left, and the column of map buttons on the right SHALL never reach it. It SHALL name the point it skips.
 
 ### Requirement: The new route
 
