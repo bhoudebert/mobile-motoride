@@ -311,3 +311,14 @@ test("a way back asked for before the skip does not undo it when it arrives late
   await push(away, 0);
   expect(screen.getByText(/^To 3\. Bailleul · /)).toBeTruthy();
 });
+
+test("a card on screen has the room to itself: the skip square steps aside, and comes back", async () => {
+  const rb = skippableRoadbook();
+  await start(rb, at(rb, 100));
+  await stopAt(rb, 100);
+  expect(screen.getByLabelText("Skip 1. Mont")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Open the gauges"));
+  expect(screen.queryByLabelText("Skip 1. Mont")).toBeNull();
+  await fireEvent.press(screen.getByText("Close"));
+  expect(screen.getByLabelText("Skip 1. Mont")).toBeTruthy();
+});
