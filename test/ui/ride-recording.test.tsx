@@ -12,6 +12,8 @@ import { at, endRide, revealButtons, skippableRoadbook } from "./helpers.ts";
 import { parseGpx } from "../../src/core/gpx.ts";
 import { serializeMeta, type RideMeta } from "../../src/core/recording.ts";
 import type { PreparedRoadbook } from "../../src/core/types.ts";
+import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
+import { stored } from "./securestore.mock.ts";
 
 const folder = "file:///document/rides/";
 const gpxFiles = () => [...files.keys()].filter((k) => k.startsWith(folder) && k.endsWith(".gpx"));
@@ -19,6 +21,8 @@ const metaOf = (uri: string): RideMeta => JSON.parse(files.get(uri.replace(/\.gp
 
 let clock = Date.UTC(2026, 9, 19, 9, 0, 0);
 beforeEach(async () => {
+  stored.clear();
+  await resetServerSetting();
   jest.useFakeTimers();
   resetMapMock();
   resetFiles();
@@ -228,7 +232,8 @@ test("My rides lists the rides newest first with their state, shares the GPX and
   );
 
   await fireEvent.press(screen.getByLabelText("Delete Old loop ride?"));
-  expect(screen.getByText("Delete this ride?")).toBeTruthy();
+  // Never sent to a server: the question says it is a loss.
+  expect(screen.getByText("This ride is only on this phone. If you delete it, it is lost for good.")).toBeTruthy();
   await fireEvent.press(screen.getByLabelText("Keep it"));
   expect(screen.getByText("Old loop")).toBeTruthy();
   await fireEvent.press(screen.getByLabelText("Delete Old loop ride?"));
@@ -460,4 +465,192 @@ test("a track whose summary is missing is still listed, with its summary rebuilt
   await fireEvent.press(screen.getByLabelText(`Share the ride of ${rb.roadbook.name}`));
   await flush();
   expect(shareAsync).toHaveBeenCalledWith(gpxUri, expect.objectContaining({ mimeType: "application/gpx+xml" }));
+});
+
+// Spec ride-recording, "Send it to the rider's server".
+const SERVER = { url: "https://rides.example.org", token: "mrt_" + "A".repeat(43) };
+const fetchMock = globalThis.fetch as unknown as jest.Mock;
+const withServer = async () => saveServer(SERVER);
+const calls = (method: string) => fetchMock.mock.calls.filter(([, init]) => init?.method === method);
+/** The server takes a ride (201), or answers `status`. */
+const serverTakes = (status = 201) =>
+  fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
+    if (init?.method === "PUT" && String(url).startsWith(SERVER.url))
+      return {
+        ok: status < 300,
+        status,
+        json: async () => ({
+          id: decodeURIComponent(String(url).split("/rides/")[1]!),
+          status: "created",
+          roadbook: null,
+        }),
+      };
+    return { ok: true };
+  });
+/** A ride the app was closed during: found at the launch and saved as recovered, with the notice. */
+const leaveCheckpoint = (name = "Cut short loop") =>
+  files.set(
+    `${folder}in-progress.json`,
+    JSON.stringify({
+      v: 1,
+      roadbookId: "loop",
+      roadbookName: name,
+      startedAt: clock,
+      completed: false,
+      points: Array.from({ length: 12 }, (_, i) => ({
+        lat: 50.45,
+        lon: 3.2 + i * 0.001,
+        time: clock + i * 6000,
+        speedMps: 14,
+      })),
+    }),
+  );
+
+test("with a server the notice of a saved ride offers to send it, and the ride is then marked as on the server", async () => {
+  await withServer();
+  serverTakes();
+  leaveCheckpoint();
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Upload to server"));
+  await flush();
+  const [put] = calls("PUT");
+  const [gpxUri] = gpxFiles();
+  const meta = metaOf(gpxUri!);
+  expect(calls("PUT")).toHaveLength(1);
+  expect(put![0]).toBe(`${SERVER.url}/rides/${encodeURIComponent(meta.id)}`);
+  // The file as it is kept, with the rider's token.
+  expect(put![1].body).toBe(files.get(gpxUri!));
+  expect(put![1].headers.Authorization).toBe(`Bearer ${SERVER.token}`);
+  expect(screen.getByText("Ride uploaded to your server.")).toBeTruthy();
+  expect(meta.serverRideId).toBe(meta.id);
+  expect(typeof meta.uploadedAt).toBe("number");
+});
+
+test("without a server nothing is offered, and a server that refuses leaves the ride on the phone only", async () => {
+  leaveCheckpoint();
+  await render(<App />);
+  await flush();
+  expect(screen.getByText(/^A ride that was cut short was recovered/)).toBeTruthy();
+  expect(screen.queryByLabelText("Upload to server")).toBeNull();
+  expect(calls("PUT")).toHaveLength(0);
+  await screen.unmount();
+
+  await withServer();
+  serverTakes(503);
+  resetFiles();
+  leaveCheckpoint("Another loop");
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Upload to server"));
+  await flush();
+  expect(
+    screen.getByText("Your server did not take the ride. It is still on this phone: try again later."),
+  ).toBeTruthy();
+  const meta = metaOf(gpxFiles()[0]!);
+  expect(meta.uploadedAt).toBeUndefined();
+  expect(meta.serverRideId).toBeUndefined();
+});
+
+const openRides = async () => {
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Open the menu"));
+  await fireEvent.press(screen.getByLabelText("My rides"));
+  await flush(25);
+};
+
+test("My rides says which rides are only on the phone, sends one on request, and marks it", async () => {
+  await withServer();
+  serverTakes();
+  const saved = (name: string, at: number): RideMeta => {
+    const meta: RideMeta = {
+      id: `2026-10-0${at}T08-00-00-${name.toLowerCase()}`,
+      roadbookId: name,
+      roadbookName: name,
+      startedAt: Date.UTC(2026, 9, at, 8),
+      endedAt: Date.UTC(2026, 9, at, 9),
+      distanceM: 54_321,
+      points: 100,
+      state: "completed",
+    };
+    files.set(`${folder}${meta.id}.gpx`, "<gpx/>");
+    files.set(`${folder}${meta.id}.json`, serializeMeta(meta));
+    return meta;
+  };
+  const old = saved("Old", 1);
+  saved("New", 2);
+  files.set(
+    `${folder}${old.id}.json`,
+    serializeMeta({ ...old, uploadedAt: Date.UTC(2026, 9, 3, 12), serverRideId: old.id }),
+  );
+  dirs.add("file:///document/rides");
+  await openRides();
+  expect(screen.getAllByText("Only on this phone")).toHaveLength(1);
+  expect(screen.getByText(/^On your server, sent /)).toBeTruthy();
+  // One send action, for the ride that is not there yet.
+  expect(screen.getAllByLabelText(/^Upload the ride of /)).toHaveLength(1);
+  await fireEvent.press(screen.getByLabelText("Upload the ride of New to your server"));
+  await flush(25);
+  expect(calls("PUT")).toHaveLength(1);
+  expect(screen.queryByText("Only on this phone")).toBeNull();
+  expect(screen.queryByLabelText(/^Upload the ride of /)).toBeNull();
+  expect(metaOf(`${folder}2026-10-02T08-00-00-new.gpx`).uploadedAt).toBeGreaterThan(0);
+});
+
+test("deleting a ride that was never sent is warned as a loss, one that was sent says it stays, and neither calls the server", async () => {
+  await withServer();
+  serverTakes();
+  const mk = (name: string, at: number, extra: Partial<RideMeta> = {}) => {
+    const meta: RideMeta = {
+      id: `2026-10-0${at}T08-00-00-${name.toLowerCase()}`,
+      roadbookId: name,
+      roadbookName: name,
+      startedAt: Date.UTC(2026, 9, at, 8),
+      endedAt: Date.UTC(2026, 9, at, 9),
+      distanceM: 54_321,
+      points: 100,
+      state: "completed",
+      ...extra,
+    };
+    files.set(`${folder}${meta.id}.gpx`, "<gpx/>");
+    files.set(`${folder}${meta.id}.json`, serializeMeta(meta));
+  };
+  mk("Sent", 1, { uploadedAt: Date.UTC(2026, 9, 3), serverRideId: "x" });
+  mk("Alone", 2);
+  dirs.add("file:///document/rides");
+  await openRides();
+  await fireEvent.press(screen.getByLabelText("Delete Alone ride?"));
+  expect(screen.getByText("This ride is only on this phone. If you delete it, it is lost for good.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Keep it"));
+  await fireEvent.press(screen.getByLabelText("Delete Sent ride?"));
+  expect(screen.getByText("Delete it from this phone? It stays on your server.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Delete the ride of Sent"));
+  await flush();
+  expect([...files.keys()].some((k) => k.includes("-sent."))).toBe(false);
+  expect([...files.keys()].some((k) => k.includes("-alone."))).toBe(true);
+  // Deleting on the phone never touches the server.
+  expect(calls("DELETE")).toHaveLength(0);
+  expect(calls("PUT")).toHaveLength(0);
+});
+
+test("without a server a ride is still warned as a loss when deleted, and no upload is offered", async () => {
+  const meta: RideMeta = {
+    id: "2026-10-02T08-00-00-solo",
+    roadbookId: "Solo",
+    roadbookName: "Solo",
+    startedAt: Date.UTC(2026, 9, 2, 8),
+    endedAt: Date.UTC(2026, 9, 2, 9),
+    distanceM: 54_321,
+    points: 100,
+    state: "completed",
+  };
+  files.set(`${folder}${meta.id}.gpx`, "<gpx/>");
+  files.set(`${folder}${meta.id}.json`, serializeMeta(meta));
+  dirs.add("file:///document/rides");
+  await openRides();
+  expect(screen.queryByLabelText(/^Upload the ride of /)).toBeNull();
+  expect(screen.queryByText("Only on this phone")).toBeNull();
+  await fireEvent.press(screen.getByLabelText("Delete Solo ride?"));
+  expect(screen.getByText(/lost for good/)).toBeTruthy();
 });

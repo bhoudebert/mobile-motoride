@@ -186,5 +186,29 @@ export async function readRidePoints(id: string): Promise<TrackPoint[] | null> {
   }
 }
 
+/** The text of a ride's GPX, exactly as kept, for the server; null when the file cannot be read. */
+export async function readRideGpx(id: string): Promise<string | null> {
+  try {
+    const f = file(`${id}.gpx`);
+    return f.exists ? await f.text() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Remember that a ride is on the rider's server: written beside the ride, never undone by anything the phone does. */
+export async function markUploaded(id: string, serverRideId: string, at: number): Promise<RideMeta | null> {
+  try {
+    const f = file(`${id}.json`);
+    const meta = f.exists ? parseMeta(await f.text()) : null;
+    if (!meta) return null;
+    const next: RideMeta = { ...meta, uploadedAt: at, serverRideId };
+    await put(`${id}.json`, serializeMeta(next));
+    return next;
+  } catch {
+    return null;
+  }
+}
+
 /** The address of a ride's GPX, for the share sheet. */
 export const gpxUri = (id: string): string => file(`${id}.gpx`).uri;

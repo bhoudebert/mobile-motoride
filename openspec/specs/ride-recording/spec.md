@@ -52,12 +52,31 @@ When lean or braking is on and the phone is calibrated (spec instruments), each 
 
 ### Requirement: My rides
 
-The menu SHALL open the list of recorded rides, newest first, each with the roadbook's name, the date, the distance, the duration and its state. The rider SHALL be able to share a ride's GPX file through the phone's share sheet (which also saves it to the phone, a cloud folder or another app), and delete it after a question. With none, the list SHALL say where they come from.
+The menu SHALL open the list of recorded rides, newest first, each with the roadbook's name, the date, the distance, the duration and its state. The rider SHALL be able to share a ride's GPX file through the phone's share sheet (which also saves it to the phone, a cloud folder or another app), and delete it after a question that says what is lost: for a ride never sent to a server, "This ride is only on this phone. If you delete it, it is lost for good."; for one that was, "Delete it from this phone? It stays on your server." With none, the list SHALL say where they come from.
 
 #### Scenario: Share
 
 - **WHEN** the rider taps Share on a recorded ride
 - **THEN** the phone's share sheet opens with the GPX file
+
+### Requirement: Send it to the rider's server
+
+When the rider has a server (spec server-features), a recorded ride SHALL be sendable to it, as the GPX exactly as kept on the phone (`PUT /rides/<ride id>` with the rider's token, agentRide's contract "Uploading a recorded ride"; the same id and file again is harmless, so a send that got no answer is simply sent again). The notice that says a ride was saved (or recovered) SHALL carry "Upload to server", and every ride in My rides that is not on the server SHALL offer the same, in case the rider missed it; nothing is offered without a server. On the server's answer (201 or 200) the ride SHALL be marked as on the server in its summary (`uploadedAt` and `serverRideId`), and the list SHALL say, under the ride's state, "On your server, sent <date>", or "Only on this phone" when a server is enrolled and the ride is not on it. A server that cannot be reached, refuses the phone, keeps 200 rides already, finds the ride too large, is asked too often, or does not know rides SHALL be told in words and the ride SHALL stay as it was, on the phone. Deleting a ride on the phone SHALL NEVER call the server, and a summary rebuilt from a GPX (spec above) does not know the ride was sent: it is offered again, which is harmless.
+
+#### Scenario: Missed at the end of the ride
+
+- **WHEN** a ride was saved and the notice has gone, and a server is enrolled
+- **THEN** My rides shows "Only on this phone" and an "Upload to server" action on that ride; pressing it sends the ride and the row says "On your server, sent <date>"
+
+#### Scenario: Deleting a ride that was never sent
+
+- **WHEN** the rider deletes a ride that is only on the phone
+- **THEN** the question says the ride is lost for good, and nothing is sent to the server
+
+#### Scenario: The server is not there
+
+- **WHEN** the rider sends a ride and the server cannot be reached
+- **THEN** the screen says so and that the ride is still on the phone, and the ride is not marked as on the server
 
 ### Requirement: Which roadbook it followed
 

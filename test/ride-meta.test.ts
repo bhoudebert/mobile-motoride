@@ -62,3 +62,15 @@ test("a file cut in the middle is rebuilt from the points it has, and one withou
   assert.equal(rebuilt.roadbookName, "Pays des Collines & co");
   assert.equal(metaFromGpx("x", whole.slice(0, whole.indexOf("<trkpt"))), null);
 });
+
+test("the upload mark of a ride is kept when it is valid and dropped when it is not", () => {
+  const read = (extra: Record<string, unknown>) => parseMeta(JSON.stringify({ v: 1, ...meta, ...extra }));
+  const ok = read({ uploadedAt: t0 + 5000, serverRideId: meta.id })!;
+  assert.equal(ok.uploadedAt, t0 + 5000);
+  assert.equal(ok.serverRideId, meta.id);
+  const bad = read({ uploadedAt: "yesterday", serverRideId: 7 })!;
+  assert.equal(bad.uploadedAt, undefined);
+  assert.equal(bad.serverRideId, undefined);
+  // A summary written before there was an upload has none of it: a ride on the phone only.
+  assert.equal(parseMeta(serializeMeta(meta))!.uploadedAt, undefined);
+});

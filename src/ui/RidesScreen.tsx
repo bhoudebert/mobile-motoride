@@ -5,7 +5,9 @@ import { BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-
 import { formatDistance } from "../core/format.ts";
 import { formatDateTime, t } from "../core/i18n/index.ts";
 import { durationText, RIDE_STATE_LABEL, rideExtras, type RideMeta } from "../core/recording.ts";
+import type { ServerSetting } from "../core/liveShare.ts";
 import { deleteRide, gpxUri, listRides } from "./ridesStore.ts";
+import { useRideUpload } from "./useRideUpload.ts";
 import { BackButton } from "./BackButton.tsx";
 import { colors, fonts, radii, themed } from "./theme.ts";
 
@@ -13,10 +15,20 @@ const dateText = (ms: number) =>
   formatDateTime(ms, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** The rides the phone has recorded: share the GPX, or delete (spec ride-recording). */
-export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview?: (ride: RideMeta) => void }) {
+export function RidesScreen({
+  onBack,
+  onReview,
+  server = null,
+}: {
+  onBack: () => void;
+  onReview?: (ride: RideMeta) => void;
+  /** The rider's server, when there is one: a ride can then be sent to it (spec ride-recording). */
+  server?: ServerSetting | null;
+}) {
   const [rides, setRides] = useState<RideMeta[] | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const { uploading, upload } = useRideUpload(server);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -38,6 +50,13 @@ export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview
     });
     return () => sub.remove();
   }, [onBack]);
+
+  const send = async (ride: RideMeta) => {
+    setProblem(null);
+    const result = await upload(ride.id);
+    if (!result.ok) return setProblem(t(`home.rides.uploadProblem.${result.reason}`));
+    reload();
+  };
 
   const share = async (ride: RideMeta) => {
     setProblem(null);
@@ -78,9 +97,16 @@ export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview
             </Text>
             {rideExtras(r) ? <Text style={styles.meta}>{rideExtras(r)}</Text> : null}
             <Text style={[styles.state, r.state === "completed" && styles.done]}>{RIDE_STATE_LABEL[r.state]}</Text>
+            {r.uploadedAt !== undefined ? (
+              <Text style={styles.meta}>{t("home.rides.onServer", { date: dateText(r.uploadedAt) })}</Text>
+            ) : server ? (
+              <Text style={styles.meta}>{t("home.rides.localOnly")}</Text>
+            ) : null}
             {confirming === r.id ? (
               <View style={styles.actions}>
-                <Text style={styles.confirmText}>{t("home.rides.confirmDelete")}</Text>
+                <Text style={[styles.confirmText, r.uploadedAt === undefined && styles.danger]}>
+                  {t(r.uploadedAt === undefined ? "home.rides.confirmDeleteLost" : "home.rides.confirmDeleteKept")}
+                </Text>
                 <Pressable
                   style={styles.action}
                   onPress={async () => {
@@ -112,6 +138,19 @@ export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview
                     accessibilityLabel={t("home.rides.reviewRide", { name: r.roadbookName })}
                   >
                     <Text style={styles.link}>{t("home.rides.review")}</Text>
+                  </Pressable>
+                ) : null}
+                {server && r.uploadedAt === undefined ? (
+                  <Pressable
+                    style={styles.action}
+                    disabled={uploading !== null}
+                    onPress={() => send(r)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("home.rides.uploadRide", { name: r.roadbookName })}
+                  >
+                    <Text style={styles.link}>
+                      {t(uploading === r.id ? "home.rides.uploading" : "home.rides.upload")}
+                    </Text>
                   </Pressable>
                 ) : null}
                 <Pressable

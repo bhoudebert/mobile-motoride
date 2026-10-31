@@ -34,7 +34,10 @@ async function complete(
 }
 
 export type ImportNotice =
-  { kind: "busy"; text?: string } | { kind: "error"; text: string } | { kind: "info"; text: string } | null;
+  | { kind: "busy"; text?: string }
+  | { kind: "error"; text: string }
+  | { kind: "info"; text: string; action?: { label: string; onPress: () => void } }
+  | null;
 
 /**
  * The roadbooks kept on the phone and the ways to bring one in: a file picked, a file the phone opens the app with,

@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Place } from "./src/core/destination.ts";
 import { prepareRoadbook } from "./src/core/roadbook.ts";
 import type { PreparedRoadbook } from "./src/core/types.ts";
@@ -15,7 +15,6 @@ import { HomeScreen, roadbookDetail } from "./src/ui/HomeScreen.tsx";
 import { RideScreen } from "./src/ui/RideScreen.tsx";
 import { RidesScreen } from "./src/ui/RidesScreen.tsx";
 import { RideReviewScreen } from "./src/ui/RideReviewScreen.tsx";
-import type { RideMeta } from "./src/core/recording.ts";
 import { ServerScreen } from "./src/ui/ServerScreen.tsx";
 import { SafetyScreen } from "./src/ui/CrashUi.tsx";
 import { useCrashSettings } from "./src/ui/crashStore.ts";
@@ -25,6 +24,8 @@ import { RoadbookList } from "./src/ui/RoadbookList.tsx";
 import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer } from "./src/ui/serverSetting.ts";
+import { useRideUpload } from "./src/ui/useRideUpload.ts";
+import type { RideMeta } from "./src/core/recording.ts";
 import { serverAction, type ServerRoadbook } from "./src/core/serverRoadbooks.ts";
 import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
 import { recoverRides } from "./src/ui/ridesStore.ts";
@@ -72,11 +73,23 @@ export default function App() {
   const { recents, remember, clear } = useRecents();
   // What happened on its own: a ride that was saved. The import's own messages come first.
   const [info, setInfo] = useState<ImportNotice>(null);
-  const saved = (m: { distanceM: number; state: string }, recovered = false) =>
+  // A ride that was saved: with a server enrolled the notice offers to send it there (spec ride-recording).
+  const saved = (m: RideMeta, recovered = false) =>
     setInfo({
       kind: "info",
       text: t(recovered ? "home.saved.recovered" : "home.saved.ride", { distance: formatDistance(m.distanceM) }),
+      ...(serverNow.current
+        ? { action: { label: t("home.saved.upload"), onPress: () => void uploadFromNotice(m) } }
+        : {}),
     });
+  const uploadFromNotice = async (m: RideMeta) => {
+    setInfo({ kind: "busy", text: t("home.rides.uploading") });
+    const result = await rideUpload.upload(m.id);
+    setInfo({
+      kind: "info",
+      text: result.ok ? t("home.rides.uploaded") : t(`home.rides.uploadProblem.${result.reason}`),
+    });
+  };
   // A link that sets the server, after the rider says yes.
   useServerLink(setInfo, () => setScreen({ name: "server" }));
   // A message about a ride that was saved fades by itself.
@@ -102,6 +115,10 @@ export default function App() {
     setScreen({ name: "ride", rb: prepared, from: "roadbooks" });
   });
   const server = useServer();
+  // The ride notice is made before the server is known to this render: read it when the ride ends.
+  const serverNow = useRef(server);
+  serverNow.current = server;
+  const rideUpload = useRideUpload(server);
   // A roadbook the rider asked to update comes down by itself once the server has its new file.
   const serverRoadbooks = useServerRoadbooks(
     server,
@@ -185,7 +202,7 @@ export default function App() {
         </SwipeBack>
       ) : screen.name === "rides" ? (
         <SwipeBack onBack={home}>
-          <RidesScreen onBack={home} onReview={(ride) => setScreen({ name: "review", ride })} />
+          <RidesScreen server={server} onBack={home} onReview={(ride) => setScreen({ name: "review", ride })} />
         </SwipeBack>
       ) : screen.name === "search" ? (
         <SwipeBack onBack={home}>
