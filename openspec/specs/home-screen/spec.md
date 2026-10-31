@@ -69,3 +69,17 @@ The way back at the top of the screens (the list of roadbooks, My rides, a ride'
 
 - **WHEN** the list of roadbooks is open
 - **THEN** its top shows an arrow and no word "Back", and a screen reader names it "Back to the map"
+
+### Requirement: Swipe back
+
+The screens that have a way back at the top (the list of roadbooks, My rides, a ride's review, the search for a place, the server) SHALL also go back when the rider sweeps a finger from the left edge of the screen to the right, mostly sideways and far enough, to the same place as the arrow. A tap, a scroll and a swipe that starts away from the edge SHALL NOT go back. The ride and the safety page SHALL NOT go back this way: a swipe made on a bike must not end a ride or leave a crash alert.
+
+#### Scenario: Swipe from the edge
+
+- **WHEN** the list of roadbooks is open and the rider sweeps from the left edge to the right
+- **THEN** the home screen is shown
+
+#### Scenario: A scroll is not a swipe back
+
+- **WHEN** the rider scrolls the list of roadbooks up and down
+- **THEN** the list stays open

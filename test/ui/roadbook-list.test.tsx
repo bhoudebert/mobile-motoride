@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import App from "../../App.tsx";
 import { RoadbookList } from "../../src/ui/RoadbookList.tsx";
 import { flush } from "./flush.ts";
 import { prepared } from "./helpers.ts";
@@ -20,4 +21,21 @@ test("Back is an arrow with a name, not a word", async () => {
   expect(screen.queryByText("Back")).toBeNull();
   await fireEvent.press(screen.getByLabelText("Back to the map"));
   expect(onBack).toHaveBeenCalledTimes(1);
+});
+
+test("a swipe from the left edge goes back on the screens that have a back arrow, and a scroll does not", async () => {
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Roadbooks"));
+  const title = () => screen.getByText("Pick a roadbook");
+  const touch = async (x0: number, y0: number, x1: number, y1: number) => {
+    await fireEvent(title(), "touchStart", { nativeEvent: { pageX: x0, pageY: y0 } });
+    await fireEvent(title(), "touchEnd", { nativeEvent: { pageX: x1, pageY: y1 } });
+  };
+  await touch(200, 300, 380, 300);
+  await touch(10, 600, 20, 100);
+  expect(title()).toBeTruthy();
+  await touch(8, 300, 200, 320);
+  expect(screen.queryByText("Pick a roadbook")).toBeNull();
+  expect(screen.getByText("Where to?")).toBeTruthy();
 });

@@ -7,6 +7,10 @@ import { readFileText } from "./libraryStore.ts";
 export interface PickedText {
   text: string;
   name: string;
+  /** The stamp a server gave this version, when it came from one. */
+  stamp?: string;
+  /** The number the server lists it under. */
+  serverId?: number;
 }
 
 /** Ask the rider for a file; null when they leave the picker without one. */

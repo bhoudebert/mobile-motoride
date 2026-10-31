@@ -22,7 +22,10 @@ import { useCrashSettings } from "./src/ui/crashStore.ts";
 import { useServerLink } from "./src/ui/useServerLink.ts";
 import { ImportNoticeBar } from "./src/ui/ImportNoticeBar.tsx";
 import { RoadbookList } from "./src/ui/RoadbookList.tsx";
+import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
+import { useServer } from "./src/ui/serverSetting.ts";
+import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
 import { recoverRide } from "./src/ui/ridesStore.ts";
 import { formatDistance } from "./src/core/format.ts";
 import { t } from "./src/core/i18n/index.ts";
@@ -95,9 +98,15 @@ export default function App() {
     });
     setScreen({ name: "ride", rb: prepared, from: "roadbooks" });
   });
+  const server = useServer();
+  const serverRoadbooks = useServerRoadbooks(server, screen.name === "roadbooks");
   const imported = useMemo(() => library.items.map((i) => prepareRoadbook(i.roadbook)), [library.items]);
   const pendingIds = useMemo(
     () => new Set(library.items.filter((i) => i.completion === "pending").map((i) => i.roadbook.id)),
+    [library.items],
+  );
+  const fromServerIds = useMemo(
+    () => new Set(library.items.filter((i) => i.serverId !== undefined).map((i) => i.roadbook.id)),
     [library.items],
   );
   const importedIds = useMemo(() => new Set(imported.map((r) => r.roadbook.id)), [imported]);
@@ -151,24 +160,46 @@ export default function App() {
           onBack={home}
         />
       ) : screen.name === "server" ? (
-        <ServerScreen onBack={home} />
+        <SwipeBack onBack={home}>
+          <ServerScreen onBack={home} />
+        </SwipeBack>
       ) : screen.name === "review" ? (
-        <RideReviewScreen ride={screen.ride} onBack={() => setScreen({ name: "rides" })} />
+        <SwipeBack onBack={() => setScreen({ name: "rides" })}>
+          <RideReviewScreen ride={screen.ride} onBack={() => setScreen({ name: "rides" })} />
+        </SwipeBack>
       ) : screen.name === "rides" ? (
-        <RidesScreen onBack={home} onReview={(ride) => setScreen({ name: "review", ride })} />
+        <SwipeBack onBack={home}>
+          <RidesScreen onBack={home} onReview={(ride) => setScreen({ name: "review", ride })} />
+        </SwipeBack>
       ) : screen.name === "search" ? (
-        <DestinationScreen onBack={home} onRoute={openRoute} />
+        <SwipeBack onBack={home}>
+          <DestinationScreen onBack={home} onRoute={openRoute} />
+        </SwipeBack>
       ) : screen.name === "roadbooks" ? (
-        <RoadbookList
-          roadbooks={roadbooks}
-          onOpen={(rb) => openRoadbook(rb, "roadbooks")}
-          onBack={home}
-          imported={importedIds}
-          onImport={() => void library.pick()}
-          onDelete={(id) => void library.remove(id)}
-          pending={pendingIds}
-          onComplete={(id) => void library.retry(id)}
-        />
+        <SwipeBack onBack={home}>
+          <RoadbookList
+            roadbooks={roadbooks}
+            onOpen={(rb) => openRoadbook(rb, "roadbooks")}
+            onBack={home}
+            imported={importedIds}
+            onImport={() => void library.pick()}
+            onDelete={(id) => void library.remove(id)}
+            fromServer={fromServerIds}
+            pending={pendingIds}
+            onComplete={(id) => void library.retry(id)}
+            server={
+              server
+                ? {
+                    list: serverRoadbooks.list,
+                    kept: library.items,
+                    fetching: library.fetching,
+                    onGet: (entry) => void library.fromServer(server, entry),
+                    onRetry: serverRoadbooks.reload,
+                  }
+                : undefined
+            }
+          />
+        </SwipeBack>
       ) : (
         <HomeScreen
           roadbooks={roadbooks}

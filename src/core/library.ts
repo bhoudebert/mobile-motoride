@@ -103,6 +103,10 @@ export interface ImportedRoadbook {
   importedAt: number;
   /** `pending`: the speed limits, countries and cameras could not be added yet; the list offers to try again. */
   completion?: "pending";
+  /** The stamp of the server's version this copy came from, to tell when the server has a newer one. */
+  serverStamp?: string;
+  /** The number the server listed it under; its stamp is only compared with an entry of that number. */
+  serverId?: number;
 }
 
 export const serializeStored = (entry: ImportedRoadbook): string => JSON.stringify({ v: 1, ...entry });
@@ -122,6 +126,12 @@ export function parseStored(text: string): ImportedRoadbook | null {
     return {
       importedAt: raw.importedAt,
       ...((raw as { completion?: unknown }).completion === "pending" ? { completion: "pending" as const } : {}),
+      ...(typeof (raw as { serverId?: unknown }).serverId === "number"
+        ? { serverId: (raw as { serverId: number }).serverId }
+        : {}),
+      ...(typeof (raw as { serverStamp?: unknown }).serverStamp === "string"
+        ? { serverStamp: (raw as { serverStamp: string }).serverStamp }
+        : {}),
       roadbook: { ...(rb as unknown as Roadbook), description: typeof description === "string" ? description : "" },
     };
   } catch {
