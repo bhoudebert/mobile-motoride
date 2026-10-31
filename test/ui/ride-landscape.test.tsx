@@ -56,7 +56,7 @@ test("upright, the panel is the bottom sheet and the map has the whole screen", 
 test("sideways, the panel is a column on the left and the map takes the rest, buttons still reachable", async () => {
   size(844, 390);
   await open();
-  expect(style("hud").width).toBeGreaterThanOrEqual(338);
+  expect(style("hud").width).toBeGreaterThanOrEqual(312);
   expect(style("hud").top).toBe(0);
   expect(style("hud").right).toBeUndefined();
   expect(style("ride-stage").left).toBe(style("hud").width);

@@ -339,7 +339,8 @@ export function RideScreen({
     }),
     [slide],
   );
-  const showButtons = !running || controls || closing;
+  // Sideways the buttons stay: the column has the room, and the grabber that folds them away is not offered.
+  const showButtons = !running || controls || closing || landscape;
   useEffect(() => {
     if (!running) {
       slide.setValue(0);
@@ -573,7 +574,7 @@ export function RideScreen({
   const hudBody = (
     <>
       {nav?.junction ? <JunctionCard junction={nav.junction.junction} /> : null}
-      {running && !modalOpen ? (
+      {running && !modalOpen && !landscape ? (
         <Pressable
           style={styles.grabber}
           onPress={() => setControls((c) => !c)}
@@ -586,7 +587,7 @@ export function RideScreen({
           <View style={styles.grabberPill} />
         </Pressable>
       ) : null}
-      <View style={styles.row}>
+      <View style={[styles.row, landscape && styles.rowWrap]}>
         <View>
           <View style={[styles.speedBadge, nav?.over && styles.speedOver]}>
             <Text style={[styles.speed, nav?.over && styles.speedTextOver]}>{speed ?? "–"}</Text>
@@ -661,7 +662,7 @@ export function RideScreen({
       {showButtons ? (
         <Animated.View
           testID="ride-row"
-          style={running ? rowStyle : undefined}
+          style={running && !landscape ? rowStyle : undefined}
           importantForAccessibility={controls || !running ? "auto" : "no-hide-descendants"}
           accessibilityElementsHidden={running && !controls}
         >
@@ -1046,7 +1047,7 @@ export function RideScreen({
               style={[styles.controls, landscape && styles.controlsSide, { bottom: lower + 12 }]}
             >
               {/* Side by side: the column of buttons stands on the panel and must not reach the bar at the top. */}
-              <View style={[styles.zoomRow, landscape && { width: 104 }]}>
+              <View style={styles.zoomRow}>
                 <RoundButton label="−" name={t("ride.map.zoomOut")} onPress={() => zoomBy(-1)} />
                 <RoundButton label="+" name={t("ride.map.zoomIn")} onPress={() => zoomBy(1)} />
               </View>
@@ -1309,7 +1310,7 @@ const styles = themed(() =>
     hudScroll: { flexGrow: 0, flexShrink: 1 },
     hudScrollBody: { gap: 8 },
     hudSide: { right: undefined, top: 0, paddingTop: 12, borderRadius: 0, justifyContent: "space-between" },
-    controlsSide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", width: 104 },
+    controlsSide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", width: 204 },
     // A wide, tall target inside the top of the panel, so nothing clips it; only the pill is drawn.
     grabber: {
       position: "absolute",
@@ -1335,6 +1336,8 @@ const styles = themed(() =>
     line: { color: colors.mossText, fontFamily: fonts.sans, fontSize: 16 },
     note: { color: colors.mossMuted, fontFamily: fonts.mono, fontSize: 11 },
     button: { flex: 1, height: 56, alignItems: "center", justifyContent: "center", borderRadius: 4 },
+    // The column is narrower than speed, limit and distance side by side: the distance goes under them.
+    rowWrap: { flexWrap: "wrap", rowGap: 4 },
     rowSlide: { paddingTop: 8 },
     buttonText: { fontFamily: fonts.bold, fontSize: 18 },
     start: { backgroundColor: colors.signal },
