@@ -1,6 +1,6 @@
 // A local agentRide server for the phone on the USB cable (README, "Try live sharing with a local server"):
 // starts ../agentRide's server, makes a rider if there is none, forwards the port, and sets the server in the app.
-// A new server gets the test roadbooks (test/fixtures/roadbooks) pushed to it, to try the list on the phone.
+// The server reads agentRide's .env too. A new server gets the test roadbooks (test/fixtures/roadbooks) pushed to it, to try the list on the phone.
 // Ctrl-C stops it. The test of the phone (`npm run smoke:device`) replaces the app's server; run this again after it.
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -17,16 +17,22 @@ if (!existsSync(join(agentRide, "src/serve.ts"))) {
   process.exit(1);
 }
 mkdirSync(data, { recursive: true });
+// agentRide's own .env (Claude key, traffic, Mapillary...), as `npm run serve` there loads it: the server has every
+// feature. The variables set below win over the file (node does not override the environment).
+const ENV_FILE = "--env-file-if-exists=.env";
 const env = { ...process.env, RIDE_DATA_DIR: data, RIDE_SERVER_PORT: port };
 
 const tokenFile = join(data, "token.txt");
 if (!existsSync(tokenFile)) {
-  const added = execFileSync("node", ["src/admin.ts", "add", "dev@example.org"], { cwd: agentRide, env }).toString();
+  const added = execFileSync("node", [ENV_FILE, "src/admin.ts", "add", "dev@example.org"], {
+    cwd: agentRide,
+    env,
+  }).toString();
   writeFileSync(tokenFile, /mrt_[A-Za-z0-9_-]+/.exec(added)![0]);
 }
 const token = readFileSync(tokenFile, "utf8").trim();
 
-const server = spawn("node", ["src/serve.ts"], { cwd: agentRide, env, stdio: "inherit" });
+const server = spawn("node", [ENV_FILE, "src/serve.ts"], { cwd: agentRide, env, stdio: "inherit" });
 const stop = () => {
   server.kill();
   try {
