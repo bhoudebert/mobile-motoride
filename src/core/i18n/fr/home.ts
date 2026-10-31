@@ -116,6 +116,10 @@ export const home: Translated<typeof English> = {
   "home.server.state.refreshing": "Mise à jour en cours sur votre serveur…",
   "home.server.state.failed": "Mise à jour échouée : {error}. Touchez pour réessayer.",
   "home.server.updated": "{name} est mise à jour depuis votre serveur.",
+  "home.server.error.map_down": "le service de cartes ne répond pas",
+  "home.server.error.rate_limited": "trop de requêtes",
+  "home.server.error.timeout": "c'était trop long",
+  "home.server.error.other": "le serveur n'a pas pu la refaire",
   "home.server.meta": "{km} km · {minutes} min",
   "home.server.problem.unauthorized":
     "Votre serveur a refusé ce téléphone. Rejoignez-le à nouveau depuis l'écran Serveur.",

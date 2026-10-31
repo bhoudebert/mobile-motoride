@@ -112,15 +112,20 @@ test("the state, the map day and the error of an entry are kept, and an older se
       { ...entry, id: 9, state: "failed", error: "no route found" },
       { ...entry, id: 10, state: "something new" },
       { ...entry, id: 11, mapDay: "" },
+      { ...entry, id: 12, state: "failed", error: "x", errorCode: "map_down" },
+      { ...entry, id: 13, state: "failed", errorCode: "something new" },
     ],
   });
   assert.deepEqual(
     list.map((e) => e.state),
-    ["outdated", "refreshing", "failed", "current", "current"],
+    ["outdated", "refreshing", "failed", "current", "current", "failed", "failed"],
   );
   assert.equal(list[0]!.mapDay, "2026-10-30");
   assert.equal(list[2]!.error, "no route found");
   assert.equal(list[4]!.mapDay, undefined);
+  // The code is kept when it is one we know, and left out when it is not.
+  assert.equal(list[5]!.errorCode, "map_down");
+  assert.equal(list[6]!.errorCode, undefined);
 });
 
 test("what the list offers follows the state, the held stamp and nothing else", () => {

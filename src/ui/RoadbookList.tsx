@@ -321,6 +321,12 @@ function ServerIcon({
   );
 }
 
+/** Why an update failed, in the rider's language when the server gave a code we know, else in the server's words. */
+function failureText(entry: ServerRoadbook): string {
+  if (entry.errorCode && entry.errorCode !== "other") return t(`home.server.error.${entry.errorCode}`);
+  return entry.error ?? t("home.server.error.other");
+}
+
 /** What the server says of a roadbook that is not plainly current: out of date, being remade, or the try that failed. */
 function StateLine({ entry, held = false }: { entry: ServerRoadbook; held?: boolean }) {
   // A copy that is not the ready file yet is offered its download: its state is for the next file.
@@ -330,7 +336,7 @@ function StateLine({ entry, held = false }: { entry: ServerRoadbook; held?: bool
       ? t(held ? "home.server.state.outdated" : "home.server.state.outdatedFile")
       : entry.state === "refreshing"
         ? t("home.server.state.refreshing")
-        : t("home.server.state.failed", { error: entry.error ?? "" });
+        : t("home.server.state.failed", { error: failureText(entry) });
   return <Text style={[styles.stateLine, entry.state === "failed" && styles.stateFailed]}>{text}</Text>;
 }
 

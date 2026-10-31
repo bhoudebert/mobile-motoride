@@ -477,7 +477,12 @@ test("a roadbook that fails to come says why and keeps nothing", async () => {
 });
 
 // Spec roadbook-library: the state the server reports for each roadbook (outdated, under refresh, failed).
-type Fake = { state: "current" | "outdated" | "refreshing" | "failed"; stamp: string; error?: string };
+type Fake = {
+  state: "current" | "outdated" | "refreshing" | "failed";
+  stamp: string;
+  error?: string;
+  errorCode?: string;
+};
 const fakeServer = (fake: Fake) =>
   fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
     if (url === `${SERVER.url}/roadbooks`)
@@ -494,6 +499,7 @@ const fakeServer = (fake: Fake) =>
               stamp: fake.stamp,
               state: fake.state,
               ...(fake.error ? { error: fake.error } : {}),
+              ...(fake.errorCode ? { errorCode: fake.errorCode } : {}),
             },
           ],
         }),
@@ -609,6 +615,14 @@ test("a roadbook being refreshed has nothing to press, and a failed one says why
   await fireEvent.press(screen.getByLabelText("Try again to update Agent loop"));
   await flush();
   expect(posts()).toEqual([`${SERVER.url}/roadbook/7/refresh`]);
+
+  // A code we know is said in the rider's language; the server's own sentence is for a code we do not know.
+  fake.errorCode = "map_down";
+  await reopen();
+  expect(screen.getByText("Update failed: the map service is not answering. Tap to try again.")).toBeTruthy();
+  fake.errorCode = "other";
+  await reopen();
+  expect(screen.getByText("Update failed: no route found. Tap to try again.")).toBeTruthy();
 });
 
 test("a roadbook not on the phone is downloaded whatever its state, and says when its map is out of date", async () => {

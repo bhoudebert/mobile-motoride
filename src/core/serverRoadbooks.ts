@@ -6,6 +6,10 @@ import type { ImportedRoadbook } from "./library.ts";
  */
 export type RoadbookState = "current" | "outdated" | "refreshing" | "failed";
 
+/** Why the last try failed, as a stable code the app can translate (`other` and anything new: the server's own `error` text). */
+export type ErrorCode = "map_down" | "rate_limited" | "timeout" | "other";
+const ERROR_CODES: readonly ErrorCode[] = ["map_down", "rate_limited", "timeout", "other"];
+
 /** A roadbook a server lists (agentRide's `GET /roadbooks`); `id` is its number in that server's library. */
 export interface ServerRoadbook {
   id: number;
@@ -18,8 +22,10 @@ export interface ServerRoadbook {
   state: RoadbookState;
   /** The UTC day of the map the ready file was made on, when the server keeps its own. */
   mapDay?: string;
-  /** Why the last try failed, when `state` is `failed`. */
+  /** Why the last try failed, when `state` is `failed`: one short English sentence. */
   error?: string;
+  /** The same reason as a code. */
+  errorCode?: ErrorCode;
 }
 
 const STATES: readonly RoadbookState[] = ["current", "outdated", "refreshing", "failed"];
@@ -31,7 +37,7 @@ export function parseServerList(body: unknown): ServerRoadbook[] {
   return list.flatMap((r): ServerRoadbook[] => {
     const o = r as Record<string, unknown> | null;
     if (!o || typeof o !== "object") return [];
-    const { id, name, distanceKm, ridingMinutes, stamp, state, mapDay, error } = o;
+    const { id, name, distanceKm, ridingMinutes, stamp, state, mapDay, error, errorCode } = o;
     if (typeof id !== "number" || !Number.isInteger(id) || id < 0) return [];
     if (typeof name !== "string" || !name || typeof stamp !== "string" || !stamp) return [];
     const finite = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0);
@@ -45,6 +51,7 @@ export function parseServerList(body: unknown): ServerRoadbook[] {
         state: STATES.includes(state as RoadbookState) ? (state as RoadbookState) : "current",
         ...(typeof mapDay === "string" && mapDay ? { mapDay } : {}),
         ...(typeof error === "string" && error ? { error } : {}),
+        ...(ERROR_CODES.includes(errorCode as ErrorCode) ? { errorCode: errorCode as ErrorCode } : {}),
       },
     ];
   });
