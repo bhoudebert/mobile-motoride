@@ -139,6 +139,8 @@ test("with the route: the skipped point is gone, the target is named, it is said
   await flush();
   expect(Speech.speak).toHaveBeenCalledWith("Skipping 1. Mont, heading for 2. Cassel", expect.anything());
   expect(screen.getByText("Undo")).toBeTruthy();
+  // One word on one line: it shrinks to fit the square, it is never broken over two lines.
+  expect(screen.getByText("Undo").props.numberOfLines).toBe(1);
   expect(screen.getByTestId("source-approach")).toBeTruthy();
   await push(here);
   expect(screen.getByText(/^To 2\. Cassel · /)).toBeTruthy();

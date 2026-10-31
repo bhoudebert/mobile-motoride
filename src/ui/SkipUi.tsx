@@ -72,8 +72,13 @@ export function SkipSquare({
     >
       <Animated.View style={[styles.skip, undoing ? { backgroundColor: background } : null]}>
         <Animated.Text
-          style={[styles.skipText, undoing ? { color: ink, textTransform: "uppercase" } : null]}
-          numberOfLines={4}
+          style={[
+            styles.skipText,
+            compact && styles.skipTextCompact,
+            undoing ? { color: ink, textTransform: "uppercase" } : null,
+          ]}
+          // UNDO is one word on one line, however small the square: a word is never broken ("UND" over "O").
+          numberOfLines={undoing ? 1 : 2}
           adjustsFontSizeToFit
           minimumFontScale={0.4}
         >
@@ -134,9 +139,10 @@ const styles = themed(() =>
       borderRadius: 4,
       alignItems: "center",
       justifyContent: "center",
-      padding: 6,
+      padding: 4,
     },
     skipCompact: { width: SKIP_SQUARE_SIDE, height: SKIP_SQUARE_SIDE },
+    skipTextCompact: { fontSize: 17 },
     skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 26, textAlign: "center" },
     card: {
       position: "absolute",
