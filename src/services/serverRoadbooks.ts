@@ -59,3 +59,32 @@ export async function fetchServerRoadbook(
     };
   }
 }
+
+export type RefreshAnswer = { ok: true; state: "refreshing" | "current" } | { ok: false; reason: ServerProblem };
+
+/**
+ * Ask the server for a new file of one roadbook (`POST /roadbook/<id>/refresh`): 202 when it starts or already runs,
+ * 200 when the roadbook is already current, 404 when it is not the rider's. The server makes it in the background, one at a
+ * time: the phone then polls the list.
+ */
+export async function refreshServerRoadbook(
+  server: ServerSetting,
+  id: number,
+  { fetchImpl = fetch, timeoutMs = 15_000 }: ServerRoadbookOptions = {},
+): Promise<RefreshAnswer> {
+  try {
+    const res = await fetchImpl(`${server.url}/roadbook/${id}/refresh`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${server.token}` },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (res.status === 202) return { ok: true, state: "refreshing" };
+    if (res.status === 200) return { ok: true, state: "current" };
+    return { ok: false, reason: problemOf(res.status) };
+  } catch (e) {
+    return {
+      ok: false,
+      reason: e instanceof TypeError || (e as Error)?.name === "TimeoutError" ? "unreachable" : "failed",
+    };
+  }
+}

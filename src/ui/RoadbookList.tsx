@@ -2,12 +2,13 @@ import { TOP_INSET } from "./insets.ts";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
-import { t } from "../core/i18n/index.ts";
+import { t, type MessageKey } from "../core/i18n/index.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
 import { keptFor, serverAction, type ServerAction, type ServerRoadbook } from "../core/serverRoadbooks.ts";
 import type { ImportedRoadbook } from "../core/library.ts";
 import { BackButton } from "./BackButton.tsx";
-import { Icon } from "./Icon.tsx";
+import { Icon, type IconName } from "./Icon.tsx";
+import type { ServerProblem } from "../services/serverRoadbooks.ts";
 import type { ServerList } from "./useServerRoadbooks.ts";
 import { RouteThumb } from "./RouteThumb.tsx";
 import { colors, fonts, radii, themed } from "./theme.ts";
@@ -42,6 +43,11 @@ export function RoadbookList({
     /** The server number being fetched. */
     fetching: number | null;
     onGet: (entry: ServerRoadbook) => void;
+    /** Ask the server for a new file of a roadbook that is out of date (or whose last try failed). */
+    onRefresh: (entry: ServerRoadbook) => void;
+    /** The server number a new file is being asked for, and what went wrong asking. */
+    asking: number | null;
+    problem: ServerProblem | null;
     onRetry: () => void;
   };
   /** Back to the home screen, with the phone's Back button too. */
@@ -91,7 +97,18 @@ export function RoadbookList({
         // Pull down from the top to ask the server again (spec home-screen, "Pull to refresh"); with no server there is nothing to ask.
         refreshing={server?.list?.status === "checking"}
         onRefresh={server ? server.onRetry : undefined}
-        ListHeaderComponent={server ? <ServerNotes list={server.list} onRetry={server.onRetry} /> : undefined}
+        ListHeaderComponent={
+          server ? (
+            <>
+              <ServerNotes list={server.list} onRetry={server.onRetry} />
+              {server.problem ? (
+                <Text style={styles.serverNote} accessibilityRole="alert">
+                  {t(`home.server.problem.${server.problem}`)}
+                </Text>
+              ) : null}
+            </>
+          ) : undefined
+        }
         renderItem={({ item: row }) => {
           if (row.kind === "server")
             return (
@@ -102,6 +119,7 @@ export function RoadbookList({
                   <Text style={styles.meta}>
                     {t("home.server.meta", { km: row.entry.distanceKm.toFixed(1), minutes: row.entry.ridingMinutes })}
                   </Text>
+                  <StateLine entry={row.entry} />
                 </View>
                 <ServerIcon
                   action="download"
@@ -133,6 +151,7 @@ export function RoadbookList({
                     {t("home.list.corners", { count: danger })}
                   </Text>
                   {rb.roadbook.description ? <Text style={styles.desc}>{rb.roadbook.description}</Text> : null}
+                  {link ? <StateLine entry={link.entry} held /> : null}
                 </Pressable>
                 {imported?.has(id) && onDelete && confirming !== id ? (
                   <View style={styles.column}>
@@ -140,9 +159,13 @@ export function RoadbookList({
                       <ServerIcon
                         action={link.action}
                         name={rb.roadbook.name}
-                        busy={server?.fetching === link.entry.id}
-                        disabled={server?.fetching != null}
-                        onPress={() => server?.onGet(link.entry)}
+                        busy={server?.fetching === link.entry.id || server?.asking === link.entry.id}
+                        disabled={server?.fetching != null || server?.asking != null}
+                        onPress={() =>
+                          link.action === "outdated" || link.action === "failed"
+                            ? server?.onRefresh(link.entry)
+                            : server?.onGet(link.entry)
+                        }
                       />
                     ) : null}
                     <Pressable
@@ -257,17 +280,64 @@ function ServerIcon({
         <Icon name="checkmark-circle" color={colors.accent} />
       </View>
     );
+  // The server is making a new file: nothing to press, the list asks again by itself.
+  if (action === "refreshing")
+    return (
+      <View
+        style={styles.serverAction}
+        accessible
+        accessibilityLabel={t("home.server.refreshing", { name })}
+        accessibilityLiveRegion="polite"
+      >
+        <ActivityIndicator color={colors.rustText} />
+      </View>
+    );
+  const label: MessageKey =
+    action === "refresh"
+      ? "home.server.refresh"
+      : action === "outdated"
+        ? "home.server.outdated"
+        : action === "failed"
+          ? "home.server.failed"
+          : "home.server.download";
+  const icon: IconName =
+    action === "refresh"
+      ? "refresh"
+      : action === "outdated"
+        ? "refresh-circle-outline"
+        : action === "failed"
+          ? "alert-circle-outline"
+          : "download-outline";
   return (
     <Pressable
       style={styles.serverAction}
       disabled={disabled}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t(action === "refresh" ? "home.server.refresh" : "home.server.download", { name })}
+      accessibilityLabel={t(label, { name })}
     >
-      <Icon name={action === "refresh" ? "refresh" : "download-outline"} />
+      <Icon name={icon} color={action === "outdated" || action === "failed" ? colors.rustText : undefined} />
     </Pressable>
   );
+}
+
+/** Why an update failed, in the rider's language when the server gave a code we know, else in the server's words. */
+function failureText(entry: ServerRoadbook): string {
+  if (entry.errorCode && entry.errorCode !== "other") return t(`home.server.error.${entry.errorCode}`);
+  return entry.error ?? t("home.server.error.other");
+}
+
+/** What the server says of a roadbook that is not plainly current: out of date, being remade, or the try that failed. */
+function StateLine({ entry, held = false }: { entry: ServerRoadbook; held?: boolean }) {
+  // A copy that is not the ready file yet is offered its download: its state is for the next file.
+  if (entry.state === "current") return null;
+  const text =
+    entry.state === "outdated"
+      ? t(held ? "home.server.state.outdated" : "home.server.state.outdatedFile")
+      : entry.state === "refreshing"
+        ? t("home.server.state.refreshing")
+        : t("home.server.state.failed", { error: failureText(entry) });
+  return <Text style={[styles.stateLine, entry.state === "failed" && styles.stateFailed]}>{text}</Text>;
 }
 
 const styles = themed(() =>
@@ -286,6 +356,8 @@ const styles = themed(() =>
       justifyContent: "center",
     },
     importText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 16 },
+    stateLine: { color: colors.ink2, fontFamily: fonts.mono, fontSize: 12, marginTop: 4 },
+    stateFailed: { color: colors.rustText },
     tag: { color: colors.accent, fontFamily: fonts.mono, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
     complete: { minHeight: 48, justifyContent: "center", paddingHorizontal: 12 },
     completeText: { color: colors.accent, fontFamily: fonts.bold, fontSize: 14 },

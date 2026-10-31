@@ -25,6 +25,7 @@ import { RoadbookList } from "./src/ui/RoadbookList.tsx";
 import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer } from "./src/ui/serverSetting.ts";
+import { serverAction } from "./src/core/serverRoadbooks.ts";
 import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
 import { recoverRide } from "./src/ui/ridesStore.ts";
 import { formatDistance } from "./src/core/format.ts";
@@ -101,7 +102,17 @@ export default function App() {
     setScreen({ name: "ride", rb: prepared, from: "roadbooks" });
   });
   const server = useServer();
-  const serverRoadbooks = useServerRoadbooks(server, screen.name === "roadbooks");
+  // A roadbook the rider asked to update comes down by itself once the server has its new file.
+  const serverRoadbooks = useServerRoadbooks(
+    server,
+    screen.name === "roadbooks",
+    server
+      ? (entry) => {
+          // Only a file that is not the one held comes down: a refresh that ends on the same stamp changes nothing.
+          if (serverAction(entry, library.items) === "refresh") void library.fromServer(server, entry, false);
+        }
+      : undefined,
+  );
   const imported = useMemo(() => library.items.map((i) => prepareRoadbook(i.roadbook)), [library.items]);
   const pendingIds = useMemo(
     () => new Set(library.items.filter((i) => i.completion === "pending").map((i) => i.roadbook.id)),
@@ -193,6 +204,9 @@ export default function App() {
                     kept: library.items,
                     fetching: library.fetching,
                     onGet: (entry) => void library.fromServer(server, entry),
+                    onRefresh: (entry) => void serverRoadbooks.refresh(entry),
+                    asking: serverRoadbooks.asking,
+                    problem: serverRoadbooks.problem,
                     onRetry: serverRoadbooks.reload,
                   }
                 : undefined
