@@ -98,7 +98,9 @@ The phone reaches a server on your machine through the USB port forward, so noth
 npm run dev:server   # starts ../agentRide's server, makes a rider, pushes the test roadbooks, forwards the port, sets the server in the app
 ```
 
-The app asks to use the server (`Use it`); then Menu, Server, Test. A new server also gets the test roadbooks
+The app asks to use the server (`Use it`); then Menu, Server, Test. The server loads `../agentRide/.env` as agentRide's own `npm run serve` does (Claude key, traffic, Mapillary), but keeps its
+data apart in `~/ride-dev-data`. Mind `RIDE_REMOTE_URL` there: a roadbook pushed from this server goes to that real one.
+A new server also gets the test roadbooks
 (`test/fixtures/roadbooks`) pushed to it, so the Roadbooks screen lists them to download (it needs an agentRide with
 pushed roadbooks; without it the list stays empty). A rider of a hosted server joins by scanning the
 QR code of `npm run admin -- invite <email> --pin` (agentRide) with the phone's camera: the app asks for the PIN and
