@@ -100,6 +100,8 @@ type Tone = "rust" | "signal" | "ink";
 const LANDSCAPE_BAR_TOP = 8;
 /** Sideways the compass chip (48 dp) stands at the top right of the map, the skip square at the top left; notices lie between. */
 const COMPASS_SPACE = 8 + 48 + 8;
+/** The column of map buttons: the zoom row and six buttons, 48 dp each with 4 dp between, and a margin. */
+const CONTROLS_COLUMN_H = 48 + 6 * 52 + 12;
 /** What an iPhone held sideways needs on each side when the system cannot say (no provider, as under test). */
 const LANDSCAPE_SIDE_FALLBACK = Platform.OS === "ios" ? 47 : 0;
 /** The panel's column also needs room for the map buttons: the buttons keep a column to themselves. */
@@ -314,10 +316,14 @@ export function RideScreen({
     if ("done" in result) setCalibration(result.done);
     return result;
   };
-  // Sideways the skip square is at the top left of the map: the notices start after it.
-  const bannerLeft = landscape && (skip.plan || skip.last) ? 8 + SKIP_SQUARE_SIDE + SKIP_GAP : 12;
+  // The map buttons are one column when it fits between the bar and the panel (the panel is taller with the buttons, the
+  // sharing line or a short phone), else a grid of two columns that cannot reach the bar.
+  const gridControls = landscape || height - lower - 12 - belowBar < CONTROLS_COLUMN_H;
+  // The skip square is at the top left of the map, upright and sideways: the notices start after it, and the map buttons
+  // on the right never meet it.
+  const bannerLeft = skip.plan || skip.last ? (landscape ? 8 + SKIP_SQUARE_SIDE : 12 + SKIP_SQUARE) + SKIP_GAP : 12;
   /** A banner stops short of the skip square, so it is never hidden behind it. */
-  const bannerRight = landscape ? COMPASS_SPACE : skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
+  const bannerRight = landscape ? COMPASS_SPACE : 12;
   // A route being found, or the point passed, takes the question away.
   useEffect(() => {
     if (confirming && !skip.canSkip) setConfirming(false);
@@ -1194,7 +1200,7 @@ export function RideScreen({
               skip={skip}
               top={belowBar}
               compact={landscape}
-              left={landscape ? 8 : undefined}
+              left={landscape ? 8 : 12}
               onPress={() => setConfirming(true)}
             />
 
@@ -1206,7 +1212,11 @@ export function RideScreen({
             {modalOpen ? null : (
               <View
                 testID="map-buttons"
-                style={[styles.controls, landscape && styles.controlsSide, { bottom: lower + 12 }]}
+                style={[
+                  styles.controls,
+                  gridControls && (landscape ? styles.controlsSide : styles.controlsGrid),
+                  { bottom: lower + 12 },
+                ]}
               >
                 {/* Side by side: the column of buttons stands on the panel and must not reach the bar at the top. */}
                 <View style={styles.zoomRow}>
@@ -1513,6 +1523,7 @@ const styles = themed(() =>
       borderRadius: 0,
       justifyContent: "space-between",
     },
+    controlsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", width: 104 },
     controlsSide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", width: 204 },
     // A wide, tall target inside the top of the panel, so nothing clips it; only the pill is drawn.
     grabber: {

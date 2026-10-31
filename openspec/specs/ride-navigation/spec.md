@@ -94,6 +94,8 @@ The whole roadbook line SHALL carry small arrows pointing the way of the roadboo
 
 ### Requirement: Camera and controls
 
+The column of map buttons SHALL stand on the right above the panel and SHALL never reach the instruction bar or the skip square: when the room between the bar and the panel is shorter than the column (a short phone, a taller panel), the buttons SHALL lie in two columns instead.
+
 While riding the camera SHALL follow the rider, turned along the line. Touching the map SHALL stop the following. The ride screen SHALL offer zoom in, zoom out, a recenter button that resumes following, and an overview button that fits the whole roadbook, north up.
 
 ### Requirement: Demo ride

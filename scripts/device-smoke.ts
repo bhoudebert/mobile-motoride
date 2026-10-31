@@ -720,12 +720,13 @@ async function run() {
         check("skip: Cancel and Skip are offered", !!find(nodes, "Cancel") && !!confirm);
         shot("11-skip-question");
         if (confirm) await tapAt(center(confirm));
-        await expectText("skip: the new route is shown, with an Undo", /^Skipped .+ · heading for /, 40);
+        // The square at the top left becomes UNDO for 7.5 seconds (spec live-corrections), named "Undo the skip".
+        await expectText("skip: the new route is shown, the square is the Undo", /^Undo the skip$/, 40);
         shot("12-skipped");
         layout("after a skip", screen);
         check("skip: the HUD names the new target", !!(await waitFor(/^To .+ · /, 10)));
-        await tap("Undo");
-        check("skip: Undo takes it back", !!(await waitFor(/^Skip /, 10)) && !find(screenNow(), /^Skipped /));
+        await tap("Undo the skip");
+        check("skip: Undo takes it back", !!(await waitFor(/^Skip /, 10)) && !find(screenNow(), /^Undo the skip$/));
       }
     }
     await stopRide();
