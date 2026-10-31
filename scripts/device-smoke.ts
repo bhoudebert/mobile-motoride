@@ -309,6 +309,9 @@ async function seedRoadbooksFromServer(): Promise<boolean> {
   const offered = await waitFor(/^(Download |FROM YOUR SERVER,)/i, 30);
   check("roadbooks: the list offers them on the server", !!offered);
   for (let i = 0; i < fixtureRoadbooks().length; i++) {
+    const offer = await waitFor(/^Download /, 8);
+    if (!offer) break;
+    downloaded.push(offer.desc.replace(/^Download /, ""));
     if (!(await tap(/^Download /))) break;
     await waitFor("Demo", 30);
     await tap("Back to the list");
@@ -323,6 +326,26 @@ async function seedRoadbooksFromServer(): Promise<boolean> {
   );
   await tap("Back to the map");
   return true;
+}
+
+/** The roadbooks this run downloaded: only these are removed at the end, a rider's own stay. */
+const downloaded: string[] = [];
+
+/** Delete what the run downloaded from the phone's list, so the test leaves no card behind. */
+async function removeDownloaded() {
+  if (downloaded.length === 0) return;
+  adb("shell", "am", "force-stop", PKG);
+  adb("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", LINK, PKG);
+  if (!(await waitFor("Where to?", 30)))
+    return console.log("cleanup: the app did not open, roadbooks left on the phone");
+  await tap("Roadbooks");
+  await waitFor("Pick a roadbook", 10);
+  let gone = 0;
+  for (const name of downloaded) {
+    if ((await tap(`Delete ${name}?`)) && (await tap(`Delete ${name}`))) gone++;
+    await sleep(800);
+  }
+  console.log(`cleanup: ${gone} of ${downloaded.length} downloaded roadbooks removed from the phone`);
 }
 
 /** Stop the test server of `seedRoadbooksFromServer` and forget its data. */
@@ -1432,6 +1455,7 @@ async function main() {
   } catch (e) {
     check("the smoke test ran to the end", false, e instanceof Error ? e.message : String(e));
   } finally {
+    await removeDownloaded().catch((e) => console.log(`cleanup failed: ${e}`));
     stopSeedServer();
     // The run turns the network off for a step: never leave the phone like that.
     try {

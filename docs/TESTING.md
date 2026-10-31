@@ -57,6 +57,8 @@ vibration, the voice. Those are the ride.
    change, which a ticking demo never gives); read the screenshots it saves in `.smoke/` (they are not committed).
    While working on one area, run only its sections: `npm run smoke:device -- --only voice,key` (sections: voice, demo, background,
    roadbooks, gps, destination, import, rides, control, key, join, zone, offline; the app opening and the list are always checked). A full run takes about 6 minutes; the full run is the one before a release.
+   The run downloads the test roadbooks to the phone from its own server, and deletes at the end the ones it downloaded (a
+   roadbook that was already on the phone stays). `npm run dev:server` pushes the same roadbooks to your dev server.
    The `share` section needs agentRide next to this repository (`../agentRide`): it starts its server on this computer, the
    phone reaches it through adb, and what the phone sends is decrypted here the way a follower's browser does.
 4. **Cameras: check the table of countries** (`src/core/cameraPolicy.ts`, `docs/danger-zones-by-country.md`, ADR 0021)
