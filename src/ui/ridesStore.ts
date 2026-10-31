@@ -196,6 +196,20 @@ export async function readRideGpx(id: string): Promise<string | null> {
   }
 }
 
+/**
+ * Keep on the phone a ride that came down from the server: the GPX exactly as the server holds it, and its summary rebuilt from
+ * it, marked as on the server (so it is not sent again). Null when the file is not a ride. The track goes first, as for a
+ * ride recorded here: a cut leaves a track the list can still rebuild.
+ */
+export async function saveDownloaded(id: string, gpx: string, uploadedAt: number): Promise<RideMeta | null> {
+  const meta = metaFromGpx(id, gpx);
+  if (!meta) return null;
+  const next: RideMeta = { ...meta, uploadedAt, serverRideId: id };
+  await put(`${id}.gpx`, gpx);
+  await put(`${id}.json`, serializeMeta(next));
+  return next;
+}
+
 /** Remember that a ride is on the rider's server: written beside the ride, never undone by anything the phone does. */
 export async function markUploaded(id: string, serverRideId: string, at: number): Promise<RideMeta | null> {
   try {
