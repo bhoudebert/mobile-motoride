@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { flush, seconds } from "./flush.ts";
 import { at, endRide, revealButtons, skippableRoadbook } from "./helpers.ts";
 import { parseGpx } from "../../src/core/gpx.ts";
-import { serializeMeta, type RideMeta } from "../../src/core/recording.ts";
+import { rideToGpx, serializeMeta, type RideMeta, type TrackPoint } from "../../src/core/recording.ts";
 import type { PreparedRoadbook } from "../../src/core/types.ts";
 import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
 import { stored } from "./securestore.mock.ts";
@@ -695,8 +695,189 @@ test("the actions of a ride are icons with a name for a screen reader, the delet
   // A ride already sent: its slot is a status, not a button, and it is still there so the others do not move.
   expect(screen.queryByLabelText("Upload the ride of Sent to your server")).toBeNull();
   expect(screen.getByLabelText(/^On your server, sent /)).toBeTruthy();
-  expect(names("Sent")).toEqual(["Review Sent", "Share the ride of Sent", "Delete Sent ride?"]);
+  // On the server too: the server copy can be removed on its own, apart from the delete of the phone's.
+  expect(names("Sent")).toEqual([
+    "Review Sent",
+    "Share the ride of Sent",
+    "Remove Sent ride from your server?",
+    "Delete Sent ride?",
+  ]);
   // While one is sent the others cannot be pressed, and the one sending shows it.
   const send = screen.getByLabelText("Upload the ride of Alone to your server");
   expect(send.props.accessibilityState).toMatchObject({ disabled: false });
+});
+
+// Spec ride-recording, "The rides of the server": the phone's rides and the server's, once each.
+const track = (t0: number): TrackPoint[] =>
+  Array.from({ length: 30 }, (_, i) => ({
+    lat: 50.45 + i * 0.0004,
+    lon: 3.2 + i * 0.0006,
+    time: t0 + i * 6000,
+    speedMps: 14,
+  }));
+const rideOf = (name: string, day: number, extra: Partial<RideMeta> = {}): RideMeta => ({
+  id: `2026-10-${String(day).padStart(2, "0")}T08-00-00-${name.toLowerCase()}`,
+  roadbookId: name,
+  roadbookName: name,
+  startedAt: Date.UTC(2026, 9, day, 8),
+  endedAt: Date.UTC(2026, 9, day, 8) + 29 * 6000,
+  distanceM: 5000,
+  points: 30,
+  state: "completed",
+  ...extra,
+});
+const onPhone = (m: RideMeta) => {
+  files.set(`${folder}${m.id}.gpx`, rideToGpx(m, track(m.startedAt)));
+  files.set(`${folder}${m.id}.json`, serializeMeta(m));
+  dirs.add("file:///document/rides");
+};
+const wireOf = (m: RideMeta, extra: Record<string, unknown> = {}) => ({
+  id: m.id,
+  name: m.roadbookName,
+  startedAt: new Date(m.startedAt).toISOString(),
+  endedAt: new Date(m.endedAt).toISOString(),
+  distanceKm: m.distanceM / 1000,
+  points: m.points,
+  roadbook: null,
+  bytes: 1000,
+  uploadedAt: "2026-10-31T10:00:00.000Z",
+  state: "completed",
+  ...extra,
+});
+/** The server keeps `held` (rides, by id); the GPX it gives back is the ride's own. */
+const serverKeeps = (held: RideMeta[]) =>
+  fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
+    const u = String(url);
+    if (!u.startsWith(SERVER.url)) return { ok: true };
+    if (u === `${SERVER.url}/rides` && !init?.method)
+      return { ok: true, status: 200, json: async () => ({ rides: held.map((m) => wireOf(m)) }) };
+    const m = /\/rides\/([^/]+)$/.exec(u);
+    const ride = held.find((h) => h.id === decodeURIComponent(m?.[1] ?? ""));
+    if (m && init?.method === "DELETE") return { ok: true, status: 200, json: async () => ({}) };
+    if (m && ride) return { ok: true, status: 200, text: async () => rideToGpx(ride, track(ride.startedAt)) };
+    return { ok: false, status: 404 };
+  });
+
+test("the rides of the server are listed with those of the phone, a ride that is in both places once", async () => {
+  await withServer();
+  const both = rideOf("Both", 3);
+  const phone = rideOf("Phone", 2);
+  const server = rideOf("Server", 4);
+  onPhone(both);
+  onPhone(phone);
+  serverKeeps([both, server]);
+  await openRides();
+  expect(screen.getAllByText("Both")).toHaveLength(1);
+  expect(screen.getAllByText("Phone")).toHaveLength(1);
+  expect(screen.getAllByText("Server")).toHaveLength(1);
+  expect(screen.getByText("Only on your server")).toBeTruthy();
+  expect(screen.getByText("Only on this phone")).toBeTruthy();
+  expect(screen.getByText(/^On your server, sent /)).toBeTruthy();
+  // Newest first, whatever the place.
+  expect(screen.getAllByText(/^(Both|Phone|Server)$/).map((n) => n.props.children)).toEqual([
+    "Server",
+    "Both",
+    "Phone",
+  ]);
+});
+
+test("a ride only on the server is kept on the phone by Save, as the file it holds, and is then on both without a new send", async () => {
+  await withServer();
+  const server = rideOf("Server", 4);
+  serverKeeps([server]);
+  await openRides();
+  expect(gpxFiles()).toHaveLength(0);
+  await fireEvent.press(screen.getByLabelText("Save the ride of Server to this phone"));
+  await flush(25);
+  const [gpxUri] = gpxFiles();
+  expect(gpxUri).toBe(`${folder}${server.id}.gpx`);
+  // The file as the server holds it, and a summary built from it that says it is on the server.
+  expect(files.get(gpxUri!)).toBe(rideToGpx(server, track(server.startedAt)));
+  const meta = metaOf(gpxUri!);
+  expect(meta.roadbookName).toBe("Server");
+  expect(meta.serverRideId).toBe(server.id);
+  expect(meta.uploadedAt).toBe(Date.parse("2026-10-31T10:00:00.000Z"));
+  // One row, now on both: nothing to save, a status, and nothing was sent.
+  expect(screen.getAllByText("Server")).toHaveLength(1);
+  expect(screen.queryByLabelText("Save the ride of Server to this phone")).toBeNull();
+  expect(screen.getByText(/^On your server, sent /)).toBeTruthy();
+  expect(calls("PUT")).toHaveLength(0);
+});
+
+test("reviewing a ride only on the server keeps it on the phone and opens its review", async () => {
+  await withServer();
+  const server = rideOf("Server", 4);
+  serverKeeps([server]);
+  await openRides();
+  await fireEvent.press(screen.getByLabelText("Review Server"));
+  await flush(25);
+  expect(gpxFiles()).toEqual([`${folder}${server.id}.gpx`]);
+  expect(screen.getByLabelText("Back to My rides")).toBeTruthy();
+});
+
+test("deleting on the phone never calls the server, and the ride the server still keeps shows again as only on the server", async () => {
+  await withServer();
+  const both = rideOf("Both", 3);
+  onPhone(both);
+  serverKeeps([both]);
+  await openRides();
+  await fireEvent.press(screen.getByLabelText("Delete Both ride?"));
+  expect(screen.getByText("Delete it from this phone? It stays on your server.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Delete the ride of Both"));
+  await flush(25);
+  expect(gpxFiles()).toHaveLength(0);
+  expect(calls("DELETE")).toHaveLength(0);
+  expect(screen.getAllByText("Both")).toHaveLength(1);
+  expect(screen.getByText("Only on your server")).toBeTruthy();
+});
+
+test("removing a ride from the server is its own question and its own call, and leaves the phone's copy alone", async () => {
+  await withServer();
+  const both = rideOf("Both", 3);
+  const alone = rideOf("Alone", 4);
+  onPhone(both);
+  serverKeeps([both, alone]);
+  await openRides();
+  // Both: it stays on the phone.
+  await fireEvent.press(screen.getByLabelText("Remove Both ride from your server?"));
+  expect(screen.getByText("Remove it from your server? It stays on this phone.")).toBeTruthy();
+  serverKeeps([alone]);
+  await fireEvent.press(screen.getByLabelText("Remove the ride of Both from your server"));
+  await flush(25);
+  expect(calls("DELETE").map(([u]) => u)).toEqual([`${SERVER.url}/rides/${encodeURIComponent(both.id)}`]);
+  expect(gpxFiles()).toEqual([`${folder}${both.id}.gpx`]);
+  expect(screen.getAllByText("Only on this phone")).toHaveLength(1);
+  // Only on the server: the question says it is lost for good.
+  await fireEvent.press(screen.getByLabelText("Remove Alone ride from your server?"));
+  expect(screen.getByText("This ride is only on your server. If you remove it, it is lost for good.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Keep it"));
+  expect(calls("DELETE")).toHaveLength(1);
+});
+
+test("when the server answers, a ride the phone thinks was sent but it does not keep is on the phone only again", async () => {
+  await withServer();
+  const sent = rideOf("Sent", 3, { uploadedAt: Date.UTC(2026, 9, 31), serverRideId: "x" });
+  onPhone(sent);
+  serverKeeps([]);
+  await openRides();
+  expect(screen.getByText("Only on this phone")).toBeTruthy();
+  expect(screen.getByLabelText("Upload the ride of Sent to your server")).toBeTruthy();
+});
+
+test("with no server, or one that cannot be reached, the list is the phone's rides, with no error", async () => {
+  const mine = rideOf("Mine", 3);
+  onPhone(mine);
+  await openRides();
+  expect(screen.getAllByText("Mine")).toHaveLength(1);
+  expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/rides"))).toBe(false);
+  await screen.unmount();
+
+  await withServer();
+  fetchMock.mockImplementation(async () => {
+    throw new TypeError("Network request failed");
+  });
+  await openRides();
+  expect(screen.getAllByText("Mine")).toHaveLength(1);
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText(/could not be reached/)).toBeNull();
 });

@@ -78,6 +78,32 @@ When the rider has a server (spec server-features), a recorded ride SHALL be sen
 - **WHEN** the rider sends a ride and the server cannot be reached
 - **THEN** the screen says so and that the ride is still on the phone, and the ride is not marked as on the server
 
+### Requirement: The rides of the server
+
+When the rider has a server, My rides SHALL list the rides the server keeps (agentRide `GET /rides`) with those of the phone, so that a ride recorded on one phone shows on another: one row for each ride id (the same id is the same ride; it is the start time and the roadbook's slug, set by the phone that recorded it), newest first, each marked where it is: "Only on this phone", "On your server, sent <date>" (on both), or "Only on your server". The server is read when My rides opens and on a pull down, quietly: with no server, offline, or an answer that fails, the list SHALL be the phone's rides, with no error. When the server answers it is the truth about what it keeps: a ride the phone marks as sent that the server does not list is "Only on this phone" again and offers the send; without an answer the phone's own mark is used and no ride is added. A row for a ride only on the server shows what the server says (the roadbook's name, the date, the distance, the duration and, when it says them, the state, the climb and the peak leans).
+
+A ride only on the server SHALL offer **Save to this phone** (its GPX, `GET /rides/<id>`, is kept exactly as the server holds it with its summary rebuilt from it and marked as on the server, so it is not sent again) and **Review**, which keeps it the same way and then opens its review. The row is then the one ride on both. Deleting on the phone SHALL NEVER call the server: a ride the server still keeps shows again as "Only on your server". Removing a ride from the server (`DELETE /rides/<id>`) SHALL be its own action, apart from the delete of the phone's, with its own question: "Remove it from your server? It stays on this phone." when the phone has it, and "This ride is only on your server. If you remove it, it is lost for good." when it does not; it never touches the phone's copy. A server that does not answer is told in words and changes nothing.
+
+#### Scenario: A ride recorded on another phone
+
+- **WHEN** the rider opens My rides on a phone that has not recorded a ride the server keeps
+- **THEN** the list has one row for it, "Only on your server", with its name, date, distance and duration, and Save to this phone and Review
+
+#### Scenario: Both places
+
+- **WHEN** a ride is on the phone and on the server
+- **THEN** the list has one row for it, marked "On your server, sent <date>"
+
+#### Scenario: Deleted on the phone
+
+- **WHEN** the rider deletes on the phone a ride the server keeps
+- **THEN** nothing is sent to the server and the ride shows again as "Only on your server"
+
+#### Scenario: No way to the server
+
+- **WHEN** the phone is offline or the server does not answer
+- **THEN** My rides lists the phone's rides and shows no error
+
 ### Requirement: Which roadbook it followed
 
 The roadbook is what the app rode on: a ride that has no agentRide origin (a roadbook imported from a GPX, or a route to a place) SHALL simply carry no origin, in its summary and its GPX, and is listed and shared like any other; a summary rebuilt from a GPX that names no roadbook has an empty roadbook identifier and takes its name from the GPX. The GPX SHALL say which roadbook the ride followed in a way another program can check: the roadbook's name and its identifier in this app, and, for a roadbook that came from agentRide, the program's own number for it with its name. An identifier alone SHALL NOT be enough to match, because numbers repeat from one library to another: a reader SHALL take a match only when the name agrees too.
