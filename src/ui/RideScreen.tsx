@@ -94,9 +94,9 @@ import { runCalibration, useInstruments } from "./useInstruments.ts";
 
 type Tone = "rust" | "signal" | "ink";
 
-/** Landscape (ADR 0045): the bar sits near the top, where an iPhone has no notch and Android keeps its status bar. */
-const LANDSCAPE_BAR_TOP = Platform.OS === "ios" ? 8 : (StatusBar.currentHeight ?? 0) + 4;
-/** Sideways the compass chip (48 dp) stands at the top right of the map: what the skip square and the notices leave free. */
+/** Landscape (ADR 0045): the status bar is hidden and the camera is at a side, so the top has no margin to keep. */
+const LANDSCAPE_BAR_TOP = 8;
+/** Sideways the compass chip (48 dp) stands at the top right of the map, the skip square at the top left; notices lie between. */
 const COMPASS_SPACE = 8 + 48 + 8;
 /** What an iPhone held sideways needs on each side when the system cannot say (no provider, as under test). */
 const LANDSCAPE_SIDE_FALLBACK = Platform.OS === "ios" ? 47 : 0;
@@ -126,6 +126,7 @@ function Banner({
   right,
   top,
   compact = false,
+  left = 12,
 }: {
   tone: Tone;
   title: string;
@@ -133,11 +134,12 @@ function Banner({
   right: number;
   top: number;
   compact?: boolean;
+  left?: number;
 }) {
   const text = tone === "signal" ? colors.onSignal : tone === "rust" ? colors.onRust : colors.paper;
   return (
     <View
-      style={[styles.banner, compact && styles.bannerCompact, { backgroundColor: colors[tone], right, top }]}
+      style={[styles.banner, compact && styles.bannerCompact, { backgroundColor: colors[tone], right, top, left }]}
       accessibilityLiveRegion="polite"
     >
       <Text
@@ -201,11 +203,16 @@ export function RideScreen({
   const sideL = landscape ? (insets ? insets.left : LANDSCAPE_SIDE_FALLBACK) : 0;
   const sideR = landscape ? (insets ? insets.right : LANDSCAPE_SIDE_FALLBACK) : 0;
   const hudW = landscape ? hudWidth(width) + sideL : 0;
-  const topPad = landscape ? Math.max(LANDSCAPE_BAR_TOP, (insets?.top ?? 0) + 4) : 0;
+  const topPad = landscape ? Math.max(LANDSCAPE_BAR_TOP, insets?.top ?? 0) : 0;
   // Sideways the instruction bar is in the panel column, so the map's top row (warnings, skip) starts at the top.
   const barTop = landscape ? topPad : INSTRUCTION_BAR_TOP;
   const belowBar = landscape ? topPad : barTop + INSTRUCTION_BAR_HEIGHT + 8;
   const gaugesTop = landscape ? topPad + SKIP_SQUARE_SIDE + 8 : belowBar + 120;
+  // Sideways the status bar goes (the clock and the icons would cover the top of the screen the ride needs).
+  useEffect(() => {
+    StatusBar.setHidden(landscape, "fade");
+    return () => StatusBar.setHidden(false, "fade");
+  }, [landscape]);
   useEffect(() => {
     unlockOrientation();
     return lockPortrait;
@@ -305,8 +312,10 @@ export function RideScreen({
     if ("done" in result) setCalibration(result.done);
     return result;
   };
+  // Sideways the skip square is at the top left of the map: the notices start after it.
+  const bannerLeft = landscape && (skip.plan || skip.last) ? 8 + SKIP_SQUARE_SIDE + SKIP_GAP : 12;
   /** A banner stops short of the skip square, so it is never hidden behind it. */
-  const bannerRight = skip.plan || skip.last ? 12 + (landscape ? SKIP_SQUARE_SIDE : SKIP_SQUARE) + SKIP_GAP : 12;
+  const bannerRight = landscape ? COMPASS_SPACE : skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
   // A route being found, or the point passed, takes the question away.
   useEffect(() => {
     if (confirming && !skip.canSkip) setConfirming(false);
@@ -456,6 +465,25 @@ export function RideScreen({
       duration: 700,
     });
   };
+
+  // Turning the phone resizes the map under a camera fitted to the old size: before the ride, fit the route again.
+  const wasLandscape = useRef(landscape);
+  useEffect(() => {
+    if (wasLandscape.current === landscape) return;
+    wasLandscape.current = landscape;
+    if (running) return;
+    const timer = setTimeout(
+      () =>
+        camera.current?.fitBounds(bounds, {
+          padding: overviewPadding(belowBar, landscape),
+          bearing: 0,
+          pitch: 0,
+          duration: 0,
+        }),
+      400,
+    );
+    return () => clearTimeout(timer);
+  }, [landscape, running, bounds, belowBar]);
 
   const start = (m: RideMode) => {
     setDemoJunctions(false);
@@ -982,6 +1010,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
               title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
                 direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
@@ -998,6 +1027,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="ink"
               title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
               sub={
@@ -1016,6 +1046,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="ink"
               title={t("ride.banner.paused")}
               sub={t("ride.banner.pausedSub")}
@@ -1027,6 +1058,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="ink"
               title={t("ride.banner.locating")}
               sub={t("ride.banner.locatingSub")}
@@ -1038,6 +1070,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="ink"
               title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
               sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
@@ -1049,6 +1082,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="signal"
               title={
                 ride.approachName
@@ -1066,6 +1100,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="ink"
               title={t("ride.banner.mapOffline")}
               sub={t("ride.banner.mapOfflineSub")}
@@ -1077,6 +1112,7 @@ export function RideScreen({
               top={belowBar}
               right={bannerRight}
               compact={landscape}
+              left={bannerLeft}
               tone="ink"
               title={t("ride.banner.locationOff")}
               sub={t("ride.banner.locationOffSub")}
@@ -1092,7 +1128,7 @@ export function RideScreen({
             skip={skip}
             top={belowBar}
             compact={landscape}
-            right={landscape ? COMPASS_SPACE : undefined}
+            left={landscape ? 8 : undefined}
             onPress={() => setConfirming(true)}
           />
 
@@ -1352,7 +1388,7 @@ const styles = themed(() =>
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     compassSide: { position: "absolute", right: 8 },
     stage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-    banner: { position: "absolute", left: 12, borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
+    banner: { position: "absolute", borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
     bannerCompact: { padding: 8, minHeight: SKIP_SQUARE_SIDE, justifyContent: "center" },
     bannerTitleCompact: { fontSize: 22 },
     bannerSubCompact: { fontSize: 15 },

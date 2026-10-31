@@ -27,14 +27,14 @@ export function SkipSquare({
   top,
   onPress,
   compact = false,
-  right,
+  left,
 }: {
   skip: SkipState;
   top: number;
   onPress: () => void;
   compact?: boolean;
-  /** Room kept at the right (default 12): sideways the compass stands there. */
-  right?: number;
+  /** Sideways the square stands at the top left of the map, at this distance from its edge (else at the right). */
+  left?: number;
 }) {
   const last = skip.last;
   const fade = useRef(new Animated.Value(0)).current;
@@ -63,7 +63,12 @@ export function SkipSquare({
       accessibilityRole="button"
       accessibilityLabel={undoing ? t("ride.skip.undoA11y") : t("ride.skip.button", { name })}
       accessibilityState={{ disabled: !undoing && !skip.canSkip }}
-      style={[styles.skipPress, { top }, right !== undefined && { right }, compact && styles.skipCompact]}
+      style={[
+        styles.skipPress,
+        { top },
+        left !== undefined && { left, right: undefined },
+        compact && styles.skipCompact,
+      ]}
     >
       <Animated.View style={[styles.skip, undoing ? { backgroundColor: background } : null]}>
         <Animated.Text

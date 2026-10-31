@@ -6,7 +6,7 @@ import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
 import { resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
-import { lastMap, resetMapMock } from "./maplibre.mock.tsx";
+import { camera, lastMap, resetMapMock } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
 import { at, first } from "./helpers.ts";
 
@@ -137,4 +137,17 @@ test("upright the compass chip is the only compass: the map's own is off", async
   await act(async () => location.pushFix(la, lo, 20, Date.now()));
   expect(screen.getByTestId("compass-chip", { hidden: true })).toBeTruthy();
   expect(lastMap.props.compass).toBe(false);
+});
+
+test("turning the phone before the ride fits the route to the new size, and not while riding", async () => {
+  await render(<RideScreen rb={first()} onBack={() => {}} />);
+  await flush(30);
+  camera.fitBounds.mockClear();
+  size(844, 390);
+  await screen.rerender(<RideScreen rb={first()} onBack={() => {}} />);
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+  });
+  expect(camera.fitBounds).toHaveBeenCalledTimes(1);
+  expect(camera.fitBounds.mock.calls[0]![1]).toMatchObject({ padding: expect.objectContaining({ bottom: 40 }) });
 });
