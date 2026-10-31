@@ -1143,7 +1143,8 @@ export function RideScreen({
                 <PlacesChip onPress={() => setPlacesOpen(true)} />
                 <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
                 <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
-                {running && nav ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
+                {/* Sideways the map's own compass at its top right says where north is: one compass, not two. */}
+                {running && nav && !landscape ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
               </View>
             </View>
           )}

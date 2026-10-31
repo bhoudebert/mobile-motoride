@@ -105,3 +105,16 @@ test("sideways, the sides leave the room the system reports for the camera cut-o
   // The map buttons stand above the gesture bar.
   expect(style("map-buttons").bottom).toBe(20 + 12);
 });
+
+test("sideways there is no compass chip: the map's own compass is the only one", async () => {
+  const [lat, lon] = at(first(), 1_000);
+  location.state.position = { latitude: lat, longitude: lon };
+  size(844, 390);
+  await render(<RideScreen rb={first()} onBack={() => {}} />);
+  await flush(30);
+  await fireEvent.press(screen.getByText("Start"));
+  await flush(30);
+  const [la, lo] = at(first(), 1_200);
+  await act(async () => location.pushFix(la, lo, 20, Date.now()));
+  expect(screen.queryByTestId("compass-chip", { hidden: true })).toBeNull();
+});

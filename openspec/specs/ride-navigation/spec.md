@@ -185,12 +185,17 @@ start, it is 58 km/h. The distance remaining keeps the whole name ("122 km left,
 
 ### Requirement: The compass
 
-While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed.
+While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed. Held sideways (ADR 0045) the chip SHALL NOT show: the map's own compass at its top right is the only one.
 
 #### Scenario: Riding east
 
 - **WHEN** the rider rides facing east
 - **THEN** the chip reads "E", its needle points left and it is named "Heading: east"
+
+#### Scenario: Sideways
+
+- **WHEN** the phone is held sideways while riding
+- **THEN** there is no compass chip in the row of chips
 
 #### Scenario: Before Start
 
