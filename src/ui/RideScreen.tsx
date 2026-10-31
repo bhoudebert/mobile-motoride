@@ -800,6 +800,9 @@ export function RideScreen({
             onDidFailLoadingMap={basemapFailedNow}
             attribution={false}
             logo={false}
+            // One compass, never two: sideways the map's own (top left, clear of the skip square), upright the chip by the traffic.
+            compass={landscape}
+            compassPosition={{ top: topPad, left: 8 }}
             onRegionWillChange={(e) => {
               if (e.nativeEvent.userInteraction) setFollow(false);
             }}

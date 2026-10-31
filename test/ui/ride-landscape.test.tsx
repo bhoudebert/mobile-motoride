@@ -6,7 +6,7 @@ import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
 import { resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
-import { resetMapMock } from "./maplibre.mock.tsx";
+import { lastMap, resetMapMock } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
 import { at, first } from "./helpers.ts";
 
@@ -106,7 +106,7 @@ test("sideways, the sides leave the room the system reports for the camera cut-o
   expect(style("map-buttons").bottom).toBe(20 + 12);
 });
 
-test("sideways there is no compass chip: the map's own compass is the only one", async () => {
+test("one compass, never two: the chip upright, the map's own sideways", async () => {
   const [lat, lon] = at(first(), 1_000);
   location.state.position = { latitude: lat, longitude: lon };
   size(844, 390);
@@ -117,4 +117,18 @@ test("sideways there is no compass chip: the map's own compass is the only one",
   const [la, lo] = at(first(), 1_200);
   await act(async () => location.pushFix(la, lo, 20, Date.now()));
   expect(screen.queryByTestId("compass-chip", { hidden: true })).toBeNull();
+  expect(lastMap.props.compass).toBe(true);
+});
+
+test("upright the compass chip is the only compass: the map's own is off", async () => {
+  const [lat, lon] = at(first(), 1_000);
+  location.state.position = { latitude: lat, longitude: lon };
+  await render(<RideScreen rb={first()} onBack={() => {}} />);
+  await flush(30);
+  await fireEvent.press(screen.getByText("Start"));
+  await flush(30);
+  const [la, lo] = at(first(), 1_200);
+  await act(async () => location.pushFix(la, lo, 20, Date.now()));
+  expect(screen.getByTestId("compass-chip", { hidden: true })).toBeTruthy();
+  expect(lastMap.props.compass).toBe(false);
 });
