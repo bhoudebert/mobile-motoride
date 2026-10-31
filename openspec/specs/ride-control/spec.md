@@ -32,6 +32,11 @@ While a ride or a demo is on, the buttons Back, Pause or Resume, and End, and th
 
 Ending a ride that uses the GPS SHALL ask first once the ride has begun, that is once the rider is being followed: "End the ride?", saying that the progress on the roadbook is lost, with "Keep riding" and "End ride". Going Back to the list during such a ride SHALL ask the same question ("Leave this ride?"). Before the ride has begun, while the app is locating the rider, asking where to join or finding the way, nothing is lost: End, Back and the phone's Back button SHALL act at once. Ending SHALL release the GPS, the voice and the screen lock, and return to the roadbook as before the ride. Ending a demo SHALL need no question, since nothing is lost.
 
+#### Scenario: Ending a ride that has begun
+
+- **WHEN** the rider is being followed on a GPS ride and presses End
+- **THEN** the app asks "End the ride?", says the progress is lost, and offers "Keep riding" and "End ride"; while still locating, End acts at once, and ending a demo needs no question
+
 ### Requirement: Join the roadbook where the rider is
 
 When the rider taps Start and the first fix is within 150 m of the roadbook line, the ride SHALL begin at once at the nearest point of the line, as before. When it is farther, the app SHALL ask where to join before it routes anything, with a card that states the choices and has one obvious default:
@@ -57,3 +62,8 @@ Going to a point SHALL send the rider from where they are to that point by a new
 
 Whenever the rider is sent to a named point (a skip, a join), the approach SHALL be called by its name: the
 HUD "To <name>", the straight-line instruction "Straight to <name>", the fallback notice "No road route to <name>".
+
+#### Scenario: After a skip
+
+- **WHEN** the rider skips to "3. Cassel"
+- **THEN** the HUD reads "To 3. Cassel", the straight-line instruction "Straight to 3. Cassel" and the fallback notice "No road route to 3. Cassel"

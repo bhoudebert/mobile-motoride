@@ -35,10 +35,25 @@ For each fix the system SHALL give one instruction from the next maneuver not ye
 
 The instruction SHALL also read "U-turn, wrong way" while the rider goes the wrong way, and "Rejoin the route, <distance>, <direction>" while off route (spec ride-navigation), the direction being one of ahead, ahead left, left, behind left, behind, behind right, right, ahead right relative to the rider's heading, or a compass point when the heading is unknown. The glyph SHALL be a U-turn arrow for the first, and an arrow turned towards the target for the second.
 
+#### Scenario: Off route
+
+- **WHEN** the rider is off route and the target is ahead to the left
+- **THEN** the instruction reads "Rejoin the route", the distance and "ahead left" with an arrow turned towards it, and going the wrong way reads "U-turn, wrong way" with a U-turn arrow
+
 ### Requirement: Shown at the top
 
 The ride screen SHALL show the instruction at the top in large type with an arrow, and SHALL replace it with `Off route` and the distance to the line while the rider is off route. A corner warning SHALL appear under it, never over it.
 
+#### Scenario: A corner warning with an instruction
+
+- **WHEN** the rider has a turn instruction and a hairpin warning to show
+- **THEN** the instruction is at the top in large type with an arrow, the corner warning is under it and never over it, and off route the top reads `Off route` and the distance to the line
+
 ### Requirement: Bearing along the line
 
 The system SHALL give the bearing of the line at the rider's progress, so the rider marker and the camera point the way the roadbook goes, not the way a noisy GPS heading says.
+
+#### Scenario: A noisy GPS heading
+
+- **WHEN** the GPS heading says 40 degrees while the line at the rider's progress goes 90 degrees
+- **THEN** the bearing given is the line's, so the rider marker and the camera point the way the roadbook goes

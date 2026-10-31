@@ -11,6 +11,11 @@ found, as often as needed, with a new route from where they are.
 
 A roadbook file SHALL tell the route points of the loop (`kind: "waypoint"`, the default) from planned service stops such as fuel and cafés (`kind: "stop"`). Only route points can be skipped. A service stop lies on the route and SHALL be left alone by skipping.
 
+#### Scenario: A café stop
+
+- **WHEN** a roadbook file has route points and a café marked `kind: "stop"`
+- **THEN** only the route points can be skipped, and skipping leaves the café alone
+
 ### Requirement: Skip the next point
 
 While riding with GPS, the rider SHALL be able to skip the next route point: the one the roadbook is heading for. Skipping SHALL send the rider to the route point after it, the target, by a new route from where they are, abandoning the stretch of the roadbook in between together with its stops, limits, zones and corners. The roadbook after the target SHALL be unchanged. Starting a roadbook from a chosen point (spec ride-control) is the same operation done before the ride. Skipping SHALL be possible as often as the rider wants, each time from the position and the ride they have then. When there is no route point after the next one, nothing SHALL be offered: the last point cannot be skipped.
@@ -29,9 +34,19 @@ While riding with GPS, the rider SHALL be able to skip the next route point: the
 
 Skipping SHALL ask for a confirmation naming the point skipped and the target, and SHALL be available at any speed: a rider who is riding is the one who finds the road blocked, and a button that only works when stopped cannot be used. A confirmation SHALL cancel itself after 10 seconds. The skip button SHALL be a square of at least 72 dp in the row of the warning banners at the top of the ride screen, at the left (upright and sideways, above the left gauges), never hidden behind a banner: a banner takes the width that is left, and the column of map buttons on the right SHALL never reach it. It SHALL name the point it skips.
 
+#### Scenario: Skipping while riding
+
+- **WHEN** the rider at 80 km/h presses the skip square and does not answer
+- **THEN** a confirmation names the point skipped and the target, and cancels itself after 10 seconds
+
 ### Requirement: The new route
 
 The route SHALL be requested from the public Valhalla service, once per skip, as for the approach (ADR 0008, ADR 0012), and ridden with the rest of the roadbook as one line, dashed, with instructions, corner warnings, danger zones and the speed limit working on it. Without a route within 10 seconds the app SHALL fall back to a straight line to the target and say so, as for the approach. The new ride SHALL be announced aloud ("Skipping 2. Mont des Cats, heading for 3. Cassel") and shown as "To 3. Cassel" until the target is reached.
+
+#### Scenario: No route in time
+
+- **WHEN** the rider confirms a skip and the public Valhalla service does not answer within 10 seconds
+- **THEN** the app falls back to a straight line to the target and says so, and announces "Skipping 2. Mont des Cats, heading for 3. Cassel" and shows "To 3. Cassel" until it is reached
 
 ### Requirement: Undo
 
@@ -45,3 +60,8 @@ For 7.5 seconds after a skip the rider SHALL be able to undo it, restoring the r
 ### Requirement: Not in the demo
 
 The demo ride SHALL NOT offer skipping.
+
+#### Scenario: The demo
+
+- **WHEN** the rider runs the demo ride
+- **THEN** there is no skip square and nothing can be skipped

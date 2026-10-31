@@ -46,6 +46,11 @@ a button named with its value that jumps the replay to that point. The map follo
 The review SHALL show the speed along the ride and, when the GPS gave altitudes, the altitude along the ride, as two compact profiles over the
 distance, with the place of the replay marked on them.
 
+#### Scenario: A ride with altitudes
+
+- **WHEN** a ride whose GPS gave altitudes is reviewed
+- **THEN** a speed profile and an altitude profile are shown over the distance with the place of the replay marked on them, and a ride without altitudes shows the speed profile only
+
 ### Requirement: Replay
 
 The review SHALL replay the ride: a marker moving along the track, with Play and Pause, a speed of replay (×10, ×30, ×100, ×300, changed
@@ -63,3 +68,8 @@ break does not stop it. At the end the replay SHALL stop on the last point, and 
 The GPX a ride is saved as SHALL stay the one contract of a ride: the review reads the same file that is shared, with its `motoride:`
 extensions, and any other tool that reads GPX reads it too (agentRide's review among them). The figures of the review are computed by pure
 functions that take the points, so the same figures can be computed elsewhere, for example by a server that keeps rides (ADR 0028).
+
+#### Scenario: The same file
+
+- **WHEN** a recorded ride is reviewed and then shared
+- **THEN** the review reads the same GPX that is shared, with its `motoride:` extensions, and another program that reads GPX can read it

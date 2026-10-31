@@ -43,6 +43,11 @@ could not be loaded the card SHALL say so and offer Try again.
 The rider SHALL set the range of the tank on the fuel card, among 100, 150, 200, 250, 300, 350 and 400 km, 200 km by default, one
 tap changing it to the next. The choice SHALL be kept between launches.
 
+#### Scenario: Changing the range
+
+- **WHEN** the rider is on the fuel card with the default range of 200 km and taps the range
+- **THEN** it becomes 250 km, then 300, 350, 400, 100 and 150 in turn, and the choice is still there at the next launch
+
 ### Requirement: A word before a long stretch
 
 When the next station is within 3 km and the stretch after it (to the following station, or to the finish when there is none) is longer
@@ -59,3 +64,8 @@ than 60 % of the range, the system SHALL say it once: "Fuel stop in 2.5 km. The 
 
 Looking for the stations sends the coordinates of the roadbook's line, thinned to a point every kilometre, to the public Overpass servers,
 once for each roadbook and month. Nothing else is sent, and no account or identifier goes with it. The privacy policy says so.
+
+#### Scenario: Looking for stations
+
+- **WHEN** the app looks for the fuel stations of a roadbook for the first time this month
+- **THEN** the coordinates of the line, one point a kilometre, go to the public Overpass servers once for that roadbook and month, with no account or identifier

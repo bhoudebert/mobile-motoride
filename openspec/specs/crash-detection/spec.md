@@ -67,3 +67,8 @@ which shows the alert for 10 seconds, labelled as a test, and at its end says "T
 
 The app SHALL NOT claim that help is on the way: its words say what was done ("Your live ride now shows a possible crash") and what was not ("No one was told automatically"). The sensors are read only
 while a ride on the phone's GPS runs with detection on; nothing of them leaves the phone except, after an alert, the position in the live share and in the message the person with the phone chooses to send.
+
+#### Scenario: An alert is raised
+
+- **WHEN** a possible crash is detected and the rider does not answer
+- **THEN** the words say what was done ("Your live ride now shows a possible crash") and what was not ("No one was told automatically"), and the app never says help is on the way

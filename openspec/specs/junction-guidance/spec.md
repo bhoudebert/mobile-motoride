@@ -16,6 +16,11 @@ of them (counted from the left, from 0) lead on along the roadbook, and optional
 junction that is not understood (a bad index, an exit number outside the exits, lanes to use outside the lanes, fewer
 than two lanes) SHALL be dropped and the rest of the file kept. A roadbook without junctions SHALL guide as before.
 
+#### Scenario: A roundabout and a bad lanes entry
+
+- **WHEN** a roadbook file has a roundabout with three exits, traffic keeping right, and a lanes entry with one lane
+- **THEN** the roundabout is placed on the line with its exits numbered from the first on the right, and the lanes entry, fewer than two lanes, is dropped while the rest of the file is used
+
 ### Requirement: Say which exit, in words
 
 When a roundabout is ahead, the instruction at the top SHALL name the exit as an ordinal: "2nd exit" with "Roundabout" and the distance under it (its whole sentence, "Roundabout, 2nd exit", is what a screen reader and the log get), and a roundabout with a single exit from the rider's side ("1st exit") SHALL still be named. The
@@ -35,6 +40,11 @@ to take highlighted (filled and larger) with the others muted. The diagram SHALL
 exit to take SHALL carry its number in a filled disc, the others only an outline. It SHALL stay clear of the map controls and
 the bottom panel, and SHALL be hidden from screen readers (the instruction says the same in words).
 
+#### Scenario: Approaching a roundabout
+
+- **WHEN** the rider is 300 m before a roundabout whose second exit is to take
+- **THEN** a diagram shows the ring, a spoke for each exit in its true direction, the entry at the bottom, and the second exit filled, larger and numbered in a disc, while a screen reader gets the same in the instruction
+
 ### Requirement: Show the lanes
 
 A lane guide SHALL exist only for a road with more than one lane in the rider's direction where the lane matters; an ordinary road with one lane each way SHALL show nothing, and so SHALL a road where every lane leads on.
@@ -52,3 +62,8 @@ and the lanes follow once it is behind.
 ### Requirement: Not when lost
 
 A junction SHALL NOT be shown, announced or spoken to a rider who is off route, in the approach to the roadbook, or going the wrong way; a rider who rejoins the line before a junction SHALL be guided to it as usual, and it SHALL be announced once per pass of the line so a loop ridden twice announces twice.
+
+#### Scenario: Off route before a junction
+
+- **WHEN** the rider is off route and reaches the place of a roundabout
+- **THEN** it is not shown, announced or spoken; and a loop ridden twice announces its roundabout twice

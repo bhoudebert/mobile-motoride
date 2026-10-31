@@ -43,3 +43,8 @@ back (spec ride-navigation) is what brings the rider back to it.
 
 The names of the kinds, the card and the chip SHALL be in the language in use (spec languages). The names of the places are those of
 OpenStreetMap and are not translated.
+
+#### Scenario: In French
+
+- **WHEN** the app is in French and the rider opens the places card
+- **THEN** the names of the kinds, the card and the chip are in French, and the names of the places stay those of OpenStreetMap
