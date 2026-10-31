@@ -63,13 +63,11 @@ export const home: Translated<typeof English> = {
   "home.rides.shareFailed": "Le fichier n'a pas pu être partagé.",
   "home.rides.deleteRide": "Supprimer la sortie {name}",
   "home.rides.shareRide": "Partager la sortie {name}",
-  "home.rides.share": "Partager",
   "home.rides.delete": "Supprimer",
   "home.rides.keepIt": "La garder",
   "home.rides.keep": "Garder",
   "home.rides.onServer": "Sur votre serveur, envoyée le {date}",
   "home.rides.localOnly": "Seulement sur ce téléphone",
-  "home.rides.upload": "Envoyer au serveur",
   "home.rides.uploadRide": "Envoyer la sortie de {name} à votre serveur",
   "home.rides.uploading": "Envoi…",
   "home.rides.uploaded": "Sortie envoyée à votre serveur.",
@@ -88,7 +86,6 @@ export const home: Translated<typeof English> = {
   "home.rides.uploadProblem.failed":
     "Votre serveur n'a pas pris la sortie. Elle est toujours sur ce téléphone : réessayez plus tard.",
   "home.rides.deleteAsk": "Supprimer la sortie {name} ?",
-  "home.rides.deleteLink": "Supprimer…",
   "home.dest.title": "Aller à un lieu",
   "home.dest.tooShort": "Saisissez au moins 3 lettres.",
   "home.dest.offline": "La recherche demande le réseau. Réessayez.",
@@ -173,6 +170,5 @@ export const home: Translated<typeof English> = {
   "home.menu.themeSystem": "Système ({look})",
   "home.theme.light": "Clair",
   "home.theme.dark": "Sombre",
-  "home.rides.review": "Revoir",
   "home.rides.reviewRide": "Revoir {name}",
 };
