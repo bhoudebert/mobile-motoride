@@ -25,6 +25,10 @@ const light = {
   accent: "#24382d",
   rustText: "#a8432a",
   route: "#31503f",
+  /** The part of the route already ridden: pale, so what is bright is what is still ahead. */
+  routeDone: "#b7c7bc",
+  /** The stretch just ahead of the rider: brighter than the line, so a road ridden out and back shows the way now. */
+  routeNext: "#12a35b",
   hazard: "#a8432a",
   onSignal: "#1c1d1a",
   onRust: "#f3eee4",
@@ -49,6 +53,8 @@ const dark: Palette = {
   accent: "#a9cdb3",
   rustText: "#e98a6c",
   route: "#6fbf8e",
+  routeDone: "#35503f",
+  routeNext: "#8ff0b4",
   hazard: "#e0785a",
   onSignal: "#1c1d1a",
   onRust: "#f3eee4",

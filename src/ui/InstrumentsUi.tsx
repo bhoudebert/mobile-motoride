@@ -88,6 +88,7 @@ export function InstrumentsOverlay({
   const tiles = Children.toArray([
     w.compass ? (
       <Chip
+        key="gauge-compass"
         side={landscape}
         testID="gauge-compass"
         label={t("gauges.heading")}
@@ -101,6 +102,7 @@ export function InstrumentsOverlay({
     ) : null,
     w.altitude ? (
       <Chip
+        key="gauge-altitude"
         side={landscape}
         testID="gauge-altitude"
         label={t("gauges.altitude")}
@@ -117,6 +119,7 @@ export function InstrumentsOverlay({
     ) : null,
     w.slope ? (
       <Chip
+        key="gauge-slope"
         side={landscape}
         testID="gauge-slope"
         label={t("gauges.slope")}
@@ -131,6 +134,7 @@ export function InstrumentsOverlay({
     w.lean ? (
       calibrated ? (
         <Chip
+          key="gauge-lean"
           side={landscape}
           testID="gauge-lean"
           label={t("gauges.lean")}
@@ -150,6 +154,7 @@ export function InstrumentsOverlay({
         />
       ) : (
         <Chip
+          key="gauge-lean"
           side={landscape}
           testID="gauge-lean"
           label={t("gauges.lean")}
@@ -162,6 +167,7 @@ export function InstrumentsOverlay({
     w.braking ? (
       calibrated ? (
         <Chip
+          key="gauge-braking"
           side={landscape}
           testID="gauge-braking"
           label={motion && motion.brakingG < -0.05 ? t("gauges.acceleration") : t("gauges.braking")}
@@ -176,6 +182,7 @@ export function InstrumentsOverlay({
         />
       ) : (
         <Chip
+          key="gauge-braking"
           side={landscape}
           testID="gauge-braking"
           label={t("gauges.braking")}

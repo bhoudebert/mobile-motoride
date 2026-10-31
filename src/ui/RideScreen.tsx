@@ -25,6 +25,7 @@ import {
   View,
 } from "react-native";
 import arrowImage from "../../assets/arrow.png";
+import chevronImage from "../../assets/chevron.png";
 import riderImage from "../../assets/rider.png";
 import pumpImage from "../../assets/pump.png";
 import { etaOf, formatClock, formatDuration, nextPace } from "../core/eta.ts";
@@ -56,6 +57,7 @@ import { t } from "../core/i18n/index.ts";
 import type { MotionReading } from "../core/instruments.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
 import { hudWidth, isLandscape } from "../core/layout.ts";
+import { directionGradient, nextStretch, ridden, sliceLine } from "../core/lineStyle.ts";
 import { lockPortrait, unlockOrientation } from "./orientation.ts";
 import { INSTRUCTION_BAR_HEIGHT, INSTRUCTION_BAR_TOP, InstructionBar } from "./InstructionBar.tsx";
 import { JunctionCard } from "./JunctionCard.tsx";
@@ -330,6 +332,30 @@ export function RideScreen({
 
   const line = useMemo(() => lineFeature(rb), [rb]);
   const approach = useMemo(() => approachFeature(ride), [ride]);
+  // The part of the roadbook already ridden is pale: on a road that crosses itself, what is bright is what lies ahead.
+  const shareRidden = nav && nav.phase === "ride" ? ridden(nav.progressM - ride.approachM, rb.totalM) : 0;
+  // The 3 km just ahead are drawn again on top, bright and with bold chevrons: where the road is ridden out and back, or
+  // crosses itself, only the way to ride now shows there (ADR 0046).
+  const stretchFrom = nav && nav.phase === "ride" ? nextStretch(nav.progressM - ride.approachM, rb.totalM).fromM : -1;
+  const nextLine = useMemo(() => {
+    if (stretchFrom < 0) return null;
+    const { fromM, toM } = nextStretch(stretchFrom, rb.totalM);
+    const points = sliceLine(rb.roadbook.line, rb.cumulativeM, fromM, toM);
+    if (points.length < 2) return null;
+    return {
+      type: "Feature" as const,
+      properties: {},
+      geometry: { type: "LineString" as const, coordinates: points.map(([lat, lon]) => [lon, lat]) },
+    };
+  }, [stretchFrom, rb]);
+  const rideColor = colors.route;
+  const doneColor = colors.routeDone;
+  const lineGradient = useMemo(
+    // The map library does not export its expression type: the array is a valid `line-gradient`.
+    () => directionGradient(shareRidden, doneColor, rideColor) as never,
+    // A thousandth at a time: the style is not sent on every fix.
+    [Math.floor(shareRidden * 1000), doneColor, rideColor],
+  );
   const stops = useMemo(() => stopsCollection(rb), [rb]);
   const corners = useMemo(() => cornersCollection(ride), [ride]);
   // Cameras are drawn only on the stretches whose country, and the rider's, allow their place (spec danger-zones).
@@ -837,18 +863,25 @@ export function RideScreen({
             }}
           >
             <Camera ref={camera} initialViewState={{ bounds, padding: overviewPadding(belowBar, landscape) }} />
-            <Images images={{ arrow: { source: arrowImage, sdf: true }, rider: riderImage, pump: pumpImage }} />
-            <GeoJSONSource id="line" data={line}>
+            <Images
+              images={{
+                arrow: { source: arrowImage, sdf: true },
+                chevron: { source: chevronImage },
+                rider: riderImage,
+                pump: pumpImage,
+              }}
+            />
+            <GeoJSONSource id="line" data={line} lineMetrics>
               <Layer
                 id="line-casing"
                 type="line"
-                paint={{ "line-color": colors.paper, "line-width": 11 }}
+                paint={{ "line-color": colors.paper, "line-width": 12 }}
                 layout={{ "line-cap": "round", "line-join": "round" }}
               />
               <Layer
                 id="line"
                 type="line"
-                paint={{ "line-color": colors.route, "line-width": 7 }}
+                paint={{ "line-color": colors.route, "line-gradient": lineGradient, "line-width": 8 }}
                 layout={{ "line-cap": "round", "line-join": "round" }}
               />
               <Layer
@@ -856,9 +889,10 @@ export function RideScreen({
                 type="symbol"
                 layout={{
                   "symbol-placement": "line",
-                  "symbol-spacing": 70,
+                  // The whole line keeps small arrows; the bold chevrons are on the stretch ahead, drawn after it.
+                  "symbol-spacing": 90,
                   "icon-image": "arrow",
-                  "icon-size": 0.4,
+                  "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.35, 14, 0.5, 17, 0.7],
                   "icon-rotation-alignment": "map",
                   "icon-allow-overlap": true,
                   "icon-ignore-placement": true,
@@ -866,6 +900,35 @@ export function RideScreen({
                 paint={{ "icon-color": colors.paper }}
               />
             </GeoJSONSource>
+            {nextLine ? (
+              <GeoJSONSource id="line-next" data={nextLine}>
+                <Layer
+                  id="line-next-casing"
+                  type="line"
+                  paint={{ "line-color": colors.paper, "line-width": 13 }}
+                  layout={{ "line-cap": "round", "line-join": "round" }}
+                />
+                <Layer
+                  id="line-next"
+                  type="line"
+                  paint={{ "line-color": colors.routeNext, "line-width": 9 }}
+                  layout={{ "line-cap": "round", "line-join": "round" }}
+                />
+                <Layer
+                  id="line-next-chevrons"
+                  type="symbol"
+                  layout={{
+                    "symbol-placement": "line",
+                    "symbol-spacing": 56,
+                    "icon-image": "chevron",
+                    "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.3, 14, 0.42, 17, 0.52],
+                    "icon-rotation-alignment": "map",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                  }}
+                />
+              </GeoJSONSource>
+            ) : null}
             {traffic.stretches.length > 0 ? (
               <GeoJSONSource id="traffic" data={trafficLines}>
                 <Layer

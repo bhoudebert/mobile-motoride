@@ -75,7 +75,22 @@ The ride screen SHALL offer a Map button that cycles the basemap through Light, 
 
 ### Requirement: Direction on the line
 
-The line SHALL carry arrows along it pointing the way of the roadbook, and the rider SHALL be shown as a marker pointing along the line.
+The whole roadbook line SHALL carry small arrows pointing the way of the roadbook, and the rider SHALL be shown as a marker pointing along the line. While the rider is on the roadbook the app SHALL also make the way clear where the road is ridden out and back, doubles back or crosses itself (ADR 0046): the part already ridden SHALL be drawn pale and the part ahead in the colour of the line, with a hard step at the rider; and the 3 km just ahead of the rider SHALL be drawn again on top of everything on the line, in a brighter colour with a white outline and bold white chevrons about every 56 px that point the way of the ride and grow with the zoom, so that where two passes lie on the same road only the one to ride now shows its chevrons and its colour. The stretch SHALL start at the rider (rounded down to 50 m, so the map is not updated on every fix), stop 3 km on or at the end of the roadbook, and SHALL NOT show before Start, on the approach or at the end. The part ridden and the stretch SHALL follow the rider's progress along the roadbook, not along the approach. The Key SHALL say that the bright stretch with white chevrons is the way to ride and that the ridden part turns pale.
+
+#### Scenario: A road ridden out and back
+
+- **WHEN** the rider rides a stretch of road that the roadbook rides again, the other way, later
+- **THEN** the next 3 km are bright with white chevrons pointing the way of this pass, and the other pass, which lies under them, is not drawn over them
+
+#### Scenario: A road that loops back
+
+- **WHEN** the rider has ridden the first half of a roadbook that crosses itself
+- **THEN** the first half is drawn pale and the second half in the colour of the line, and the bright stretch is on the second half
+
+#### Scenario: Before Start
+
+- **WHEN** the ride screen is open and the rider has not started
+- **THEN** the line is in one colour with its small arrows and there is no bright stretch
 
 ### Requirement: Camera and controls
 
