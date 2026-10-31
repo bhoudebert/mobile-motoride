@@ -70,6 +70,20 @@ The way back at the top of the screens (the list of roadbooks, My rides, a ride'
 - **WHEN** the list of roadbooks is open
 - **THEN** its top shows an arrow and no word "Back", and a screen reader names it "Back to the map"
 
+### Requirement: Pull to refresh
+
+A list of things that can change behind the app's back SHALL be read again when the rider pulls it down from the top, with the usual spinner while it works, without leaving the screen: the list of roadbooks asks the rider's server again (and has nothing to pull for when no server is set), and My rides reads the recorded rides again. The ride, the safety page and the lists that are only an answer to what the rider typed (the search for a place) SHALL NOT offer it.
+
+#### Scenario: Pull the roadbooks
+
+- **WHEN** the rider pulls the list of roadbooks down and a server is set
+- **THEN** the server is asked again, a spinner shows while it answers, and the list is updated
+
+#### Scenario: Pull My rides
+
+- **WHEN** a ride file appears while My rides is open and the rider pulls the list down
+- **THEN** the ride is listed
+
 ### Requirement: Swipe back
 
 The screens that have a way back at the top (the list of roadbooks, My rides, a ride's review, the search for a place, the server) SHALL also go back when the rider sweeps a finger from the left edge of the screen to the right, mostly sideways and far enough, to the same place as the arrow. A tap, a scroll and a swipe that starts away from the edge SHALL NOT go back. The ride and the safety page SHALL NOT go back this way: a swipe made on a bike must not end a ride or leave a crash alert.

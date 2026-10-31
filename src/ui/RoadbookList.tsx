@@ -87,6 +87,10 @@ export function RoadbookList({
         keyExtractor={(row) => (row.kind === "server" ? `server-${row.entry.id}` : row.rb.roadbook.id)}
         contentContainerStyle={styles.list}
         ListEmptyComponent={<Text style={styles.empty}>{t(server ? "home.list.emptyServer" : "home.list.empty")}</Text>}
+        testID="roadbook-list"
+        // Pull down from the top to ask the server again (spec home-screen, "Pull to refresh"); with no server there is nothing to ask.
+        refreshing={server?.list?.status === "checking"}
+        onRefresh={server ? server.onRetry : undefined}
         ListHeaderComponent={server ? <ServerNotes list={server.list} onRetry={server.onRetry} /> : undefined}
         renderItem={({ item: row }) => {
           if (row.kind === "server")
