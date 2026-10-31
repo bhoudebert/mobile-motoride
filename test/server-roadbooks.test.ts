@@ -203,3 +203,18 @@ test("a roadbook the server renumbered is the copy kept under its old number, fo
   const foreign = keptWith({ serverId: 1_000_000 }, { app: "gpx", roadbook: 1, name: "Avesnois" } as never);
   assert.equal(keptFor(renumbered, [foreign], listed), undefined);
 });
+
+test("a file the server is still making is slow, not a failure: a timeout or a gateway that gave up", async () => {
+  const timeout = (async () => {
+    throw Object.assign(new Error("The operation timed out"), { name: "TimeoutError" });
+  }) as unknown as typeof fetch;
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: timeout }), { ok: false, reason: "slow" });
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(504) }), { ok: false, reason: "slow" });
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(408) }), { ok: false, reason: "slow" });
+  // Its own failures are told apart from it: the route could not be made (502), no network at all.
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(502) }), { ok: false, reason: "failed" });
+  const down = (async () => {
+    throw new TypeError("Network request failed");
+  }) as unknown as typeof fetch;
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: down }), { ok: false, reason: "unreachable" });
+});

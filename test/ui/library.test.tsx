@@ -482,6 +482,8 @@ type Fake = {
   stamp: string;
   error?: string;
   errorCode?: string;
+  /** The server has no file ready: the first request would make it, and its gateway gives up (504). */
+  hold?: boolean;
 };
 const fakeServer = (fake: Fake) =>
   fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
@@ -506,6 +508,7 @@ const fakeServer = (fake: Fake) =>
       };
     if (url === `${SERVER.url}/roadbook/7/refresh` && init?.method === "POST")
       return { ok: true, status: 202, json: async () => ({}) };
+    if (/\/roadbook\/7$/.test(url) && fake.hold) return { ok: false, status: 504 };
     if (/\/roadbook\/7$/.test(url))
       return {
         ok: true,
@@ -575,7 +578,7 @@ test("an outdated roadbook says so, is updated by a tap, shows it is under refre
     expect(kept()).toHaveLength(1);
     expect(JSON.parse(files.get(kept()[0]!)!).serverStamp).toBe("s2");
     // The rider is looking at the list: it stays, with a word, and no ride opens.
-    expect(screen.getByText("Agent loop is updated from your server.")).toBeTruthy();
+    expect(screen.getByText("Agent loop is downloaded from your server.")).toBeTruthy();
     expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
     expect(screen.queryByText("Under refresh on your server…")).toBeNull();
 
@@ -708,4 +711,44 @@ test("a roadbook the server renumbered is one card, refreshed in place under its
   const stored = JSON.parse(files.get(first!)!);
   expect(stored.serverId).toBe(3);
   expect(stored.serverStamp).toBe("s9");
+});
+
+test("a file the server has not made yet is not waited for: the server is asked to prepare it and it comes down by itself", async () => {
+  jest.useFakeTimers();
+  try {
+    await withServer();
+    const fake: Fake = { state: "outdated", stamp: "s1", hold: true };
+    fakeServer(fake);
+    await toList();
+    await flush();
+    await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+    await flush();
+    // The gateway gave up on the first request (a long route takes minutes to trace): nothing kept, the rider is told, and
+    // the server is asked to prepare the file; the card is at once under refresh with nothing to press.
+    expect(kept()).toHaveLength(0);
+    expect(screen.getByText(/Your server is preparing Agent loop/)).toBeTruthy();
+    expect(posts()).toEqual([`${SERVER.url}/roadbook/7/refresh`]);
+    expect(screen.getByText("Under refresh on your server…")).toBeTruthy();
+    expect(screen.queryByLabelText("Download Agent loop")).toBeNull();
+
+    // Still being made: asked again, nothing comes down. Then it is ready.
+    fake.state = "refreshing";
+    await act(async () => {
+      jest.advanceTimersByTime(4100);
+    });
+    expect(kept()).toHaveLength(0);
+    fake.state = "current";
+    fake.hold = false;
+    await act(async () => {
+      jest.advanceTimersByTime(4100);
+    });
+    await flush();
+    expect(kept()).toHaveLength(1);
+    expect(JSON.parse(files.get(kept()[0]!)!).serverStamp).toBe("s1");
+    // The rider is on the list: it stays, with a word.
+    expect(screen.getByText("Agent loop is downloaded from your server.")).toBeTruthy();
+    expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+  } finally {
+    jest.useRealTimers();
+  }
 });
