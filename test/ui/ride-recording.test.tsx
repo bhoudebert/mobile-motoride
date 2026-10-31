@@ -654,3 +654,49 @@ test("without a server a ride is still warned as a loss when deleted, and no upl
   await fireEvent.press(screen.getByLabelText("Delete Solo ride?"));
   expect(screen.getByText(/lost for good/)).toBeTruthy();
 });
+
+test("the actions of a ride are icons with a name for a screen reader, the delete alone at the end, and no word on them", async () => {
+  await withServer();
+  serverTakes();
+  const mk = (name: string, day: number, extra: Partial<RideMeta> = {}) => {
+    const meta: RideMeta = {
+      id: `2026-10-0${day}T08-00-00-${name.toLowerCase()}`,
+      roadbookId: name,
+      roadbookName: name,
+      startedAt: Date.UTC(2026, 9, day, 8),
+      endedAt: Date.UTC(2026, 9, day, 9),
+      distanceM: 54_321,
+      points: 100,
+      state: "completed",
+      ...extra,
+    };
+    files.set(`${folder}${meta.id}.gpx`, "<gpx/>");
+    files.set(`${folder}${meta.id}.json`, serializeMeta(meta));
+  };
+  mk("Sent", 1, { uploadedAt: Date.UTC(2026, 9, 3), serverRideId: "x" });
+  mk("Alone", 2);
+  dirs.add("file:///document/rides");
+  await openRides();
+  // No text links any more.
+  for (const word of ["Review", "Upload to server", "Share", "Delete…", "Uploading…"])
+    expect(screen.queryByText(word)).toBeNull();
+  // A ride on the phone only: review, upload, share, then delete.
+  const names = (id: string) =>
+    screen
+      .getAllByRole("button")
+      .map((b) => b.props.accessibilityLabel as string)
+      .filter((l) => l?.includes(id));
+  expect(names("Alone")).toEqual([
+    "Review Alone",
+    "Upload the ride of Alone to your server",
+    "Share the ride of Alone",
+    "Delete Alone ride?",
+  ]);
+  // A ride already sent: its slot is a status, not a button, and it is still there so the others do not move.
+  expect(screen.queryByLabelText("Upload the ride of Sent to your server")).toBeNull();
+  expect(screen.getByLabelText(/^On your server, sent /)).toBeTruthy();
+  expect(names("Sent")).toEqual(["Review Sent", "Share the ride of Sent", "Delete Sent ride?"]);
+  // While one is sent the others cannot be pressed, and the one sending shows it.
+  const send = screen.getByLabelText("Upload the ride of Alone to your server");
+  expect(send.props.accessibilityState).toMatchObject({ disabled: false });
+});

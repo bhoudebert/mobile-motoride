@@ -1,7 +1,7 @@
 import { TOP_INSET } from "./insets.ts";
 import * as Sharing from "expo-sharing";
 import { useCallback, useEffect, useState } from "react";
-import { BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
 import { formatDateTime, t } from "../core/i18n/index.ts";
 import { durationText, RIDE_STATE_LABEL, rideExtras, type RideMeta } from "../core/recording.ts";
@@ -9,7 +9,38 @@ import type { ServerSetting } from "../core/liveShare.ts";
 import { deleteRide, gpxUri, listRides } from "./ridesStore.ts";
 import { useRideUpload } from "./useRideUpload.ts";
 import { BackButton } from "./BackButton.tsx";
+import { Icon, type IconName } from "./Icon.tsx";
 import { colors, fonts, radii, themed } from "./theme.ts";
+
+const ICON = 24;
+
+/** An action of a ride as one icon in a 48 dp target: it says what it does to a screen reader, and shows when it is pressed. */
+function RideAction({
+  icon,
+  label,
+  onPress,
+  color = colors.accent,
+  disabled = false,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  color?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed, disabled && styles.iconDisabled]}
+    >
+      <Icon name={icon} color={color} size={ICON} />
+    </Pressable>
+  );
+}
 
 const dateText = (ms: number) =>
   formatDateTime(ms, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -129,46 +160,55 @@ export function RidesScreen({
                 </Pressable>
               </View>
             ) : (
-              <View style={styles.actions}>
-                {onReview ? (
-                  <Pressable
-                    style={styles.action}
-                    onPress={() => onReview(r)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("home.rides.reviewRide", { name: r.roadbookName })}
-                  >
-                    <Text style={styles.link}>{t("home.rides.review")}</Text>
-                  </Pressable>
-                ) : null}
-                {server && r.uploadedAt === undefined ? (
-                  <Pressable
-                    style={styles.action}
-                    disabled={uploading !== null}
-                    onPress={() => send(r)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("home.rides.uploadRide", { name: r.roadbookName })}
-                  >
-                    <Text style={styles.link}>
-                      {t(uploading === r.id ? "home.rides.uploading" : "home.rides.upload")}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  style={styles.action}
-                  onPress={() => share(r)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("home.rides.shareRide", { name: r.roadbookName })}
-                >
-                  <Text style={styles.link}>{t("home.rides.share")}</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.action}
+              <View style={styles.iconRow}>
+                {/* The everyday actions together, the one that cannot be undone alone at the far end, out of reach of a slip. */}
+                <View style={styles.iconGroup}>
+                  {onReview ? (
+                    <RideAction
+                      icon="analytics-outline"
+                      label={t("home.rides.reviewRide", { name: r.roadbookName })}
+                      onPress={() => onReview(r)}
+                    />
+                  ) : null}
+                  {r.uploadedAt !== undefined ? (
+                    // Sent: a status, not an action. The slot keeps its place so the others do not move.
+                    <View
+                      style={styles.iconButton}
+                      accessible
+                      accessibilityRole="image"
+                      accessibilityLabel={t("home.rides.onServer", { date: dateText(r.uploadedAt) })}
+                    >
+                      <Icon name="cloud-done-outline" color={colors.accent} size={ICON} />
+                    </View>
+                  ) : uploading === r.id ? (
+                    <View
+                      style={styles.iconButton}
+                      accessible
+                      accessibilityLabel={t("home.rides.uploading")}
+                      accessibilityLiveRegion="polite"
+                    >
+                      <ActivityIndicator color={colors.accent} />
+                    </View>
+                  ) : server ? (
+                    <RideAction
+                      icon="cloud-upload-outline"
+                      label={t("home.rides.uploadRide", { name: r.roadbookName })}
+                      disabled={uploading !== null}
+                      onPress={() => send(r)}
+                    />
+                  ) : null}
+                  <RideAction
+                    icon="share-outline"
+                    label={t("home.rides.shareRide", { name: r.roadbookName })}
+                    onPress={() => share(r)}
+                  />
+                </View>
+                <RideAction
+                  icon="trash-outline"
+                  color={colors.rustText}
+                  label={t("home.rides.deleteAsk", { name: r.roadbookName })}
                   onPress={() => setConfirming(r.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("home.rides.deleteAsk", { name: r.roadbookName })}
-                >
-                  <Text style={styles.danger}>{t("home.rides.deleteLink")}</Text>
-                </Pressable>
+                />
               </View>
             )}
           </View>
@@ -200,6 +240,12 @@ const styles = themed(() =>
     done: { color: colors.accent },
     actions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 4 },
     confirmText: { flex: 1, color: colors.ink2, fontFamily: fonts.sans, fontSize: 14 },
+    iconRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+    iconGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
+    iconButton: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+    // The press shows as a disc behind the icon; nothing moves.
+    iconPressed: { backgroundColor: colors.rule },
+    iconDisabled: { opacity: 0.38 },
     action: { minHeight: 48, minWidth: 64, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
     link: { color: colors.accent, fontFamily: fonts.bold, fontSize: 15 },
     danger: { color: colors.limitRed, fontFamily: fonts.bold, fontSize: 15 },
