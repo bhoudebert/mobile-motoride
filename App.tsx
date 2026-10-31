@@ -25,7 +25,7 @@ import { RoadbookList } from "./src/ui/RoadbookList.tsx";
 import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer } from "./src/ui/serverSetting.ts";
-import { serverAction } from "./src/core/serverRoadbooks.ts";
+import { serverAction, type ServerRoadbook } from "./src/core/serverRoadbooks.ts";
 import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
 import { recoverRide } from "./src/ui/ridesStore.ts";
 import { formatDistance } from "./src/core/format.ts";
@@ -109,10 +109,16 @@ export default function App() {
     server
       ? (entry, listed) => {
           // Only a file that is not the one held comes down: a refresh that ends on the same stamp changes nothing.
-          if (serverAction(entry, library.items, listed) === "refresh") void library.fromServer(server, entry, false);
+          const action = serverAction(entry, library.items, listed);
+          if (action === "refresh" || action === "download") void library.fromServer(server, entry, false);
         }
       : undefined,
   );
+  // A file the server has not made yet is made on the first request and a long route takes minutes: the phone waits a
+  // little, then asks the server to prepare it and the roadbook comes down by itself when it is ready.
+  const getRoadbook = async (s: NonNullable<typeof server>, entry: ServerRoadbook) => {
+    if ((await library.fromServer(s, entry)) === "slow") void serverRoadbooks.refresh(entry);
+  };
   const imported = useMemo(() => library.items.map((i) => prepareRoadbook(i.roadbook)), [library.items]);
   const pendingIds = useMemo(
     () => new Set(library.items.filter((i) => i.completion === "pending").map((i) => i.roadbook.id)),
@@ -203,7 +209,7 @@ export default function App() {
                     list: serverRoadbooks.list,
                     kept: library.items,
                     fetching: library.fetching,
-                    onGet: (entry) => void library.fromServer(server, entry),
+                    onGet: (entry) => void getRoadbook(server, entry),
                     onRefresh: (entry) => void serverRoadbooks.refresh(entry),
                     asking: serverRoadbooks.asking,
                     problem: serverRoadbooks.problem,

@@ -19,6 +19,7 @@ const entry: ServerRoadbook = {
   ridingMinutes: 20,
   stamp: "bbb",
   state: "current",
+  ready: true,
 };
 const keptWith = (
   over: Partial<ImportedRoadbook> = {},
@@ -31,7 +32,7 @@ const keptWith = (
   }) as ImportedRoadbook;
 
 test("the list of a server is read, and what is not a roadbook is left out", () => {
-  const { state: _state, ...onTheWire } = entry;
+  const { state: _state, ready: _ready, ...onTheWire } = entry;
   const list = parseServerList({
     roadbooks: [
       onTheWire,
@@ -202,4 +203,39 @@ test("a roadbook the server renumbered is the copy kept under its old number, fo
   // A copy that did not come from agentRide is not claimed.
   const foreign = keptWith({ serverId: 1_000_000 }, { app: "gpx", roadbook: 1, name: "Avesnois" } as never);
   assert.equal(keptFor(renumbered, [foreign], listed), undefined);
+});
+
+test("a file the server is still making is slow, not a failure: a timeout or a gateway that gave up", async () => {
+  const timeout = (async () => {
+    throw Object.assign(new Error("The operation timed out"), { name: "TimeoutError" });
+  }) as unknown as typeof fetch;
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: timeout }), { ok: false, reason: "slow" });
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(504) }), { ok: false, reason: "slow" });
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(408) }), { ok: false, reason: "slow" });
+  // Its own failures are told apart from it: the route could not be made (502), no network at all.
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(502) }), { ok: false, reason: "failed" });
+  const down = (async () => {
+    throw new TypeError("Network request failed");
+  }) as unknown as typeof fetch;
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: down }), { ok: false, reason: "unreachable" });
+});
+
+test("a roadbook is ready unless the server says it is not, and the server's 202 on a download is slow too", async () => {
+  const list = parseServerList({
+    roadbooks: [
+      { ...entry, id: 1, ready: false, state: "outdated" },
+      { ...entry, id: 2, ready: true },
+      { ...entry, id: 3 },
+      { ...entry, id: 4, ready: "no" },
+    ],
+  });
+  assert.deepEqual(
+    list.map((e) => e.ready),
+    [false, true, true, true],
+  );
+  // 202 is "ok" for fetch, and it carries no file: the build goes on, the phone polls the list.
+  assert.deepEqual(await fetchServerRoadbook(SERVER, 7, { fetchImpl: answer(202, { state: "refreshing" }) }), {
+    ok: false,
+    reason: "slow",
+  });
 });

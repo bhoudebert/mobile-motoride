@@ -2,7 +2,7 @@ import type { ServerSetting } from "../core/liveShare.ts";
 import { parseServerList, stampOfEtag, type ServerRoadbook } from "../core/serverRoadbooks.ts";
 
 /** Why the server could not give what was asked: the rider is told in words, nothing is thrown. */
-export type ServerProblem = "unauthorized" | "unsupported" | "missing" | "busy" | "unreachable" | "failed";
+export type ServerProblem = "unauthorized" | "unsupported" | "missing" | "busy" | "unreachable" | "failed" | "slow";
 
 export type ListAnswer = { ok: true; items: ServerRoadbook[] } | { ok: false; reason: ServerProblem };
 export type FileAnswer = { ok: true; text: string; stamp: string | null } | { ok: false; reason: ServerProblem };
@@ -39,23 +39,33 @@ export async function listServerRoadbooks(
   }
 }
 
-/** One roadbook file; the first request of a version traces the route on the server, so the wait is long. */
+/**
+ * How long a download is waited for. A file that is ready comes in well under a second; one the server has not made yet is
+ * made on this request (its limits are traced along the whole route), which can take minutes: after this, the phone stops
+ * waiting and asks the server to prepare it instead (`slow`).
+ */
+export const FILE_WAIT_MS = 15_000;
+
+/** One roadbook file. `slow`: the server did not answer in time, said 202 (still making it) or its gateway gave up (504, 408). */
 export async function fetchServerRoadbook(
   server: ServerSetting,
   id: number,
-  { fetchImpl = fetch, timeoutMs = 60_000 }: ServerRoadbookOptions = {},
+  { fetchImpl = fetch, timeoutMs = FILE_WAIT_MS }: ServerRoadbookOptions = {},
 ): Promise<FileAnswer> {
   try {
     const res = await fetchImpl(`${server.url}/roadbook/${id}`, {
       headers: { Authorization: `Bearer ${server.token}` },
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!res.ok) return { ok: false, reason: problemOf(res.status) };
+    // 202: the server is making the file and says so (`Retry-After`); 504 and 408: a gateway gave up on a build that goes on.
+    if (res.status === 202) return { ok: false, reason: "slow" };
+    if (!res.ok)
+      return { ok: false, reason: res.status === 504 || res.status === 408 ? "slow" : problemOf(res.status) };
     return { ok: true, text: await res.text(), stamp: stampOfEtag(res.headers?.get?.("ETag")) };
   } catch (e) {
     return {
       ok: false,
-      reason: e instanceof TypeError || (e as Error)?.name === "TimeoutError" ? "unreachable" : "failed",
+      reason: (e as Error)?.name === "TimeoutError" ? "slow" : e instanceof TypeError ? "unreachable" : "failed",
     };
   }
 }

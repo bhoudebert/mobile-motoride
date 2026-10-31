@@ -91,7 +91,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
           ? { kind: "error", text: problem }
           : open
             ? null
-            : { kind: "info", text: t("home.server.updated", { name: rb.name }) },
+            : { kind: "info", text: t("home.server.downloaded", { name: rb.name }) },
       );
       if (open) handler.current(rb);
     } catch (e) {
@@ -105,13 +105,27 @@ export function useImport(onImported: (rb: Roadbook) => void) {
 
   const pick = useCallback(() => finish(pickFile), [finish]);
 
-  /** Fetch a roadbook from the rider's server and keep it, replacing the copy of the same origin (spec roadbook-library). */
+  /**
+   * Fetch a roadbook from the rider's server and keep it, replacing the copy of the same origin (spec roadbook-library).
+   * "slow": the server is still making the file (the first one of a roadbook is made on the first request and a long route
+   * takes minutes); nothing is kept, the rider is told it is being prepared, and the caller asks the server to prepare it.
+   */
   const fromServer = useCallback(
-    async (server: ServerSetting, listed: ServerRoadbook, open = true) => {
+    async (server: ServerSetting, listed: ServerRoadbook, open = true): Promise<"done" | "slow"> => {
       setFetching(listed.id);
       try {
+        // No file yet: nothing to fetch, and a request would wait for the build. The caller asks the server to prepare it.
+        if (!listed.ready) {
+          setNotice({ kind: "info", text: t("home.server.preparing", { name: listed.name }) });
+          return "slow";
+        }
+        setNotice({ kind: "busy" });
+        const got = await fetchServerRoadbook(server, listed.id);
+        if (!got.ok && got.reason === "slow") {
+          setNotice({ kind: "info", text: t("home.server.preparing", { name: listed.name }) });
+          return "slow";
+        }
         await finish(async () => {
-          const got = await fetchServerRoadbook(server, listed.id);
           if (!got.ok) throw new ImportError(t(`home.server.problem.${got.reason}`));
           return {
             text: got.text,
@@ -120,6 +134,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
             serverId: listed.id,
           };
         }, open);
+        return "done";
       } finally {
         setFetching(null);
       }

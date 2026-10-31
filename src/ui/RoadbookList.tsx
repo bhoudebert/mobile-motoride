@@ -124,9 +124,9 @@ export function RoadbookList({
                   <StateLine entry={row.entry} />
                 </View>
                 <ServerIcon
-                  action="download"
+                  action={row.entry.state === "refreshing" ? "refreshing" : "download"}
                   name={row.entry.name}
-                  busy={server?.fetching === row.entry.id}
+                  busy={server?.fetching === row.entry.id || server?.asking === row.entry.id}
                   disabled={server?.fetching != null}
                   onPress={() => server?.onGet(row.entry)}
                 />
@@ -335,7 +335,13 @@ function StateLine({ entry, held = false }: { entry: ServerRoadbook; held?: bool
   if (entry.state === "current") return null;
   const text =
     entry.state === "outdated"
-      ? t(held ? "home.server.state.outdated" : "home.server.state.outdatedFile")
+      ? t(
+          held
+            ? "home.server.state.outdated"
+            : entry.ready
+              ? "home.server.state.outdatedFile"
+              : "home.server.state.toPrepare",
+        )
       : entry.state === "refreshing"
         ? t("home.server.state.refreshing")
         : t("home.server.state.failed", { error: failureText(entry) });
