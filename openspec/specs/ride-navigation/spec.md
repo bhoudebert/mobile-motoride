@@ -182,3 +182,17 @@ start, it is 58 km/h. The distance remaining keeps the whole name ("122 km left,
 
 - **WHEN** the ride screen opens on a 122 km roadbook and the rider has not moved
 - **THEN** the line under "122 km" reads "2h07" and a time of arrival
+
+### Requirement: The compass
+
+While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed.
+
+#### Scenario: Riding east
+
+- **WHEN** the rider rides facing east
+- **THEN** the chip reads "E", its needle points left and it is named "Heading: east"
+
+#### Scenario: Before Start
+
+- **WHEN** the ride screen is open and the rider has not pressed Start
+- **THEN** there is no compass chip

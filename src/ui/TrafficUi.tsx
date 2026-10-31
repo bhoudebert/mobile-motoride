@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
 import { t, type MessageKey } from "../core/i18n/index.ts";
 import { type TrafficLevel, type TrafficOutlook } from "../core/traffic.ts";
-import { Icon } from "./Icon.tsx";
+import { MotorcycleIcon } from "./Icon.tsx";
 import { Sheet } from "./RideControlUi.tsx";
 import { colors, fonts, radii, themed } from "./theme.ts";
 import { useLanguage } from "./languageSetting.ts";
@@ -56,7 +56,7 @@ export function TrafficChip({
       accessibilityLabel={chip.name}
       testID="traffic-chip"
     >
-      <Icon name="car" color={chip.tint} size={26} />
+      <MotorcycleIcon color={chip.tint} size={24} />
     </Pressable>
   );
 }
