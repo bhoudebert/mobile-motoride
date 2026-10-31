@@ -42,3 +42,8 @@ While riding, the system SHALL warn once per corner of severity `hairpin` or `sh
 ### Requirement: Say it
 
 The ride screen SHALL show the warning as a large banner and SHALL speak it (for example "Hairpin left, 150 metres, 30"), without input and without the network. The app SHALL present advisory speeds as guidance, not as a safety guarantee.
+
+#### Scenario: A hairpin ahead, no network
+
+- **WHEN** the rider approaches a hairpin left 150 m ahead with an advisory speed of 30 and the phone has no network
+- **THEN** the ride screen shows a large banner and the app says "Hairpin left, 150 metres, 30" aloud, and the advisory is presented as guidance, not as a guarantee

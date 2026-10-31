@@ -14,6 +14,10 @@ With [Nix](https://nixos.org) (optional), `nix develop` (or `direnv allow`) give
 Node 24, JDK 17 and the pinned Android SDK; on NixOS it is the way to build, because
 Gradle's downloaded `aapt2` cannot run there (the shell points Gradle to the SDK's own).
 
+In the Nix shell `npm run specs` validates the specs (every requirement needs a scenario), as CI does; a pull request that
+changes `src/` or `App.tsx` also needs a change under `openspec/` or `docs/`, or the `no-spec` label for a change with no
+behaviour or usage change (see `docs/EVOLVING.md`).
+
 Running the app needs a development build on an Android phone or emulator
 (`npm run android`); Expo Go does not include MapLibre.
 

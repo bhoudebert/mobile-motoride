@@ -16,7 +16,11 @@ idea ─▶ decision ─▶ spec ─▶ code + tests ─▶ docs ─▶ PR ─�
    alternatives that lost.
 3. **Spec.** `openspec/specs/<capability>/spec.md`: SHALL requirements, each
    with a WHEN / THEN scenario. Larger proposals start in `openspec/changes/`
-   and are folded into the specs once merged, then archived with a date.
+   and are folded into the specs once merged, then archived with a date. CI holds two checks on this (workflow
+   `specs.yml`): **Specs validate** (`npm run specs` in the Nix shell runs the same `openspec validate`: every spec
+   parses and every requirement has a scenario) and **Spec or docs with code** (a pull request that changes `src/` or
+   `App.tsx` must change a file under `openspec/` or `docs/` too, or carry the `no-spec` label, for a change with no
+   behaviour or usage change such as a refactor or an internal fix; say why in the pull request).
 4. **Code and tests.** Logic in `src/core/` with tests in `test/`; screens thin with UI tests in `test/ui/`.
    Rules that protect the rider are enforced in code. `npm run quality` passes; for a release or a native
    change `npm run smoke:device` passes on a phone (`docs/TESTING.md`).

@@ -11,6 +11,11 @@ above it.
 
 The system SHALL read from the roadbook file (`docs/roadbook-format.md`) the limit of each stretch of the line, and SHALL turn each stretch, given as line point indexes, into a distance range along the line. A stretch whose indexes are outside the line, reversed or empty SHALL be ignored, and the rest of the file SHALL still be used. A roadbook from a GPX has no limits.
 
+#### Scenario: A bad stretch
+
+- **WHEN** a roadbook file has three limit stretches, one whose indexes are outside the line
+- **THEN** that stretch is ignored, the other two become distance ranges along the line, and a roadbook from a GPX has no limits
+
 ### Requirement: The limit at the rider
 
 For each fix the system SHALL give the limit of the stretch the rider is on, whether it is posted or assumed, and the next different limit ahead within 800 m with its distance. Where no stretch covers the rider, the limit SHALL be the last known one, marked assumed, so the sign does not go blank on a gap in the data. The limit SHALL be unknown, never zero or invented, only before the first known stretch, when the roadbook has no limits at all, and while on an approach to the start or back to the route (ADR 0008, ADR 0012) that precedes the first known stretch.
@@ -28,6 +33,11 @@ For each fix the system SHALL give the limit of the stretch the rider is on, whe
 ### Requirement: The limit is always on screen
 
 The ride screen SHALL show the limit at all times, while riding, in the demo and before the ride starts, in the HUD next to the rider's speed, as a round sign (white disc, red ring, black number) with a grey dashed sign and a question mark when unknown. An assumed limit SHALL be drawn the same way with a small mark that tells it is assumed. The next limit ahead SHALL be shown under the sign.
+
+#### Scenario: Before the ride starts
+
+- **WHEN** the ride screen is open and the rider has not started
+- **THEN** the limit is shown as a round sign, a grey dashed sign with a question mark when unknown, with a small mark when assumed, and the next limit ahead under it
 
 ### Requirement: Over the limit
 
