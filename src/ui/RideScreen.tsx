@@ -26,6 +26,9 @@ import {
 } from "react-native";
 import arrowImage from "../../assets/arrow.png";
 import chevronImage from "../../assets/chevron.png";
+import routeFinishImage from "../../assets/route-finish.png";
+import routeLoopImage from "../../assets/route-loop.png";
+import routeStartImage from "../../assets/route-start.png";
 import riderImage from "../../assets/rider.png";
 import pumpImage from "../../assets/pump.png";
 import { etaOf, formatClock, formatDuration, nextPace } from "../core/eta.ts";
@@ -34,6 +37,7 @@ import {
   approachFeature,
   camerasCollection,
   cornersCollection,
+  routeEndsCollection,
   lineFeature,
   riderFeature,
   stopsCollection,
@@ -363,6 +367,7 @@ export function RideScreen({
     [Math.floor(shareRidden * 1000), doneColor, rideColor],
   );
   const stops = useMemo(() => stopsCollection(rb), [rb]);
+  const routeEnds = useMemo(() => routeEndsCollection(rb), [rb]);
   const corners = useMemo(() => cornersCollection(ride), [ride]);
   // Cameras are drawn only on the stretches whose country, and the rider's, allow their place (spec danger-zones).
   const riderCountry = nav ? countryAt(ride.countrySegments, nav.progressM) : null;
@@ -873,6 +878,9 @@ export function RideScreen({
               images={{
                 arrow: { source: arrowImage, sdf: true },
                 chevron: { source: chevronImage },
+                "route-start": { source: routeStartImage },
+                "route-finish": { source: routeFinishImage },
+                "route-loop": { source: routeLoopImage },
                 rider: riderImage,
                 pump: pumpImage,
               }}
@@ -1051,6 +1059,19 @@ export function RideScreen({
                   "circle-color": ["match", ["get", "kind"], "stop", colors.paper, colors.route],
                   "circle-stroke-color": ["match", ["get", "kind"], "stop", colors.accent, colors.paper],
                   "circle-stroke-width": 3,
+                }}
+              />
+            </GeoJSONSource>
+            {/* Where the roadbook begins and ends, above its route points; a loop has the one mark for both. */}
+            <GeoJSONSource id="route-ends" data={routeEnds}>
+              <Layer
+                id="route-ends"
+                type="symbol"
+                layout={{
+                  "icon-image": ["get", "icon"],
+                  "icon-size": ["interpolate", ["linear"], ["zoom"], 8, 0.34, 13, 0.46, 17, 0.6],
+                  "icon-allow-overlap": true,
+                  "icon-ignore-placement": true,
                 }}
               />
             </GeoJSONSource>

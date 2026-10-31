@@ -92,6 +92,20 @@ The whole roadbook line SHALL carry small arrows pointing the way of the roadboo
 - **WHEN** the ride screen is open and the rider has not started
 - **THEN** the line is in one colour with its small arrows and there is no bright stretch
 
+### Requirement: Start and finish
+
+The ride screen SHALL mark the two ends of the roadbook on the map, so that the rider sees at once, on the whole roadbook opened from the list, where it begins and where it ends: a **start** mark (a green disc with a white arrow) at its first point and a **finish** mark (a dark disc with a checkered flag) at its last. When the roadbook is a loop (its two ends within 500 m) there SHALL be one mark for both, unlike the other two (the checkered flag inside a green ring), at its first point. The marks SHALL be drawn above the route points and the line, below the rider, white-edged so that they read on the light and the dark look, and SHALL stay on the map during the ride. The Key SHALL show the three of them with a plain word each ("Start", "Finish", "Start and finish").
+
+#### Scenario: A road from one place to another
+
+- **WHEN** a roadbook that is not a loop is opened
+- **THEN** the map shows the start mark at its first point and the finish mark at its last
+
+#### Scenario: A loop
+
+- **WHEN** a roadbook whose two ends are 200 m apart is opened
+- **THEN** the map shows one mark, the start and finish one, at its first point, and no separate start or finish
+
 ### Requirement: Camera and controls
 
 The column of map buttons SHALL stand on the right above the panel and SHALL never reach the instruction bar or the skip square: when the room between the bar and the panel is shorter than the column (a short phone, a taller panel), the buttons SHALL lie in two columns instead.

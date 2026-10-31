@@ -22,6 +22,28 @@ export function stopsCollection(rb: PreparedRoadbook): FeatureCollection<Point> 
   };
 }
 
+/**
+ * The two ends of a roadbook, for the map (spec ride-navigation, "Start and finish"): a start and a finish, or, when the
+ * roadbook is a loop and both are at the same place, one mark that says both. `icon` is the name of the picture.
+ */
+export function routeEndsCollection(rb: PreparedRoadbook): FeatureCollection<Point> {
+  const line = rb.roadbook.line;
+  const first = line[0];
+  const last = line[line.length - 1];
+  if (!first || !last || line.length < 2) return { type: "FeatureCollection", features: [] };
+  const at = (p: readonly [number, number], kind: string, icon: string) => ({
+    type: "Feature" as const,
+    properties: { kind, icon },
+    geometry: { type: "Point" as const, coordinates: [p[1], p[0]] },
+  });
+  return {
+    type: "FeatureCollection",
+    features: rb.loop
+      ? [at(first, "loop", "route-loop")]
+      : [at(last, "finish", "route-finish"), at(first, "start", "route-start")],
+  };
+}
+
 /** Hairpins and sharp corners, placed where each starts, for the map. */
 export function cornersCollection(rb: PreparedRoadbook): FeatureCollection<Point> {
   return {
