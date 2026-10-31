@@ -64,3 +64,8 @@ The rider SHALL be able to turn traffic off on the card; the choice is kept betw
 ### Requirement: What leaves the phone
 
 The points sent are on the road ahead, so the rider's server learns about where they ride, to a kilometre. They go to the server the rider chose and to nobody else; the privacy policy and the guide say so and advise a server one trusts. Live sharing stays end-to-end encrypted.
+
+#### Scenario: Asking for the traffic
+
+- **WHEN** the app asks the rider's server for the traffic ahead
+- **THEN** points on the road ahead go to that server and to nobody else, and live sharing stays end-to-end encrypted

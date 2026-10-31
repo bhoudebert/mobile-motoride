@@ -20,6 +20,11 @@ For each fix the system SHALL snap the rider to the roadbook line and report the
 
 The system SHALL report the next stop not yet passed, its name and its distance along the line. A stop SHALL count as passed when the progress goes beyond its position along the line.
 
+#### Scenario: Passing a stop
+
+- **WHEN** the rider's progress goes beyond the position of the first stop along the line
+- **THEN** that stop is passed and the next stop, with its name and its distance along the line, is reported
+
 ### Requirement: Off route
 
 The system SHALL flag the rider as off route when the distance to the line exceeds 50 m for three consecutive fixes, and SHALL clear the flag at the first fix within 50 m. In version 1 the app SHALL show the flag and the distance to the line; it SHALL NOT reroute.
@@ -43,6 +48,11 @@ the notch or Dynamic Island on iOS), so none is hidden behind the camera or too 
 
 The ride screen SHALL show the map with the roadbook line, the rider's position following the heading, speed, distance remaining and the next stop, and SHALL keep the screen on. It SHALL need no input while riding and SHALL show a plain-language notice when location permission is refused.
 
+#### Scenario: Location refused
+
+- **WHEN** the rider opens a ride and refuses location permission
+- **THEN** a plain-language notice says so, the map still shows the roadbook line, and the screen stays on
+
 ### Requirement: Track only with permission
 
 The map SHALL follow the rider (location puck, camera tracking) only once foreground location permission is granted, never while the permission dialog is open or after a refusal, because the native location layer fails without it. A JavaScript error on the ride screen SHALL show its message and a way back to the list instead of closing the app.
@@ -56,13 +66,28 @@ The map SHALL follow the rider (location puck, camera tracking) only once foregr
 
 The app SHALL request foreground location with high accuracy at 1 s intervals during a ride. Background location SHALL be added with the foreground service in a later change; until then the ride screen SHALL say it must stay open.
 
+#### Scenario: A GPS ride
+
+- **WHEN** the rider starts a ride on the GPS
+- **THEN** the app requests foreground location with high accuracy at 1 s intervals, and the ride screen says it must stay open until background location exists
+
 ### Requirement: Look
 
 The app SHALL use the roadbook look of agentMotoride: paper background, ink text, moss panels, rust for hairpins and signal yellow for sharp corners, with Space Grotesk and JetBrains Mono. The route SHALL be drawn in moss with a paper casing, hairpins in rust, sharp corners in signal yellow and stops in moss. Text on a rust or ink banner SHALL be paper, on a signal banner ink, so every banner stays readable in sunlight.
 
+#### Scenario: A banner in sunlight
+
+- **WHEN** a hairpin banner in rust and a sharp-corner banner in signal yellow are shown
+- **THEN** the text on the rust banner is paper, on the signal banner ink, and the route is drawn in moss with a paper casing
+
 ### Requirement: Map without tiles
 
 The roadbook SHALL be followable with no tile provider and no network: the map draws the roadbook line, the stops and the corner markers on a plain paper-coloured background whenever the basemap is Off or cannot load.
+
+#### Scenario: No basemap
+
+- **WHEN** the basemap is Off or cannot load
+- **THEN** the roadbook line, the stops and the corner markers are drawn on a plain paper-coloured background and the roadbook can still be followed
 
 ### Requirement: Optional basemap
 
@@ -112,6 +137,11 @@ The column of map buttons SHALL stand on the right above the panel and SHALL nev
 
 While riding the camera SHALL follow the rider, turned along the line. Touching the map SHALL stop the following. The ride screen SHALL offer zoom in, zoom out, a recenter button that resumes following, and an overview button that fits the whole roadbook, north up.
 
+#### Scenario: Touching the map
+
+- **WHEN** the rider is riding with the camera following and touches the map
+- **THEN** the following stops, and the recenter button resumes it, while the overview button fits the whole roadbook, north up
+
 ### Requirement: Demo ride
 
 The ride screen SHALL offer a demo that rides the roadbook at 100 km/h without GPS, from 700 m before the first hairpin or sharp corner, so instructions, warnings and the map can be seen without riding. The demo SHALL use the same navigator as a real ride and SHALL be labelled as a demo.
@@ -147,6 +177,11 @@ When the first fix is within 150 m of the roadbook line the app SHALL join the r
 ### Requirement: No connection
 
 When the approach cannot be routed within 10 seconds, the app SHALL fall back to a straight line from the rider to the start, say so ("No route to the start, straight line"), show the distance, never flag the rider off route while on that line, and hand over to the roadbook as the rider reaches it. Nothing else on the ride screen SHALL depend on the network.
+
+#### Scenario: The approach cannot be routed
+
+- **WHEN** the approach cannot be routed within 10 seconds
+- **THEN** the app says "No route to the start, straight line", shows the distance, never flags the rider off route on that line, and hands over to the roadbook at the start
 
 ### Requirement: Readable and operable
 
@@ -188,9 +223,19 @@ A development build SHALL accept the deep link `mobilemotoride://replay/<scenari
 
 The ride screen SHALL have a Key button that opens a card explaining every mark on the map, each with a sample drawn as it is on the map: the roadbook line and its arrows (the way to ride), the dashed line (the way to the next point), the route point, the hairpin, the sharp corner, the rider and the basemap button. The wording SHALL be plain and say what to do ("Hairpin: slow right down"). The map controls SHALL step aside while the Key is open.
 
+#### Scenario: Opening the Key
+
+- **WHEN** the rider presses the Key button
+- **THEN** a card explains the line and its arrows, the dashed line, the route point, the hairpin, the sharp corner, the rider and the basemap button, each with a sample drawn as on the map, and the map controls step aside
+
 ### Requirement: A quiet map
 
 Corner marks SHALL be drawn only when the map is zoomed in far enough to tell them apart (zoom 11 and over), so that the roadbook and its route points read first on the overview. Route points SHALL be drawn larger than corner marks, with a pale ring.
+
+#### Scenario: The overview
+
+- **WHEN** the whole roadbook is shown at zoom 9
+- **THEN** corner marks are not drawn, the route points are, larger and with a pale ring, and from zoom 11 the corner marks appear
 
 ### Requirement: Pictures, not words, on the map buttons
 

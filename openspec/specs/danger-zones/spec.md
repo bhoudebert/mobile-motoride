@@ -11,6 +11,11 @@ which replaces the "zones only" rule of ADR 0011).
 
 The system SHALL read the cameras of the roadbook file and place each on the line at the nearest point, ignoring any camera more than 40 m from the line (another road). Two cameras within 150 m of each other SHALL make one zone. A zone SHALL keep the bearing its cameras face, when the file gives one, the limit of its camera and the country of the line where it lies (from the `countries` of the file).
 
+#### Scenario: Two cameras close together
+
+- **WHEN** a roadbook file lists two cameras 100 m apart, one 20 m and one 60 m from the line
+- **THEN** the first is placed on the line, the second, more than 40 m away, is ignored, and a zone keeps the bearing, the limit and the country of its camera
+
 ### Requirement: A policy by country
 
 What may be said about a camera SHALL depend on the country (docs/danger-zones-by-country.md), with three policies: **exact** (its place and distance may be given: Belgium, Luxembourg, the Netherlands, Spain, Italy and the United Kingdom), **zones** (only a danger zone that does not give the place away: France) and **off** (nothing: Germany and Switzerland). A country that is not in the table, or a roadbook that does not say its countries, SHALL be **off**. The policy that applies SHALL be the stricter of the camera's country and the country the rider is in at that moment, so a rider in France is not told where a Belgian camera is, and a rider in Germany is told nothing; a warning held back by a stricter country SHALL be given once the rider is in a country that allows it, if the camera is still ahead. The policy SHALL apply to everything that tells of a camera: the warning on screen, the voice, the distance, and the markers on the map.
@@ -55,3 +60,8 @@ Where the policy is zones, the system SHALL NOT use the words camera or radar, S
 ### Requirement: Off switch and release gate
 
 The feature SHALL be a setting that can be off, and with it off nothing SHALL be warned or drawn. The switch SHALL only be able to take warnings away: it SHALL NOT allow what the country's policy forbids. Before a build is shared, the table of countries SHALL be checked again (docs/TESTING.md, release checklist), and Italy and the United Kingdom confirmed.
+
+#### Scenario: The feature is switched off
+
+- **WHEN** the rider switches danger zones off in the settings
+- **THEN** nothing is warned or drawn, and switching on never allows what the country's policy forbids

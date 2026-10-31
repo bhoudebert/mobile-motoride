@@ -40,6 +40,8 @@
           pkgs.jdk17
           pkgs.git
           pkgs.gh
+          # `npm run specs`: the same validator as the CI check "Specs validate".
+          pkgs.openspec
           android.androidsdk
         ];
 

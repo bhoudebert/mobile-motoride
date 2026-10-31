@@ -26,7 +26,9 @@ The full path every feature follows is in `docs/EVOLVING.md`. Short form:
 3. **Spec first when behaviour changes.** Update or add the requirement in
    `openspec/specs/...` in the same PR, before or with the code. A significant
    architectural choice gets a decision record in `docs/adr/`; read the
-   existing ones before changing something they cover.
+   existing ones before changing something they cover. CI checks that every spec validates (a scenario per
+   requirement, `npm run specs`) and that a change to `src/` or `App.tsx` comes with a spec or docs change, or the
+   `no-spec` label.
 4. **Tests with the code, at every layer.** Logic lives in `src/core/` (no React Native
    import) and gets unit tests in `test/`, run by Node. Screens stay thin and get UI tests in `test/ui/`
    (Jest): any change to what a rider sees or does comes with a test that fails without it, and a bug starts

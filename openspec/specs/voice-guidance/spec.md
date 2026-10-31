@@ -52,6 +52,16 @@ In Full, the system SHALL announce each turn twice: once at about 500 m, "In 500
 
 In Full, the system SHALL say, once each time it happens: "Wrong way, make a U-turn" when the rider has been going against the line for a few fixes (spec ride-navigation), "You have left the route" when the rider goes off route, "Back on the route" when the rider is on the line again after being off it, and "You have arrived" when the rider reaches the end of the roadbook. Skipping a point SHALL keep its spoken confirmation ("Skipping Cassel, heading for Bailleul") in Full only.
 
+#### Scenario: Leaving the route
+
+- **WHEN** the voice is on Full and the rider leaves the route and later comes back
+- **THEN** "You have left the route" is said once, then "Back on the route" once; and "Wrong way, make a U-turn" and "You have arrived" are said once each time they happen
+
 ### Requirement: One voice at a time
 
 At most one message SHALL be spoken for each position update. When several are due, the order SHALL be: corner warning, danger zone, wrong way and route status, junction, turn; the others SHALL be said on a following update, when still relevant, never lost for having been due together. A new message SHALL cut what is being said.
+
+#### Scenario: Two messages due
+
+- **WHEN** a corner warning and a turn are due at the same position update
+- **THEN** only the corner warning is spoken, the turn is said on a following update if still relevant, and a new message cuts what is being said

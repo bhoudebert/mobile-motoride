@@ -16,7 +16,7 @@
 ## Checklist (docs/EVOLVING.md)
 
 - [ ] ADR when the shape of the system changes
-- [ ] Spec updated first when behaviour changes
+- [ ] Spec updated first when behaviour changes (`npm run specs` in the Nix shell, or CI "Specs validate"); a change to `src/` or `App.tsx` with no spec or docs change needs the `no-spec` label and says why
 - [ ] Tests with the code, UI tests for anything a rider sees or does; `npm run quality` passes
 - [ ] `npm run smoke:device` on a phone for a release or a native change (or say why not)
 - [ ] README / ENGINEERING / roadmap updated when they changed

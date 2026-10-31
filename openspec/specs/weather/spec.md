@@ -25,6 +25,11 @@ The system SHALL call a point **dry** under 0.2 mm of rain an hour, **light rain
 the service names one, **snow** when it names snow or sleet, and **rain on a cold road** (ice risk) for any rain of 0.2 mm or more at 2 °C or less. Rain, heavy rain, a
 thunderstorm, snow and rain on a cold road are warnings; dry and light rain are not.
 
+#### Scenario: Rain on a cold road
+
+- **WHEN** the forecast gives 0.5 mm of rain an hour at 1 °C
+- **THEN** the point is "rain on a cold road", a warning, while 0.1 mm is dry and 0.5 mm at 10 °C is light rain, neither a warning
+
 ### Requirement: The weather row and the weather card
 
 The ride screen SHALL carry, before and during a ride, a short chip beside Find and Fuel (not a line of the panel, which the map needs) with a sign and a few words: the
@@ -32,6 +37,11 @@ temperature here when it is dry ("13 °C"), where the rain is when it comes ("30
 SHALL be the whole sentence: "Dry for the next 60 km", "Rain in 30 km", "Rain here, clear in 30 km", "Rain for the next 60 km", "Light rain", with the temperature here;
 "Weather unknown", "Weather not loaded", or "Weather is off" when that is so. Pressing it SHALL open the weather card: the forecast for here and each point ahead with the time of day, the sky, the temperature, the rain and the wind,
 the credit "Weather data: MET Norway", Try again when it could not be loaded, and the switch of the weather.
+
+#### Scenario: Rain ahead
+
+- **WHEN** rain is forecast 30 km ahead and it is dry here
+- **THEN** the chip reads "30.0 km" and is named "Rain in 30 km", and pressing it opens the card with the forecast for here and each point ahead, the credit "Weather data: MET Norway" and the weather switch
 
 ### Requirement: A word before bad weather
 
@@ -58,3 +68,8 @@ nothing is asked before the stored choice is known.
 
 Each forecast sends a place (a hundredth of a degree) to MET Norway, with the name of the app and no identifier, up to five places every ten minutes while a ride screen is
 open and the weather is on. The privacy policy says so.
+
+#### Scenario: A forecast
+
+- **WHEN** a ride screen is open with the weather on
+- **THEN** up to five places, each to a hundredth of a degree, go to MET Norway every ten minutes with the name of the app and no identifier

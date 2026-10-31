@@ -25,6 +25,11 @@ The system SHALL read a GPX 1.0 or 1.1 document: the name and description from `
 
 The system SHALL compute the roadbook's length as the sum of great-circle distances between consecutive line points, and SHALL tell a loop (first and last point within 500 m) from a one-way trip.
 
+#### Scenario: A loop and a one-way trip
+
+- **WHEN** a line whose first and last points are 300 m apart and another whose are 5 km apart
+- **THEN** the first is a loop and the second a one-way trip, each with its length as the sum of great-circle distances between consecutive points
+
 ### Requirement: No roadbook ships with the app
 
 The app SHALL ship no roadbook (ADR 0044). The list SHALL hold only what the rider brought in from a file or fetched from their server (spec roadbook-library). With none, the list SHALL say there is none yet and how to get one. The rider SHALL see each roadbook with name, length and loop or one-way, and SHALL open one to ride it.
