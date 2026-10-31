@@ -57,13 +57,15 @@ export function RoadbookList({
   // One list: what the server has and the phone does not, then what is kept, each with its one mark.
   const listed = server?.list?.status === "ready" ? server.list.items : [];
   const rows = [
-    ...listed.filter((e) => !keptFor(e, server?.kept ?? [])).map((entry) => ({ kind: "server" as const, entry })),
+    ...listed
+      .filter((e) => !keptFor(e, server?.kept ?? [], listed))
+      .map((entry) => ({ kind: "server" as const, entry })),
     ...roadbooks.map((rb) => ({ kind: "book" as const, rb })),
   ];
   const linked = new Map<string, { entry: ServerRoadbook; action: ServerAction }>();
   for (const entry of listed) {
-    const copy = keptFor(entry, server?.kept ?? []);
-    if (copy) linked.set(copy.roadbook.id, { entry, action: serverAction(entry, server?.kept ?? []) });
+    const copy = keptFor(entry, server?.kept ?? [], listed);
+    if (copy) linked.set(copy.roadbook.id, { entry, action: serverAction(entry, server?.kept ?? [], listed) });
   }
   useEffect(() => {
     if (!onBack) return;

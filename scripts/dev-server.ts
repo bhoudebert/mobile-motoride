@@ -68,10 +68,11 @@ async function seedRoadbooks() {
     if (!up) await new Promise((r) => setTimeout(r, 500));
   }
   if (!up) return console.log("The server did not answer: no test roadbook pushed.");
-  if (!existsSync(join(agentRide, "src/pushedRoadbooks.ts"))) {
-    return console.log("This agentRide cannot keep pushed roadbooks yet: the roadbook list stays empty.");
-  }
   if (((await listedCount(base, token)) ?? 0) > 0) return;
   const pushed = await pushFixtures(base, token);
-  console.log(`${pushed} of ${fixtureRoadbooks().length} test roadbooks pushed to the server.`);
+  console.log(
+    pushed > 0
+      ? `${pushed} of ${fixtureRoadbooks().length} test roadbooks pushed to the server.`
+      : "This agentRide did not take the test roadbooks (PUT /roadbooks): the roadbook list stays empty.",
+  );
 }

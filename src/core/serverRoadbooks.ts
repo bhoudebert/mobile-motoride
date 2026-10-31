@@ -65,16 +65,30 @@ export type ServerAction = "download" | "refresh" | "current" | "outdated" | "re
 
 /**
  * The kept copy of a server roadbook: the one fetched under the same server number, else the one with the same origin
- * (agentRide, same number AND same name, as `placeImport` does). A roadbook pushed from a library lists under a number
- * that is not its origin's, so the kept copy remembers the number it was fetched under.
+ * (agentRide, same number AND same name, as `placeImport` does) among the copies that were not fetched from a number, else,
+ * when the whole `listed` answer is given, a copy of the same name whose server number is no longer listed: the server
+ * renumbered the roadbook (a library moved, a roadbook pushed and then taken into the library), so the copy is that
+ * roadbook under its new number and the next download replaces it in place (spec roadbook-library).
  */
-export function keptFor(entry: ServerRoadbook, kept: readonly ImportedRoadbook[]): ImportedRoadbook | undefined {
-  return (
-    kept.find((k) => k.serverId === entry.id) ??
-    kept.find((k) => {
-      const o = k.roadbook.origin;
-      return k.serverId === undefined && o?.app === "agentRide" && o.roadbook === entry.id && o.name === entry.name;
-    })
+export function keptFor(
+  entry: ServerRoadbook,
+  kept: readonly ImportedRoadbook[],
+  listed?: readonly ServerRoadbook[],
+): ImportedRoadbook | undefined {
+  const byNumber = kept.find((k) => k.serverId === entry.id);
+  if (byNumber) return byNumber;
+  const byOrigin = kept.find((k) => {
+    const o = k.roadbook.origin;
+    return k.serverId === undefined && o?.app === "agentRide" && o.roadbook === entry.id && o.name === entry.name;
+  });
+  if (byOrigin || !listed) return byOrigin;
+  const ids = new Set(listed.map((e) => e.id));
+  return kept.find(
+    (k) =>
+      k.serverId !== undefined &&
+      !ids.has(k.serverId) &&
+      k.roadbook.origin?.app === "agentRide" &&
+      k.roadbook.origin.name === entry.name,
   );
 }
 
@@ -85,8 +99,12 @@ export function keptFor(entry: ServerRoadbook, kept: readonly ImportedRoadbook[]
  * ask for a new file, or the failure with a tap to try again. After a download the held stamp is the listed one, so the
  * update is not offered again on the next opening.
  */
-export function serverAction(entry: ServerRoadbook, kept: readonly ImportedRoadbook[]): ServerAction {
-  const same = keptFor(entry, kept);
+export function serverAction(
+  entry: ServerRoadbook,
+  kept: readonly ImportedRoadbook[],
+  listed?: readonly ServerRoadbook[],
+): ServerAction {
+  const same = keptFor(entry, kept, listed);
   if (!same) return "download";
   if (entry.state === "refreshing") return "refreshing";
   if (same.serverStamp !== entry.stamp) return "refresh";

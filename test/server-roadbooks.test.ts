@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ImportedRoadbook } from "../src/core/library.ts";
-import { parseServerList, serverAction, stampOfEtag, type ServerRoadbook } from "../src/core/serverRoadbooks.ts";
+import {
+  keptFor,
+  parseServerList,
+  serverAction,
+  stampOfEtag,
+  type ServerRoadbook,
+} from "../src/core/serverRoadbooks.ts";
 import type { Roadbook } from "../src/core/types.ts";
 import { fetchServerRoadbook, listServerRoadbooks, refreshServerRoadbook } from "../src/services/serverRoadbooks.ts";
 
@@ -173,4 +179,27 @@ test("a refresh is asked with POST and the token, and the answers are told apart
     throw new TypeError("Network request failed");
   }) as unknown as typeof fetch;
   assert.deepEqual(await refreshServerRoadbook(SERVER, 7, { fetchImpl: down }), { ok: false, reason: "unreachable" });
+});
+
+test("a roadbook the server renumbered is the copy kept under its old number, found by name, and offered as a refresh", () => {
+  // Fetched under 1000000; the server now lists the same roadbook under 3 and no longer lists 1000000.
+  const copy = keptWith(
+    { serverId: 1_000_000, serverStamp: "old" },
+    { app: "agentRide", roadbook: 9, name: "Avesnois" },
+  );
+  const renumbered: ServerRoadbook = { ...entry, id: 3, name: "Avesnois", stamp: "new" };
+  const listed = [renumbered, { ...entry, id: 1, name: "Other" }];
+  assert.equal(keptFor(renumbered, [copy], listed), copy);
+  assert.equal(serverAction(renumbered, [copy], listed), "refresh");
+  // Without the whole answer there is no way to know the old number is gone: nothing is claimed.
+  assert.equal(keptFor(renumbered, [copy]), undefined);
+  // A copy whose number is still listed belongs to that entry, not to a namesake.
+  const still = [...listed, { ...entry, id: 1_000_000, name: "Avesnois", stamp: "old" }];
+  assert.equal(keptFor(renumbered, [copy], still), undefined);
+  assert.equal(serverAction(still[2]!, [copy], still), "current");
+  // A copy of another name is not claimed.
+  assert.equal(keptFor({ ...renumbered, name: "Another" }, [copy], listed), undefined);
+  // A copy that did not come from agentRide is not claimed.
+  const foreign = keptWith({ serverId: 1_000_000 }, { app: "gpx", roadbook: 1, name: "Avesnois" } as never);
+  assert.equal(keptFor(renumbered, [foreign], listed), undefined);
 });
