@@ -1196,13 +1196,16 @@ export function RideScreen({
                 <CompassChip headingDeg={nav.bearingDeg} />
               </View>
             ) : null}
-            <SkipSquare
-              skip={skip}
-              top={belowBar}
-              compact={landscape}
-              left={landscape ? 8 : 12}
-              onPress={() => setConfirming(true)}
-            />
+            {/* A card on screen has the room to itself: the square steps aside, like the map buttons. */}
+            {modalOpen ? null : (
+              <SkipSquare
+                skip={skip}
+                top={belowBar}
+                compact={landscape}
+                left={landscape ? 8 : 12}
+                onPress={() => setConfirming(true)}
+              />
+            )}
 
             {basemap !== "off" ? (
               <Text style={[styles.attribution, { bottom: lower + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
