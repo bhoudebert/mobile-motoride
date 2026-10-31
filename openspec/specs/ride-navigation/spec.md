@@ -199,12 +199,17 @@ While riding, the ride screen SHALL show a round compass chip in the row of chip
 
 ### Requirement: Landscape on the ride screen
 
-The phone SHALL be free to turn on the ride screen, and only there: every other screen SHALL stay upright, and the app SHALL lock the phone upright again as soon as the ride screen closes (ADR 0045). Held sideways, the ride screen SHALL put the panel (speed, limit, distance, the lines, the buttons) in a column at the left, 37 % of the width and between 290 and 380 dp, the full height, with the readouts scrolling above the buttons if they do not all fit and the buttons (Back, Pause, End) always in reach, never folded away; the map, the instruction bar, the warnings, the skip square, the gauges and the map buttons SHALL fill what the column leaves, and the map buttons SHALL stand at the bottom of the map, in two rows of four, under the skip square and the warnings, not on a panel's edge. On an iPhone the sides SHALL leave room for the cut-out. Cards (sheets) SHALL keep covering the screen and scroll. A phone that cannot turn, or an older build without the module, SHALL stay upright and work as before.
+The phone SHALL be free to turn on the ride screen, and only there: every other screen SHALL stay upright, and the app SHALL lock the phone upright again as soon as the ride screen closes (ADR 0045). A sideways screen is short, so the map SHALL be kept clear. Held sideways, the ride screen SHALL put everything the rider reads in a column at the left, a third of the width and between 260 and 340 dp, the full height: at its head the instruction and the warning of the next corner as **one card** (the instruction with its glyph, "Right in 150 m, then left"; when a corner warning is on, the card turns yellow, or rust for a hairpin, and reads the corner first, "SHARP RIGHT", "110 m · ride at 30 km/h", then the instruction), under it the speed, the limit and the distance left, and at its foot Back, Pause and End, always in reach and never folded away, the readouts scrolling above them if they do not all fit. The corner warning SHALL NOT also be drawn on the map. The other notices (a camera or zone ahead, paused, locating, a route being found, the map or the location off) SHALL stay on the map as one short line at its top; the skip square SHALL stay at the top right of the map, smaller, never under a notice; the gauges SHALL be shared between the left and the right side of the map, never one tall stack; the chips and the map buttons SHALL stand at the bottom of the map, the buttons in two rows of four, nothing covering another. On an iPhone the sides SHALL leave room for the cut-out. Cards (sheets) SHALL keep covering the screen and scroll. A phone that cannot turn, or an older build without the module, SHALL stay upright and work as before.
 
 #### Scenario: Turning the phone on the ride
 
 - **WHEN** the ride screen is open and the phone is turned sideways
-- **THEN** the panel is a column on the left, the map fills the rest, and Start (or Back and End) can be pressed
+- **THEN** the panel is a column on the left, the map fills the rest with only its buttons, chips, gauges and the skip square on it, and Start (or Back and End) can be pressed
+
+#### Scenario: A corner ahead, sideways
+
+- **WHEN** the phone is sideways and a sharp right is 110 m ahead
+- **THEN** the card at the head of the column is yellow and reads "SHARP RIGHT" and the distance and speed, with the instruction under it, and no yellow notice is drawn on the map
 
 #### Scenario: Leaving the ride
 

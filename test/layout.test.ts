@@ -8,9 +8,9 @@ test("a window wider than it is tall is landscape", () => {
   assert.equal(isLandscape(500, 500), false);
 });
 
-test("the panel column is 37 % of the width, between 290 and 380", () => {
-  assert.equal(hudWidth(667), 290);
-  assert.equal(hudWidth(844), 312);
-  assert.equal(hudWidth(932), 345);
-  assert.equal(hudWidth(1280), 380);
+test("the panel column is a third of the width, between 260 and 340", () => {
+  assert.equal(hudWidth(667), 260);
+  assert.equal(hudWidth(844), 287);
+  assert.equal(hudWidth(932), 317);
+  assert.equal(hudWidth(1280), 340);
 });

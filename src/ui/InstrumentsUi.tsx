@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Children, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import {
   altitudeText,
@@ -26,6 +26,7 @@ function Chip({
   name,
   onPress,
   testID,
+  side = false,
 }: {
   label: string;
   value: string;
@@ -34,10 +35,14 @@ function Chip({
   name: string;
   onPress?: () => void;
   testID: string;
+  /** Sideways the tiles are narrower and lie in two columns (ADR 0045). */
+  side?: boolean;
 }) {
   const body = (
     <>
-      <Text style={styles.chipLabel}>{label}</Text>
+      <Text style={styles.chipLabel} numberOfLines={1}>
+        {label}
+      </Text>
       <Text style={styles.chipValue}>{value}</Text>
       {sub ? <Text style={styles.chipSub}>{sub}</Text> : null}
     </>
@@ -45,7 +50,7 @@ function Chip({
   return onPress ? (
     <Pressable
       testID={testID}
-      style={styles.chip}
+      style={[styles.chip, side && styles.chipSide]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={name}
@@ -53,7 +58,7 @@ function Chip({
       {body}
     </Pressable>
   ) : (
-    <View testID={testID} style={styles.chip} accessible accessibilityLabel={name}>
+    <View testID={testID} style={[styles.chip, side && styles.chipSide]} accessible accessibilityLabel={name}>
       {body}
     </View>
   );
@@ -66,111 +71,144 @@ export function InstrumentsOverlay({
   values,
   calibrated,
   onCalibrate,
+  landscape = false,
 }: {
   top: number;
   settings: InstrumentSettings;
   values: InstrumentValues;
   calibrated: boolean;
   onCalibrate: () => void;
+  landscape?: boolean;
 }) {
   useLanguage();
   if (!settings.on || !WIDGETS.some((w) => settings.widgets[w])) return null;
   const { heading, elevation, motion } = values;
   const w = settings.widgets;
+  // The tiles in order; a widget that is off leaves none.
+  const tiles = Children.toArray([
+    w.compass ? (
+      <Chip
+        side={landscape}
+        testID="gauge-compass"
+        label={t("gauges.heading")}
+        value={compassText(heading)}
+        name={
+          heading === null
+            ? t("gauges.heading.unknown")
+            : t("gauges.heading.name", { point: pointOf(heading), degrees: Math.round(heading) })
+        }
+      />
+    ) : null,
+    w.altitude ? (
+      <Chip
+        side={landscape}
+        testID="gauge-altitude"
+        label={t("gauges.altitude")}
+        value={altitudeText(elevation)}
+        name={
+          elevation.altitudeM === null
+            ? t("gauges.altitude.unknown")
+            : t("gauges.altitude.name", {
+                altitude: Math.round(elevation.altitudeM),
+                climb: Math.round(elevation.climbM),
+              })
+        }
+      />
+    ) : null,
+    w.slope ? (
+      <Chip
+        side={landscape}
+        testID="gauge-slope"
+        label={t("gauges.slope")}
+        value={slopeText(elevation.slopePct)}
+        name={
+          elevation.slopePct === null
+            ? t("gauges.slope.unknown")
+            : t("gauges.slope.name", { slope: slopeText(elevation.slopePct) })
+        }
+      />
+    ) : null,
+    w.lean ? (
+      calibrated ? (
+        <Chip
+          side={landscape}
+          testID="gauge-lean"
+          label={t("gauges.lean")}
+          value={motion ? `${leanText(motion.leanDeg)} · ${gText(motion.lateralG)}` : "–"}
+          sub={
+            motion
+              ? t("gauges.lean.peak", { left: leanText(motion.peakLeftDeg), right: leanText(-motion.peakRightDeg) })
+              : undefined
+          }
+          name={
+            motion
+              ? t(motion.leanDeg >= 0 ? "gauges.lean.left" : "gauges.lean.right", {
+                  degrees: Math.round(Math.abs(motion.leanDeg)),
+                })
+              : t("gauges.lean.unknown")
+          }
+        />
+      ) : (
+        <Chip
+          side={landscape}
+          testID="gauge-lean"
+          label={t("gauges.lean")}
+          value={t("gauges.calibrate.value")}
+          name={t("gauges.lean.needsCalibration")}
+          onPress={onCalibrate}
+        />
+      )
+    ) : null,
+    w.braking ? (
+      calibrated ? (
+        <Chip
+          side={landscape}
+          testID="gauge-braking"
+          label={motion && motion.brakingG < -0.05 ? t("gauges.acceleration") : t("gauges.braking")}
+          value={motion ? gText(motion.brakingG) : "–"}
+          name={
+            motion
+              ? t("gauges.braking.name", {
+                  g: formatNumber(motion.brakingG, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                })
+              : t("gauges.braking.unknown")
+          }
+        />
+      ) : (
+        <Chip
+          side={landscape}
+          testID="gauge-braking"
+          label={t("gauges.braking")}
+          value={t("gauges.calibrate.value")}
+          name={t("gauges.braking.needsCalibration")}
+          onPress={onCalibrate}
+        />
+      )
+    ) : null,
+  ]);
+  // Sideways the tiles share the map's two sides, so neither side is a tall stack reaching the chips (ADR 0045).
+  if (landscape) {
+    const half = Math.ceil(tiles.length / 2);
+    return (
+      <>
+        <View style={[styles.column, { top }]} pointerEvents="box-none" testID="instruments">
+          {tiles.slice(0, half)}
+        </View>
+        {tiles.length > half ? (
+          <View
+            style={[styles.column, styles.columnRight, { top }]}
+            pointerEvents="box-none"
+            testID="instruments-right"
+          >
+            {tiles.slice(half)}
+          </View>
+        ) : null}
+      </>
+    );
+  }
   return (
     <View style={[styles.column, { top }]} pointerEvents="box-none" testID="instruments">
-      {w.compass ? (
-        <Chip
-          testID="gauge-compass"
-          label={t("gauges.heading")}
-          value={compassText(heading)}
-          name={
-            heading === null
-              ? t("gauges.heading.unknown")
-              : t("gauges.heading.name", { point: pointOf(heading), degrees: Math.round(heading) })
-          }
-        />
-      ) : null}
-      {w.altitude ? (
-        <Chip
-          testID="gauge-altitude"
-          label={t("gauges.altitude")}
-          value={altitudeText(elevation)}
-          name={
-            elevation.altitudeM === null
-              ? t("gauges.altitude.unknown")
-              : t("gauges.altitude.name", {
-                  altitude: Math.round(elevation.altitudeM),
-                  climb: Math.round(elevation.climbM),
-                })
-          }
-        />
-      ) : null}
-      {w.slope ? (
-        <Chip
-          testID="gauge-slope"
-          label={t("gauges.slope")}
-          value={slopeText(elevation.slopePct)}
-          name={
-            elevation.slopePct === null
-              ? t("gauges.slope.unknown")
-              : t("gauges.slope.name", { slope: slopeText(elevation.slopePct) })
-          }
-        />
-      ) : null}
-      {w.lean ? (
-        calibrated ? (
-          <Chip
-            testID="gauge-lean"
-            label={t("gauges.lean")}
-            value={motion ? `${leanText(motion.leanDeg)} · ${gText(motion.lateralG)}` : "–"}
-            sub={
-              motion
-                ? t("gauges.lean.peak", { left: leanText(motion.peakLeftDeg), right: leanText(-motion.peakRightDeg) })
-                : undefined
-            }
-            name={
-              motion
-                ? t(motion.leanDeg >= 0 ? "gauges.lean.left" : "gauges.lean.right", {
-                    degrees: Math.round(Math.abs(motion.leanDeg)),
-                  })
-                : t("gauges.lean.unknown")
-            }
-          />
-        ) : (
-          <Chip
-            testID="gauge-lean"
-            label={t("gauges.lean")}
-            value={t("gauges.calibrate.value")}
-            name={t("gauges.lean.needsCalibration")}
-            onPress={onCalibrate}
-          />
-        )
-      ) : null}
-      {w.braking ? (
-        calibrated ? (
-          <Chip
-            testID="gauge-braking"
-            label={motion && motion.brakingG < -0.05 ? t("gauges.acceleration") : t("gauges.braking")}
-            value={motion ? gText(motion.brakingG) : "–"}
-            name={
-              motion
-                ? t("gauges.braking.name", {
-                    g: formatNumber(motion.brakingG, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                  })
-                : t("gauges.braking.unknown")
-            }
-          />
-        ) : (
-          <Chip
-            testID="gauge-braking"
-            label={t("gauges.braking")}
-            value={t("gauges.calibrate.value")}
-            name={t("gauges.braking.needsCalibration")}
-            onPress={onCalibrate}
-          />
-        )
-      ) : null}
+      {tiles}
     </View>
   );
 }
@@ -320,6 +358,8 @@ export function InstrumentsCard({
 const styles = themed(() =>
   StyleSheet.create({
     column: { position: "absolute", left: 8, gap: 6, alignItems: "flex-start" },
+    columnRight: { left: undefined, right: 8, alignItems: "flex-end" },
+    chipSide: { width: 112, minWidth: 0, paddingVertical: 3 },
     chip: {
       backgroundColor: "rgba(36, 56, 45, 0.88)",
       borderRadius: 4,

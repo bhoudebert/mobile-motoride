@@ -1,13 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import * as Orientation from "expo-screen-orientation";
 import { Dimensions, StyleSheet } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
 import { resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
 import { resetMapMock } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
-import { first } from "./helpers.ts";
+import { at, first } from "./helpers.ts";
 
 // ADR 0045, spec ride-navigation "Landscape": the phone turns on the ride screen only.
 const lock = Orientation.lockAsync as jest.Mock;
@@ -56,7 +57,7 @@ test("upright, the panel is the bottom sheet and the map has the whole screen", 
 test("sideways, the panel is a column on the left and the map takes the rest, buttons still reachable", async () => {
   size(844, 390);
   await open();
-  expect(style("hud").width).toBeGreaterThanOrEqual(312);
+  expect(style("hud").width).toBeGreaterThanOrEqual(287);
   expect(style("hud").top).toBe(0);
   expect(style("hud").right).toBeUndefined();
   expect(style("ride-stage").left).toBe(style("hud").width);
@@ -64,4 +65,43 @@ test("sideways, the panel is a column on the left and the map takes the rest, bu
   expect(screen.getByLabelText("Zoom in")).toBeTruthy();
   // The map buttons stand at the bottom of the map, not on a panel's top edge.
   expect(style("map-buttons").bottom).toBe(12);
+});
+
+test("sideways, the warning of a corner and the instruction are one card at the head of the column, none on the map", async () => {
+  size(844, 390);
+  const rb = first();
+  const corner = rb.corners.find((c) => c.severity !== "bend")!;
+  const [lat, lon] = at(rb, corner.startM - 400);
+  location.state.position = { latitude: lat, longitude: lon };
+  await render(<RideScreen rb={rb} onBack={() => {}} />);
+  await fireEvent.press(screen.getByText("Start"));
+  await flush();
+  const push = async (m: number) => {
+    const [la, lo] = at(rb, m);
+    await act(async () => location.pushFix(la, lo, 17, Date.now()));
+  };
+  await push(corner.startM - 400);
+  expect(screen.queryByTestId("corner-card", { hidden: true })).toBeNull();
+  await push(corner.startM - 120);
+  const card = screen.getByTestId("corner-card", { hidden: true });
+  expect(card.props.accessibilityLabel).toMatch(/^(HAIRPIN|SHARP) (LEFT|RIGHT)\. /);
+  // One element says it: the corner and the instruction, and no second yellow notice lies on the map.
+  expect(screen.getAllByText(/^(HAIRPIN|SHARP) (LEFT|RIGHT)$/)).toHaveLength(1);
+});
+
+test("sideways, the sides leave the room the system reports for the camera cut-out", async () => {
+  size(844, 390);
+  await render(
+    <SafeAreaInsetsContext.Provider value={{ top: 0, bottom: 20, left: 40, right: 12 }}>
+      <RideScreen rb={first()} onBack={() => {}} />
+    </SafeAreaInsetsContext.Provider>,
+  );
+  await flush(30);
+  const hud = style("hud");
+  expect(hud.paddingLeft).toBe(16 + 40);
+  expect(hud.width).toBe(287 + 40);
+  expect(style("ride-stage").left).toBe(287 + 40);
+  expect(style("ride-stage").right).toBe(12);
+  // The map buttons stand above the gesture bar.
+  expect(style("map-buttons").bottom).toBe(20 + 12);
 });

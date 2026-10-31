@@ -4,6 +4,11 @@ jest.mock("expo-screen-orientation", () => ({
   OrientationLock: { PORTRAIT_UP: 3, DEFAULT: 1 },
   lockAsync: jest.fn(() => Promise.resolve()),
 }));
+// The real provider shows its children only once the native side has measured the screen.
+jest.mock("react-native-safe-area-context", () => ({
+  ...jest.requireActual("react-native-safe-area-context"),
+  SafeAreaProvider: ({ children }: { children: unknown }) => children,
+}));
 jest.mock("expo-speech", () => ({ speak: jest.fn(), stop: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),

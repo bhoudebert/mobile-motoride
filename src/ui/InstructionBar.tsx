@@ -25,15 +25,58 @@ export const INSTRUCTION_BAR_TOP = TOP_INSET + 8;
 export const INSTRUCTION_BAR_HEIGHT = 92;
 
 /** "Straight 1.2 km", "Left in 150 m, then right": what comes next, at the top (spec turn-instructions). */
-export function InstructionBar({ nav, top = INSTRUCTION_BAR_TOP }: { nav: NavState; top?: number }) {
+/** `inline`: sideways it is the head of the panel column, in the flow and smaller, not a bar over the map (ADR 0045). */
+export function InstructionBar({
+  nav,
+  inline = false,
+  corner,
+}: {
+  nav: NavState;
+  inline?: boolean;
+  /** Sideways, the warning of the next corner and the instruction are one card: yellow or rust, the corner first. */
+  corner?: { title: string; sub: string; tone: "rust" | "signal" };
+}) {
   const off = nav.offRoute;
   const { instruction } = nav;
+  if (inline && corner) {
+    const ink = corner.tone === "rust" ? colors.onRust : colors.onSignal;
+    return (
+      <View
+        style={[styles.bar, styles.inline, styles.inlineCorner, { backgroundColor: colors[corner.tone] }]}
+        accessibilityLiveRegion="polite"
+        accessible
+        accessibilityLabel={`${corner.title}. ${corner.sub}. ${instruction.headline ?? instruction.text}`}
+        testID="corner-card"
+      >
+        <Text style={[styles.glyph, styles.glyphInline, { color: ink }]} importantForAccessibility="no">
+          {instruction.kind === "rejoin" && instruction.relativeDeg != null
+            ? arrowFor(instruction.relativeDeg)
+            : GLYPH[instruction.kind]}
+        </Text>
+        <View style={styles.texts}>
+          <Text style={[styles.main, styles.mainInline, { color: ink }]} numberOfLines={1} adjustsFontSizeToFit>
+            {corner.title}
+          </Text>
+          <Text style={[styles.sub, styles.subInline, { color: ink }]} numberOfLines={1} adjustsFontSizeToFit>
+            {corner.sub}
+          </Text>
+          <Text style={[styles.sub, styles.subInline, { color: ink }]} numberOfLines={1} adjustsFontSizeToFit>
+            {instruction.headline ?? instruction.text}
+          </Text>
+        </View>
+      </View>
+    );
+  }
   return (
     <View
-      style={[styles.bar, { top, backgroundColor: off ? colors.ink : colors.moss }]}
+      style={[styles.bar, inline && styles.inline, { backgroundColor: off ? colors.ink : colors.moss }]}
       accessibilityLiveRegion="polite"
     >
-      <Text style={styles.glyph} accessibilityElementsHidden importantForAccessibility="no">
+      <Text
+        style={[styles.glyph, inline && styles.glyphInline]}
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+      >
         {instruction.kind === "rejoin" && instruction.relativeDeg != null
           ? arrowFor(instruction.relativeDeg)
           : off
@@ -41,17 +84,19 @@ export function InstructionBar({ nav, top = INSTRUCTION_BAR_TOP }: { nav: NavSta
             : GLYPH[instruction.kind]}
       </Text>
       <View style={styles.texts}>
-        <Text style={styles.main} numberOfLines={1}>
+        <Text style={[styles.main, inline && styles.mainInline]} numberOfLines={1} adjustsFontSizeToFit={inline}>
           {instruction.headline ?? instruction.text}
         </Text>
         {off ? (
-          <Text style={styles.sub}>{t("ride.bar.offRoute", { distance: formatDistance(nav.distanceToLineM) })}</Text>
+          <Text style={[styles.sub, inline && styles.subInline]}>
+            {t("ride.bar.offRoute", { distance: formatDistance(nav.distanceToLineM) })}
+          </Text>
         ) : instruction.kind === "roundabout" || instruction.kind === "lanes" ? (
-          <Text style={styles.sub}>
+          <Text style={[styles.sub, inline && styles.subInline]}>
             {`${instruction.detail ?? ""}${instruction.detail ? " · " : ""}${instruction.distanceM > 0 ? t("ride.bar.in", { distance: formatDistance(instruction.distanceM) }) : t("ride.bar.now")}`}
           </Text>
         ) : instruction.then ? (
-          <Text style={styles.sub}>{t("ride.bar.then", { then: instruction.then })}</Text>
+          <Text style={[styles.sub, inline && styles.subInline]}>{t("ride.bar.then", { then: instruction.then })}</Text>
         ) : null}
       </View>
     </View>
@@ -73,6 +118,20 @@ const styles = themed(() =>
       gap: 16,
     },
     glyph: { color: colors.signal, fontFamily: fonts.bold, fontSize: 48, width: 56, textAlign: "center" },
+    // In the panel column: in the flow, 72 dp tall, a smaller glyph and words.
+    inline: {
+      position: "relative",
+      top: undefined,
+      left: undefined,
+      right: undefined,
+      height: 72,
+      paddingHorizontal: 10,
+      gap: 8,
+    },
+    inlineCorner: { height: 76 },
+    glyphInline: { fontSize: 36, width: 40 },
+    mainInline: { fontSize: 24 },
+    subInline: { fontSize: 14 },
     texts: { flex: 1 },
     main: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 30 },
     sub: { color: colors.mossMuted, fontFamily: fonts.sans, fontSize: 18 },

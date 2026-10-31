@@ -9,6 +9,7 @@ import spaceGroteskBold from "./assets/fonts/SpaceGrotesk-Bold.ttf";
 import spaceGroteskMedium from "./assets/fonts/SpaceGrotesk-Medium.ttf";
 import jetBrainsMono from "./assets/fonts/JetBrainsMono-Regular.ttf";
 import { DestinationScreen } from "./src/ui/DestinationScreen.tsx";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "./src/ui/ErrorBoundary.tsx";
 import { HomeScreen, roadbookDetail } from "./src/ui/HomeScreen.tsx";
 import { RideScreen } from "./src/ui/RideScreen.tsx";
@@ -134,7 +135,7 @@ export default function App() {
   const leave = (from: "home" | "roadbooks") => setScreen(from === "home" ? { name: "home" } : { name: "roadbooks" });
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <ImportNoticeBar
         notice={library.notice ?? info}
@@ -218,6 +219,6 @@ export default function App() {
           onTheme={look.change}
         />
       )}
-    </>
+    </SafeAreaProvider>
   );
 }

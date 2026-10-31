@@ -14,13 +14,25 @@ export const UNDO_TIMEOUT_MS = 7_500;
  */
 export const SKIP_SQUARE = 92;
 export const SKIP_GAP = 8;
+/** Sideways the square is smaller: a 360 dp tall screen cannot spare 92 (ADR 0045). */
+export const SKIP_SQUARE_SIDE = 64;
 
 /**
  * At the top, in the row of the banners, at the right: the point that can be skipped. Always available, at any speed (spec
  * live-corrections): the rider who finds the road blocked is riding. The banners leave room for it. For 7.5 seconds after a skip
  * it is the UNDO: yellow at first, it fades to the green of SKIP STEP, which it then is again.
  */
-export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: number; onPress: () => void }) {
+export function SkipSquare({
+  skip,
+  top,
+  onPress,
+  compact = false,
+}: {
+  skip: SkipState;
+  top: number;
+  onPress: () => void;
+  compact?: boolean;
+}) {
   const last = skip.last;
   const fade = useRef(new Animated.Value(0)).current;
   const forget = useRef(skip.forgetLast);
@@ -48,7 +60,7 @@ export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: numbe
       accessibilityRole="button"
       accessibilityLabel={undoing ? t("ride.skip.undoA11y") : t("ride.skip.button", { name })}
       accessibilityState={{ disabled: !undoing && !skip.canSkip }}
-      style={[styles.skipPress, { top }]}
+      style={[styles.skipPress, { top }, compact && styles.skipCompact]}
     >
       <Animated.View style={[styles.skip, undoing ? { backgroundColor: background } : null]}>
         <Animated.Text
@@ -116,6 +128,7 @@ const styles = themed(() =>
       justifyContent: "center",
       padding: 6,
     },
+    skipCompact: { width: SKIP_SQUARE_SIDE, height: SKIP_SQUARE_SIDE },
     skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 26, textAlign: "center" },
     card: {
       position: "absolute",

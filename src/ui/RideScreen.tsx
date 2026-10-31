@@ -9,7 +9,8 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { useKeepAwake } from "expo-keep-awake";
 import { speak, stopSpeaking } from "./speech.ts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import {
   Animated,
   BackHandler,
@@ -17,7 +18,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -61,7 +61,7 @@ import { INSTRUCTION_BAR_HEIGHT, INSTRUCTION_BAR_TOP, InstructionBar } from "./I
 import { JunctionCard } from "./JunctionCard.tsx";
 import { ATTRIBUTION, BASEMAP_LABEL, BASEMAP_ORDER, BASEMAP_STYLES, type Basemap } from "./mapStyle.ts";
 import { EndConfirm, JoinCard, LegendCard, StartFromList } from "./RideControlUi.tsx";
-import { SKIP_GAP, SKIP_SQUARE, SkipConfirm, SkipSquare } from "./SkipUi.tsx";
+import { SKIP_GAP, SKIP_SQUARE, SKIP_SQUARE_SIDE, SkipConfirm, SkipSquare } from "./SkipUi.tsx";
 import { SpeedLimitSign } from "./SpeedLimitSign.tsx";
 import { colors, fonts, themed } from "./theme.ts";
 import { useRide, type RideMode } from "./useRide.ts";
@@ -96,8 +96,8 @@ type Tone = "rust" | "signal" | "ink";
 
 /** Landscape (ADR 0045): the bar sits near the top, where an iPhone has no notch and Android keeps its status bar. */
 const LANDSCAPE_BAR_TOP = Platform.OS === "ios" ? 8 : (StatusBar.currentHeight ?? 0) + 4;
-/** The cut-out of an iPhone held sideways is on a side; both are left clear, the notch side is not known. */
-const LANDSCAPE_SIDE = Platform.OS === "ios" ? 47 : 0;
+/** What an iPhone held sideways needs on each side when the system cannot say (no provider, as under test). */
+const LANDSCAPE_SIDE_FALLBACK = Platform.OS === "ios" ? 47 : 0;
 /** The panel's column also needs room for the map buttons: the buttons keep a column to themselves. */
 /** The gauges start under the room of a warning banner, so a warning is never covered. */
 const FOLLOW_ZOOM = 16;
@@ -123,18 +123,33 @@ function Banner({
   sub,
   right,
   top,
+  compact = false,
 }: {
   tone: Tone;
   title: string;
   sub: string;
   right: number;
   top: number;
+  compact?: boolean;
 }) {
   const text = tone === "signal" ? colors.onSignal : tone === "rust" ? colors.onRust : colors.paper;
   return (
-    <View style={[styles.banner, { backgroundColor: colors[tone], right, top }]} accessibilityLiveRegion="polite">
-      <Text style={[styles.bannerTitle, { color: text }]}>{title}</Text>
-      <Text style={[styles.bannerSub, { color: text }]}>{sub}</Text>
+    <View
+      style={[styles.banner, compact && styles.bannerCompact, { backgroundColor: colors[tone], right, top }]}
+      accessibilityLiveRegion="polite"
+    >
+      <Text
+        style={[styles.bannerTitle, compact && styles.bannerTitleCompact, { color: text }]}
+        numberOfLines={compact ? 1 : undefined}
+      >
+        {title}
+      </Text>
+      <Text
+        style={[styles.bannerSub, compact && styles.bannerSubCompact, { color: text }]}
+        numberOfLines={compact ? 1 : undefined}
+      >
+        {sub}
+      </Text>
     </View>
   );
 }
@@ -179,10 +194,16 @@ export function RideScreen({
   // The phone may turn on this screen only (ADR 0045); in landscape the panel is a column and the map takes the rest.
   const { width, height } = useWindowDimensions();
   const landscape = isLandscape(width, height);
-  const hudW = landscape ? hudWidth(width) + LANDSCAPE_SIDE : 0;
-  const barTop = landscape ? LANDSCAPE_BAR_TOP : INSTRUCTION_BAR_TOP;
-  const belowBar = barTop + INSTRUCTION_BAR_HEIGHT + 8;
-  const gaugesTop = belowBar + 120;
+  // The camera cut-out, the notch and the system bars as the system reports them for the way the phone is held.
+  const insets = useContext(SafeAreaInsetsContext);
+  const sideL = landscape ? (insets ? insets.left : LANDSCAPE_SIDE_FALLBACK) : 0;
+  const sideR = landscape ? (insets ? insets.right : LANDSCAPE_SIDE_FALLBACK) : 0;
+  const hudW = landscape ? hudWidth(width) + sideL : 0;
+  const topPad = landscape ? Math.max(LANDSCAPE_BAR_TOP, (insets?.top ?? 0) + 4) : 0;
+  // Sideways the instruction bar is in the panel column, so the map's top row (warnings, skip) starts at the top.
+  const barTop = landscape ? topPad : INSTRUCTION_BAR_TOP;
+  const belowBar = landscape ? topPad : barTop + INSTRUCTION_BAR_HEIGHT + 8;
+  const gaugesTop = landscape ? topPad + SKIP_SQUARE_SIDE + 8 : belowBar + 120;
   useEffect(() => {
     unlockOrientation();
     return lockPortrait;
@@ -195,7 +216,7 @@ export function RideScreen({
   // The panel's own height: the map buttons stand on its top edge, whatever it holds.
   const [panelH, setPanelH] = useState(PANEL_GUESS);
   // In landscape the panel is a column at the left, so nothing stands on its top edge.
-  const lower = landscape ? 0 : panelH;
+  const lower = landscape ? (insets?.bottom ?? 0) : panelH;
   const [voice, setVoice] = useVoiceMode();
   const [replay, setReplay] = useState<ReplayPhase[] | null>(null);
   /** Only the `startfrom` scenario applies a start point to a scripted ride. */
@@ -283,7 +304,7 @@ export function RideScreen({
     return result;
   };
   /** A banner stops short of the skip square, so it is never hidden behind it. */
-  const bannerRight = skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
+  const bannerRight = skip.plan || skip.last ? 12 + (landscape ? SKIP_SQUARE_SIDE : SKIP_SQUARE) + SKIP_GAP : 12;
   // A route being found, or the point passed, takes the question away.
   useEffect(() => {
     if (confirming && !skip.canSkip) setConfirming(false);
@@ -588,24 +609,31 @@ export function RideScreen({
         </Pressable>
       ) : null}
       <View style={[styles.row, landscape && styles.rowWrap]}>
-        <View>
-          <View style={[styles.speedBadge, nav?.over && styles.speedOver]}>
-            <Text style={[styles.speed, nav?.over && styles.speedTextOver]}>{speed ?? "–"}</Text>
+        {/* Sideways and not yet riding, a speed and a limit are nothing: the room goes to the options below. */}
+        {landscape && !running ? null : (
+          <View>
+            <View style={[styles.speedBadge, nav?.over && styles.speedOver]}>
+              <Text style={[styles.speed, landscape && styles.speedSide, nav?.over && styles.speedTextOver]}>
+                {speed ?? "–"}
+              </Text>
+            </View>
+            <Text style={styles.unit}>
+              km/h
+              {mode === "demo"
+                ? paused
+                  ? t("ride.unit.demoPaused")
+                  : t("ride.unit.demo")
+                : paused
+                  ? t("ride.unit.paused")
+                  : ""}
+            </Text>
           </View>
-          <Text style={styles.unit}>
-            km/h
-            {mode === "demo"
-              ? paused
-                ? t("ride.unit.demoPaused")
-                : t("ride.unit.demo")
-              : paused
-                ? t("ride.unit.paused")
-                : ""}
-          </Text>
-        </View>
-        <SpeedLimitSign limit={nav?.speedLimit ?? UNKNOWN_LIMIT} over={nav?.over ?? false} />
+        )}
+        {landscape && !running ? null : (
+          <SpeedLimitSign limit={nav?.speedLimit ?? UNKNOWN_LIMIT} over={nav?.over ?? false} compact={landscape} />
+        )}
         <View
-          style={styles.col}
+          style={[styles.col, landscape && styles.colSide]}
           accessible
           accessibilityLabel={
             finished
@@ -627,20 +655,29 @@ export function RideScreen({
               onPress={() => setFuelOpen(true)}
             />
           )}
-          <Text style={styles.big}>{formatDistance(nav?.remainingM ?? rb.totalM)}</Text>
-          <Text style={styles.unit}>
-            {finished ? t("ride.unit.demoFinished") : `${formatDuration(eta.seconds)} · ${formatClock(eta.arrivalMs)}`}
-          </Text>
+          <View style={landscape ? styles.colTexts : undefined}>
+            <Text style={[styles.big, landscape && styles.bigSide]}>
+              {formatDistance(nav?.remainingM ?? rb.totalM)}
+            </Text>
+            <Text style={styles.unit}>
+              {finished
+                ? t("ride.unit.demoFinished")
+                : `${formatDuration(eta.seconds)} · ${formatClock(eta.arrivalMs)}`}
+            </Text>
+          </View>
         </View>
       </View>
-      <Text style={styles.line} numberOfLines={1}>
-        {nav?.phase === "approach"
-          ? `${ride.approachName ? t("ride.line.to", { place: ride.approachName }) : ride.approachTarget === "route" ? t("ride.line.backToRoute") : t("ride.line.toStart")} · ${formatDistance(nav.toStartM)}`
-          : nav?.nextStop
-            ? t("ride.line.next", { name: nav.nextStop.name, distance: formatDistance(nav.nextStop.distanceM) })
-            : rb.roadbook.name}
-      </Text>
-      {next ? (
+      {/* Sideways and riding, the card above says all of it, in less room. */}
+      {landscape && running ? null : (
+        <Text style={styles.line} numberOfLines={1}>
+          {nav?.phase === "approach"
+            ? `${ride.approachName ? t("ride.line.to", { place: ride.approachName }) : ride.approachTarget === "route" ? t("ride.line.backToRoute") : t("ride.line.toStart")} · ${formatDistance(nav.toStartM)}`
+            : nav?.nextStop
+              ? t("ride.line.next", { name: nav.nextStop.name, distance: formatDistance(nav.nextStop.distanceM) })
+              : rb.roadbook.name}
+        </Text>
+      )}
+      {next && !(landscape && running) ? (
         <Text style={styles.line}>
           {t("ride.line.corner", {
             severity: t(next.corner.severity === "hairpin" ? "ride.sev.hairpin" : "ride.sev.sharp"),
@@ -680,7 +717,7 @@ export function RideScreen({
           ) : null}
           <View style={[styles.row, running && styles.rowSlide]}>
             <Pressable
-              style={[styles.button, styles.secondary]}
+              style={[styles.button, landscape && styles.buttonSide, styles.secondary]}
               onPress={goBack}
               accessibilityRole="button"
               accessibilityLabel={backLabel}
@@ -689,7 +726,7 @@ export function RideScreen({
             </Pressable>
             {running && prep === "ready" ? (
               <Pressable
-                style={[styles.button, styles.secondary]}
+                style={[styles.button, landscape && styles.buttonSide, styles.secondary]}
                 onPress={() => {
                   setTouched((t) => t + 1);
                   setPaused((p) => !p);
@@ -712,7 +749,7 @@ export function RideScreen({
             ) : null}
             {running ? (
               <Pressable
-                style={[styles.button, styles.stop]}
+                style={[styles.button, landscape && styles.buttonSide, styles.stop]}
                 onPress={() => (rideOn ? setEnding("end") : stop())}
                 accessibilityRole="button"
                 accessibilityLabel={mode === "gps" ? t("ride.a11y.endRide") : t("ride.a11y.endDemo")}
@@ -722,14 +759,14 @@ export function RideScreen({
             ) : (
               <>
                 <Pressable
-                  style={[styles.button, styles.secondary]}
+                  style={[styles.button, landscape && styles.buttonSide, styles.secondary]}
                   onPress={() => start("demo")}
                   accessibilityRole="button"
                 >
                   <Text style={[styles.buttonText, { color: colors.mossText }]}>{t("ride.btn.demo")}</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.button, styles.start]}
+                  style={[styles.button, landscape && styles.buttonSide, styles.start]}
                   onPress={() => start("gps")}
                   accessibilityRole="button"
                 >
@@ -753,7 +790,7 @@ export function RideScreen({
         accessibilityElementsHidden={modalOpen}
       >
         {/* Map and what stands on it: the whole screen, or what the panel column leaves in landscape. */}
-        <View testID="ride-stage" style={[styles.stage, landscape && { left: hudW, right: LANDSCAPE_SIDE }]}>
+        <View testID="ride-stage" style={[styles.stage, landscape && { left: hudW, right: sideR }]}>
           <Map
             // A new style drops the layers added by the app: remount the map so they are drawn again.
             key={basemap}
@@ -934,12 +971,13 @@ export function RideScreen({
             ) : null}
           </Map>
 
-          {nav ? <InstructionBar nav={nav} top={barTop} /> : null}
+          {nav && !landscape ? <InstructionBar nav={nav} /> : null}
 
-          {warning ? (
+          {warning && !landscape ? (
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
               title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
                 direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
@@ -955,6 +993,7 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="ink"
               title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
               sub={
@@ -972,6 +1011,7 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="ink"
               title={t("ride.banner.paused")}
               sub={t("ride.banner.pausedSub")}
@@ -982,6 +1022,7 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="ink"
               title={t("ride.banner.locating")}
               sub={t("ride.banner.locatingSub")}
@@ -992,6 +1033,7 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="ink"
               title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
               sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
@@ -1002,6 +1044,7 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="signal"
               title={
                 ride.approachName
@@ -1018,6 +1061,7 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="ink"
               title={t("ride.banner.mapOffline")}
               sub={t("ride.banner.mapOfflineSub")}
@@ -1028,13 +1072,14 @@ export function RideScreen({
             <Banner
               top={belowBar}
               right={bannerRight}
+              compact={landscape}
               tone="ink"
               title={t("ride.banner.locationOff")}
               sub={t("ride.banner.locationOffSub")}
             />
           ) : null}
 
-          <SkipSquare skip={skip} top={belowBar} onPress={() => setConfirming(true)} />
+          <SkipSquare skip={skip} top={belowBar} compact={landscape} onPress={() => setConfirming(true)} />
 
           {basemap !== "off" ? (
             <Text style={[styles.attribution, { bottom: lower + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
@@ -1081,6 +1126,7 @@ export function RideScreen({
               values={instruments.values}
               calibrated={calibration !== null}
               onCalibrate={() => setGauges(true)}
+              landscape={landscape}
             />
           )}
 
@@ -1108,7 +1154,7 @@ export function RideScreen({
           style={[
             styles.hud,
             landscape && styles.hudSide,
-            landscape && { width: hudW, paddingLeft: 16 + LANDSCAPE_SIDE },
+            landscape && { width: hudW, paddingLeft: 16 + sideL, paddingTop: topPad },
           ]}
           onLayout={(e) => setPanelH(Math.round(e.nativeEvent.layout.height))}
           // The panel takes a vertical drag before the buttons on it can swallow it, so a swipe works from anywhere on it.
@@ -1131,9 +1177,32 @@ export function RideScreen({
         >
           {landscape ? (
             <>
-              <ScrollView style={styles.hudScroll} contentContainerStyle={styles.hudScrollBody}>
-                {hudBody}
-              </ScrollView>
+              {nav ? (
+                <InstructionBar
+                  nav={nav}
+                  inline
+                  corner={
+                    warning
+                      ? {
+                          tone: warning.corner.severity === "hairpin" ? "rust" : "signal",
+                          title: t(
+                            warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp",
+                            {
+                              direction: t(
+                                warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right",
+                              ).toUpperCase(),
+                            },
+                          ),
+                          sub: t("ride.banner.cornerSub", {
+                            distance: formatDistance(next?.distanceM ?? warning.distanceM),
+                            speed: warning.corner.advisoryKmh,
+                          }),
+                        }
+                      : undefined
+                  }
+                />
+              ) : null}
+              <View style={styles.hudBodySide}>{hudBody}</View>
               {buttonRow}
             </>
           ) : (
@@ -1268,6 +1337,9 @@ const styles = themed(() =>
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     stage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     banner: { position: "absolute", left: 12, borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
+    bannerCompact: { padding: 8, minHeight: SKIP_SQUARE_SIDE, justifyContent: "center" },
+    bannerTitleCompact: { fontSize: 22 },
+    bannerSubCompact: { fontSize: 15 },
     bannerTitle: { fontFamily: fonts.bold, fontSize: 28 },
     bannerSub: { fontFamily: fonts.sans, fontSize: 18 },
     attribution: {
@@ -1307,9 +1379,16 @@ const styles = themed(() =>
       borderTopRightRadius: 8,
     },
     // Landscape: a column on the left, the full height, scrolling if it holds more than the screen shows.
-    hudScroll: { flexGrow: 0, flexShrink: 1 },
-    hudScrollBody: { gap: 8 },
-    hudSide: { right: undefined, top: 0, paddingTop: 12, borderRadius: 0, justifyContent: "space-between" },
+    // The readouts take what the bar above and the buttons below leave: no scrolling in a panel (ADR 0045).
+    hudBodySide: { flexGrow: 1, flexShrink: 1, justifyContent: "center", gap: 4 },
+    hudSide: {
+      right: undefined,
+      top: 0,
+      paddingBottom: 8,
+      gap: 6,
+      borderRadius: 0,
+      justifyContent: "space-between",
+    },
     controlsSide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", width: 204 },
     // A wide, tall target inside the top of the panel, so nothing clips it; only the pill is drawn.
     grabber: {
@@ -1327,14 +1406,20 @@ const styles = themed(() =>
     grabberPill: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.mossMuted },
     row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 12 },
     col: { alignItems: "flex-end" },
+    // Sideways the fuel stop and the distance left share one row, so the column keeps its height.
+    colSide: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" },
+    colTexts: { alignItems: "flex-end" },
     speedBadge: { borderRadius: 8, paddingHorizontal: 8 },
     speedOver: { backgroundColor: colors.limitRed },
     speed: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 56, lineHeight: 64 },
     speedTextOver: { color: colors.white },
+    speedSide: { fontSize: 46, lineHeight: 52 },
+    bigSide: { fontSize: 24 },
     big: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 28 },
     unit: { color: colors.mossMuted, fontFamily: fonts.mono, fontSize: 12 },
     line: { color: colors.mossText, fontFamily: fonts.sans, fontSize: 16 },
     note: { color: colors.mossMuted, fontFamily: fonts.mono, fontSize: 11 },
+    buttonSide: { height: 48 },
     button: { flex: 1, height: 56, alignItems: "center", justifyContent: "center", borderRadius: 4 },
     // The column is narrower than speed, limit and distance side by side: the distance goes under them.
     rowWrap: { flexWrap: "wrap", rowGap: 4 },
