@@ -846,7 +846,7 @@ export function RideScreen({
         accessibilityElementsHidden={modalOpen}
       >
         {/* Map and what stands on it: the whole screen, or what the panel column leaves in landscape. */}
-        <View testID="ride-stage" style={[styles.stage, landscape && { left: hudW, right: sideR }]}>
+        <View testID="ride-stage" style={[styles.stage, landscape && { left: hudW }]}>
           <Map
             // A new style drops the layers added by the app: remount the map so they are drawn again.
             key={basemap}
@@ -1066,201 +1066,209 @@ export function RideScreen({
             ) : null}
           </Map>
 
-          {nav && !landscape ? <InstructionBar nav={nav} /> : null}
+          {/* The map bleeds to the edge; what stands on it keeps clear of the cut-out and the system bars (iOS reports the
+              same inset on both sides sideways, and the dead strip it left on the far side was the map's). */}
+          <View testID="ride-overlay" style={[styles.overlay, { right: sideR }]} pointerEvents="box-none">
+            {nav && !landscape ? <InstructionBar nav={nav} /> : null}
 
-          {warning && !landscape ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
-              title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
-                direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
-              })}
-              sub={t("ride.banner.cornerSub", {
-                distance: formatDistance(next?.distanceM ?? warning.distanceM),
-                speed: warning.corner.advisoryKmh,
-              })}
-            />
-          ) : null}
+            {warning && !landscape ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
+                title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
+                  direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
+                })}
+                sub={t("ride.banner.cornerSub", {
+                  distance: formatDistance(next?.distanceM ?? warning.distanceM),
+                  speed: warning.corner.advisoryKmh,
+                })}
+              />
+            ) : null}
 
-          {!warning && zone && nav ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="ink"
-              title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
-              sub={
-                zone.kind === "camera"
-                  ? t(zone.kmh ? "ride.banner.cameraAheadKmh" : "ride.banner.cameraAhead", {
-                      distance: formatDistance(Math.max(0, zone.atM - nav.progressM)),
-                      kmh: zone.kmh ?? 0,
-                    })
-                  : t("ride.banner.zoneToGo", { distance: formatDistance(Math.max(0, zone.endM - nav.progressM)) })
-              }
-            />
-          ) : null}
+            {!warning && zone && nav ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="ink"
+                title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
+                sub={
+                  zone.kind === "camera"
+                    ? t(zone.kmh ? "ride.banner.cameraAheadKmh" : "ride.banner.cameraAhead", {
+                        distance: formatDistance(Math.max(0, zone.atM - nav.progressM)),
+                        kmh: zone.kmh ?? 0,
+                      })
+                    : t("ride.banner.zoneToGo", { distance: formatDistance(Math.max(0, zone.endM - nav.progressM)) })
+                }
+              />
+            ) : null}
 
-          {paused && mode === "gps" ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="ink"
-              title={t("ride.banner.paused")}
-              sub={t("ride.banner.pausedSub")}
-            />
-          ) : null}
+            {paused && mode === "gps" ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="ink"
+                title={t("ride.banner.paused")}
+                sub={t("ride.banner.pausedSub")}
+              />
+            ) : null}
 
-          {mode === "gps" && prep === "locating" ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="ink"
-              title={t("ride.banner.locating")}
-              sub={t("ride.banner.locatingSub")}
-            />
-          ) : null}
+            {mode === "gps" && prep === "locating" ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="ink"
+                title={t("ride.banner.locating")}
+                sub={t("ride.banner.locatingSub")}
+              />
+            ) : null}
 
-          {mode === "gps" && prep === "routing" ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="ink"
-              title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
-              sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
-            />
-          ) : null}
+            {mode === "gps" && prep === "routing" ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="ink"
+                title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
+                sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
+              />
+            ) : null}
 
-          {nav?.phase === "approach" && ride.approachDirect ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="signal"
-              title={
-                ride.approachName
-                  ? t("ride.banner.noRouteTo", { place: ride.approachName })
-                  : ride.approachTarget === "route"
-                    ? t("ride.banner.noRouteBack")
-                    : t("ride.banner.noRouteStart")
-              }
-              sub={t("ride.banner.noRouteSub")}
-            />
-          ) : null}
+            {nav?.phase === "approach" && ride.approachDirect ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="signal"
+                title={
+                  ride.approachName
+                    ? t("ride.banner.noRouteTo", { place: ride.approachName })
+                    : ride.approachTarget === "route"
+                      ? t("ride.banner.noRouteBack")
+                      : t("ride.banner.noRouteStart")
+                }
+                sub={t("ride.banner.noRouteSub")}
+              />
+            ) : null}
 
-          {basemapFailed ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="ink"
-              title={t("ride.banner.mapOffline")}
-              sub={t("ride.banner.mapOfflineSub")}
-            />
-          ) : null}
+            {basemapFailed ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="ink"
+                title={t("ride.banner.mapOffline")}
+                sub={t("ride.banner.mapOfflineSub")}
+              />
+            ) : null}
 
-          {permission === "denied" ? (
-            <Banner
-              top={belowBar}
-              right={bannerRight}
-              compact={landscape}
-              left={bannerLeft}
-              tone="ink"
-              title={t("ride.banner.locationOff")}
-              sub={t("ride.banner.locationOffSub")}
-            />
-          ) : null}
+            {permission === "denied" ? (
+              <Banner
+                top={belowBar}
+                right={bannerRight}
+                compact={landscape}
+                left={bannerLeft}
+                tone="ink"
+                title={t("ride.banner.locationOff")}
+                sub={t("ride.banner.locationOffSub")}
+              />
+            ) : null}
 
-          {running && nav && landscape ? (
-            <View style={[styles.compassSide, { top: topPad }]} pointerEvents="none">
-              <CompassChip headingDeg={nav.bearingDeg} />
-            </View>
-          ) : null}
-          <SkipSquare
-            skip={skip}
-            top={belowBar}
-            compact={landscape}
-            left={landscape ? 8 : undefined}
-            onPress={() => setConfirming(true)}
-          />
-
-          {basemap !== "off" ? (
-            <Text style={[styles.attribution, { bottom: lower + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
-          ) : null}
-
-          {/* A question on screen has the room to itself: the map controls step aside (and leave the screen reader's tree). */}
-          {modalOpen ? null : (
-            <View
-              testID="map-buttons"
-              style={[styles.controls, landscape && styles.controlsSide, { bottom: lower + 12 }]}
-            >
-              {/* Side by side: the column of buttons stands on the panel and must not reach the bar at the top. */}
-              <View style={styles.zoomRow}>
-                <RoundButton label="−" name={t("ride.map.zoomOut")} onPress={() => zoomBy(-1)} />
-                <RoundButton label="+" name={t("ride.map.zoomIn")} onPress={() => zoomBy(1)} />
+            {running && nav && landscape ? (
+              <View style={[styles.compassSide, { top: topPad }]} pointerEvents="none">
+                <CompassChip headingDeg={nav.bearingDeg} />
               </View>
-              <RoundButton icon="map-outline" name={t("ride.map.routeName")} onPress={overview} />
-              {running ? (
-                <RoundButton icon="locate" name={t("ride.map.meName")} onPress={() => setFollow(true)} />
-              ) : null}
-              <RoundButton
-                icon="layers-outline"
-                name={t("ride.map.basemapName", { basemap: BASEMAP_LABEL[basemap] })}
-                onPress={nextBasemap}
-              />
-              <RoundButton
-                icon="information-circle-outline"
-                name={t("ride.map.keyName")}
-                onPress={() => setLegend(true)}
-              />
-              <RoundButton
-                icon={VOICE_ICON[voice]}
-                name={t("ride.voice.tap", { name: voiceName(voice) })}
-                onPress={changeVoice}
-              />
-              <RoundButton icon="speedometer-outline" name={t("ride.map.gaugesName")} onPress={() => setGauges(true)} />
-            </View>
-          )}
-
-          {modalOpen ? null : (
-            <InstrumentsOverlay
-              top={gaugesTop}
-              settings={gaugeSettings}
-              values={instruments.values}
-              calibrated={calibration !== null}
-              onCalibrate={() => setGauges(true)}
-              landscape={landscape}
+            ) : null}
+            <SkipSquare
+              skip={skip}
+              top={belowBar}
+              compact={landscape}
+              left={landscape ? 8 : undefined}
+              onPress={() => setConfirming(true)}
             />
-          )}
 
-          {modalOpen ? null : (
-            <View style={[styles.fuelChip, { bottom: lower + 12 }]} pointerEvents="box-none">
-              {places.selected ? (
-                <SelectedPlaceChip
-                  place={places.selected}
-                  progressM={nav?.progressM ?? 0}
-                  onClear={() => places.select(null)}
+            {basemap !== "off" ? (
+              <Text style={[styles.attribution, { bottom: lower + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
+            ) : null}
+
+            {/* A question on screen has the room to itself: the map controls step aside (and leave the screen reader's tree). */}
+            {modalOpen ? null : (
+              <View
+                testID="map-buttons"
+                style={[styles.controls, landscape && styles.controlsSide, { bottom: lower + 12 }]}
+              >
+                {/* Side by side: the column of buttons stands on the panel and must not reach the bar at the top. */}
+                <View style={styles.zoomRow}>
+                  <RoundButton label="−" name={t("ride.map.zoomOut")} onPress={() => zoomBy(-1)} />
+                  <RoundButton label="+" name={t("ride.map.zoomIn")} onPress={() => zoomBy(1)} />
+                </View>
+                <RoundButton icon="map-outline" name={t("ride.map.routeName")} onPress={overview} />
+                {running ? (
+                  <RoundButton icon="locate" name={t("ride.map.meName")} onPress={() => setFollow(true)} />
+                ) : null}
+                <RoundButton
+                  icon="layers-outline"
+                  name={t("ride.map.basemapName", { basemap: BASEMAP_LABEL[basemap] })}
+                  onPress={nextBasemap}
                 />
-              ) : null}
-              <View style={styles.chipRow}>
-                <PlacesChip onPress={() => setPlacesOpen(true)} />
-                <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
-                <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
-                {running && nav && !landscape ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
+                <RoundButton
+                  icon="information-circle-outline"
+                  name={t("ride.map.keyName")}
+                  onPress={() => setLegend(true)}
+                />
+                <RoundButton
+                  icon={VOICE_ICON[voice]}
+                  name={t("ride.voice.tap", { name: voiceName(voice) })}
+                  onPress={changeVoice}
+                />
+                <RoundButton
+                  icon="speedometer-outline"
+                  name={t("ride.map.gaugesName")}
+                  onPress={() => setGauges(true)}
+                />
               </View>
-            </View>
-          )}
+            )}
+
+            {modalOpen ? null : (
+              <InstrumentsOverlay
+                top={gaugesTop}
+                settings={gaugeSettings}
+                values={instruments.values}
+                calibrated={calibration !== null}
+                onCalibrate={() => setGauges(true)}
+                landscape={landscape}
+              />
+            )}
+
+            {modalOpen ? null : (
+              <View style={[styles.fuelChip, { bottom: lower + 12 }]} pointerEvents="box-none">
+                {places.selected ? (
+                  <SelectedPlaceChip
+                    place={places.selected}
+                    progressM={nav?.progressM ?? 0}
+                    onClear={() => places.select(null)}
+                  />
+                ) : null}
+                <View style={styles.chipRow}>
+                  <PlacesChip onPress={() => setPlacesOpen(true)} />
+                  <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
+                  <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
+                  {running && nav && !landscape ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
+                </View>
+              </View>
+            )}
+          </View>
         </View>
 
         <View
@@ -1450,6 +1458,7 @@ const styles = themed(() =>
     screen: { flex: 1, backgroundColor: colors.paper },
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     compassSide: { position: "absolute", right: 8 },
+    overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     stage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     banner: { position: "absolute", borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
     bannerCompact: { padding: 8, minHeight: SKIP_SQUARE_SIDE, justifyContent: "center" },
