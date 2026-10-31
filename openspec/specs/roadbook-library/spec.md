@@ -59,6 +59,8 @@ When the rider has a server (spec server-features), the roadbook list SHALL ask 
 
 A server roadbook is matched to a kept copy by the number it was fetched under, else by origin (agentRide, same number AND same name; a roadbook pushed to the server lists under a number that is not its origin's, so the kept copy remembers the number). The icon SHALL fetch the file (`GET /roadbook/<id>`, up to 60 seconds, with a spinner in place of the icon) and keep the stamp the server answered with (its `ETag`) beside the roadbook, importing it by the rules of "A refreshed roadbook replaces its old copy", so a refresh keeps the local id. The file's `generatedAt` SHALL NOT be compared with the server's stamp. Nothing about the server SHALL be shown when the rider has no server, and the app SHALL NOT ask a server that does not answer `/roadbooks` (404) again during that visit.
 
+Each server roadbook carries a **state** (`current`, `outdated`, `refreshing`, `failed`, with an optional `error`; a server that says none is read as `current`), and its `stamp` is the version of the file ready to download now. The card SHALL show it: with the ready file held (the held stamp is the listed one), `current` is the check; `outdated` ("Map out of date. Tap to update.") is an icon that asks the server for a new file (`POST /roadbook/<id>/refresh`: 202 when it starts, 200 when it is already current, 404 when it is not the rider's) and, at once, shows the roadbook as under refresh; `failed` says "Update failed: <error>. Tap to try again." with the same tap. A roadbook `refreshing`, whatever the stamp, SHALL show "Under refresh on your server…" with a spinner and nothing to press, and while any is, the open list SHALL be asked again every 4 seconds without showing it is being asked; a poll that is not answered SHALL leave the list as it was. When a roadbook the rider asked to update is `current`, and its stamp is not the one held, the app SHALL download it by itself (`GET /roadbook/<id>`, keeping the `ETag` it answers with as the held stamp), SHALL stay on the list, and SHALL say "<name> is updated from your server."; a refresh that ends on the stamp held SHALL download nothing. A stamp that is not the one held, in any state but `refreshing`, SHALL offer the download of the ready file (it works even when outdated). After a download the held stamp is the listed one, so the update SHALL NOT be offered again the next time the list opens. A roadbook not on the phone keeps its download whatever its state, and says "Map out of date on your server" when it is outdated. A problem asking for the refresh (401, 404, 429, unreachable) SHALL be said in words and change nothing.
+
 The list SHALL work offline: when the server cannot be reached the kept roadbooks SHALL be shown as usual, without state marks, with a short note that the server could not be reached and a way to try again. A refused token (401), too many requests (429), a roadbook that no longer exists (404) and a route the server could not make (502) SHALL each say so in words; nothing SHALL be thrown, and no kept roadbook SHALL change.
 
 #### Scenario: A roadbook not yet on the phone
@@ -75,6 +77,21 @@ The list SHALL work offline: when the server cannot be reached the kept roadbook
 
 - **WHEN** a kept roadbook has origin agentRide 7 "Loop" and stamp "aaa", and the server lists it with stamp "bbb"
 - **THEN** its card shows a refresh icon, and pressing it replaces the kept copy in place, keeping its local id, and stores stamp "bbb"
+
+#### Scenario: Out of date, asked, ready
+
+- **WHEN** a kept roadbook is `outdated` on the server, the rider taps its update icon, the server answers 202, lists it `refreshing`, then `current` with a new stamp
+- **THEN** the card shows "Map out of date", then "Under refresh on your server…" with a spinner, then the new file comes down by itself, the list stays, and the card is a check
+
+#### Scenario: Not offered again
+
+- **WHEN** the roadbook has just been updated and the rider opens the list again
+- **THEN** the card is a check, with no update icon
+
+#### Scenario: A refresh that fails
+
+- **WHEN** the server lists the roadbook as `failed` with the error "no route found"
+- **THEN** the card says "Update failed: no route found. Tap to try again." and the tap asks again
 
 #### Scenario: Deleting
 

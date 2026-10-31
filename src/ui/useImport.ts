@@ -59,7 +59,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
   }, []);
 
   /** Read, check and keep: the one place every way of importing ends. */
-  const finish = useCallback(async (get: () => Promise<PickedText | null>) => {
+  const finish = useCallback(async (get: () => Promise<PickedText | null>, open = true) => {
     setNotice({ kind: "busy" });
     try {
       const picked = await get();
@@ -69,7 +69,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       if (place.kind === "older") {
         // Never downgrade silently: the newer copy stays, and is the one that opens.
         setNotice({ kind: "info", text: t("home.import.older", { name: place.kept.roadbook.name }) });
-        return handler.current(place.kept.roadbook);
+        return open ? handler.current(place.kept.roadbook) : undefined;
       }
       const parsed = place.kind === "replace" ? { ...imported, id: place.id } : imported;
       // A GPX has no limits, countries or cameras: ask for them once, now, while there is a network (ADR 0026).
@@ -85,8 +85,15 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       };
       await saveImported(entry);
       setItems((list) => [entry, ...list.filter((i) => i.roadbook.id !== rb.id)]);
-      setNotice(problem ? { kind: "error", text: problem } : null);
-      handler.current(rb);
+      // A roadbook brought down for the rider who is looking at the list (an update asked for) does not open its ride.
+      setNotice(
+        problem
+          ? { kind: "error", text: problem }
+          : open
+            ? null
+            : { kind: "info", text: t("home.server.updated", { name: rb.name }) },
+      );
+      if (open) handler.current(rb);
     } catch (e) {
       if (!(e instanceof ImportError)) console.warn("The import failed", e);
       setNotice({
@@ -100,7 +107,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
 
   /** Fetch a roadbook from the rider's server and keep it, replacing the copy of the same origin (spec roadbook-library). */
   const fromServer = useCallback(
-    async (server: ServerSetting, listed: ServerRoadbook) => {
+    async (server: ServerSetting, listed: ServerRoadbook, open = true) => {
       setFetching(listed.id);
       try {
         await finish(async () => {
@@ -112,7 +119,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
             stamp: got.stamp ?? listed.stamp,
             serverId: listed.id,
           };
-        });
+        }, open);
       } finally {
         setFetching(null);
       }

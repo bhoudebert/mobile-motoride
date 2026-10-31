@@ -475,3 +475,198 @@ test("a roadbook that fails to come says why and keeps nothing", async () => {
   expect(screen.getByText(/could not make this roadbook/)).toBeTruthy();
   expect(kept()).toHaveLength(0);
 });
+
+// Spec roadbook-library: the state the server reports for each roadbook (outdated, under refresh, failed).
+type Fake = { state: "current" | "outdated" | "refreshing" | "failed"; stamp: string; error?: string };
+const fakeServer = (fake: Fake) =>
+  fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
+    if (url === `${SERVER.url}/roadbooks`)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          roadbooks: [
+            {
+              id: 7,
+              name: "Agent loop",
+              distanceKm: 3,
+              ridingMinutes: 5,
+              stamp: fake.stamp,
+              state: fake.state,
+              ...(fake.error ? { error: fake.error } : {}),
+            },
+          ],
+        }),
+      };
+    if (url === `${SERVER.url}/roadbook/7/refresh` && init?.method === "POST")
+      return { ok: true, status: 202, json: async () => ({}) };
+    if (/\/roadbook\/7$/.test(url))
+      return {
+        ok: true,
+        status: 200,
+        text: async () => refreshed(fake.stamp === "s1" ? 3000 : 5000, "2026-10-10T00:00:00.000Z"),
+        headers: { get: () => `"${fake.stamp}"` },
+      };
+    return { ok: true };
+  });
+// The rider's server only: the services that complete a file are asked with POST too.
+const posts = () =>
+  fetchMock.mock.calls
+    .filter(([u, init]) => init?.method === "POST" && String(u).startsWith(SERVER.url))
+    .map(([u]) => String(u));
+const reopen = async () => {
+  await fireEvent.press(screen.getByLabelText("Back to the map"));
+  await fireEvent.press(screen.getByLabelText("Roadbooks"));
+  await flush();
+};
+
+test("an outdated roadbook says so, is updated by a tap, shows it is under refresh, and comes down by itself when ready", async () => {
+  jest.useFakeTimers();
+  try {
+    await withServer();
+    const fake: Fake = { state: "current", stamp: "s1" };
+    fakeServer(fake);
+    await toList();
+    await flush();
+    await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+    await flush();
+    await revealButtons();
+    await fireEvent.press(screen.getByLabelText("Back to the list"));
+    expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+
+    // The host's map aged: the file held still works, the list says it is out of date.
+    fake.state = "outdated";
+    await reopen();
+    expect(screen.getByText("Map out of date. Tap to update.")).toBeTruthy();
+    expect(screen.queryByLabelText("Agent loop: Up to date")).toBeNull();
+
+    // A tap asks the server for a new file; the card is at once under refresh, with nothing to press.
+    await fireEvent.press(screen.getByLabelText("Update the map of Agent loop, it is out of date"));
+    await flush();
+    expect(posts()).toEqual([`${SERVER.url}/roadbook/7/refresh`]);
+    expect(screen.getByText("Under refresh on your server…")).toBeTruthy();
+    expect(screen.queryByLabelText("Update the map of Agent loop, it is out of date")).toBeNull();
+    expect(screen.getByLabelText("Agent loop is being updated on your server")).toBeTruthy();
+
+    // The server is still making it: the list is asked again, and nothing comes down.
+    fake.state = "refreshing";
+    const listCalls = () => fetchMock.mock.calls.filter(([u]) => u === `${SERVER.url}/roadbooks`).length;
+    const before = listCalls();
+    await act(async () => {
+      jest.advanceTimersByTime(4100);
+    });
+    await flush();
+    expect(listCalls()).toBeGreaterThan(before);
+    expect(JSON.parse(files.get(kept()[0]!)!).serverStamp).toBe("s1");
+
+    // The new file is ready: the roadbook comes down by itself and the held stamp is the listed one.
+    fake.state = "current";
+    fake.stamp = "s2";
+    await act(async () => {
+      jest.advanceTimersByTime(4100);
+    });
+    await flush();
+    expect(kept()).toHaveLength(1);
+    expect(JSON.parse(files.get(kept()[0]!)!).serverStamp).toBe("s2");
+    // The rider is looking at the list: it stays, with a word, and no ride opens.
+    expect(screen.getByText("Agent loop is updated from your server.")).toBeTruthy();
+    expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+    expect(screen.queryByText("Under refresh on your server…")).toBeNull();
+
+    // The next time the list opens there is nothing to update: the button does not come back.
+    await reopen();
+    expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+    expect(screen.queryByLabelText(/Update the map of Agent loop/)).toBeNull();
+    expect(screen.queryByLabelText(/Refresh Agent loop/)).toBeNull();
+    expect(posts()).toHaveLength(1);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test("a roadbook being refreshed has nothing to press, and a failed one says why and can be tried again", async () => {
+  await withServer();
+  const fake: Fake = { state: "current", stamp: "s1" };
+  fakeServer(fake);
+  await toList();
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  await revealButtons();
+  await fireEvent.press(screen.getByLabelText("Back to the list"));
+
+  fake.state = "refreshing";
+  await reopen();
+  expect(screen.getByLabelText("Agent loop is being updated on your server")).toBeTruthy();
+  expect(screen.queryByLabelText(/Update the map/)).toBeNull();
+  expect(screen.queryByLabelText(/Try again to update/)).toBeNull();
+
+  fake.state = "failed";
+  fake.error = "no route found";
+  await reopen();
+  expect(screen.getByText("Update failed: no route found. Tap to try again.")).toBeTruthy();
+  expect(screen.getByLabelText("Try again to update Agent loop")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Try again to update Agent loop"));
+  await flush();
+  expect(posts()).toEqual([`${SERVER.url}/roadbook/7/refresh`]);
+});
+
+test("a roadbook not on the phone is downloaded whatever its state, and says when its map is out of date", async () => {
+  await withServer();
+  fakeServer({ state: "outdated", stamp: "s1" });
+  await toList();
+  await flush();
+  expect(screen.getByText("Map out of date on your server")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  expect(kept()).toHaveLength(1);
+  expect(JSON.parse(files.get(kept()[0]!)!).serverStamp).toBe("s1");
+});
+
+test("a server that says nothing of the state is read as current", async () => {
+  await withServer();
+  serverSays([{ id: 7, name: "Agent loop", stamp: "s1" }], () => refreshed(3000, "2026-10-10T00:00:00.000Z"));
+  await toList();
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  await revealButtons();
+  await fireEvent.press(screen.getByLabelText("Back to the list"));
+  expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+});
+
+test("a refresh that ends on the same stamp downloads nothing, and the card is up to date again", async () => {
+  jest.useFakeTimers();
+  try {
+    await withServer();
+    const fake: Fake = { state: "current", stamp: "s1" };
+    fakeServer(fake);
+    await toList();
+    await flush();
+    await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+    await flush();
+    await revealButtons();
+    await fireEvent.press(screen.getByLabelText("Back to the list"));
+    fake.state = "outdated";
+    await reopen();
+    await fireEvent.press(screen.getByLabelText("Update the map of Agent loop, it is out of date"));
+    await flush();
+    fake.state = "refreshing";
+    await act(async () => {
+      jest.advanceTimersByTime(4100);
+    });
+    const downloads = () => fetchMock.mock.calls.filter(([u]) => /\/roadbook\/7$/.test(String(u))).length;
+    const before = downloads();
+    // The server remade the file and it came out the same: current, with the stamp held.
+    fake.state = "current";
+    await act(async () => {
+      jest.advanceTimersByTime(4100);
+    });
+    await flush();
+    expect(downloads()).toBe(before);
+    expect(screen.getByLabelText("Agent loop: Up to date")).toBeTruthy();
+    expect(screen.queryByText("Under refresh on your server…")).toBeNull();
+  } finally {
+    jest.useRealTimers();
+  }
+});

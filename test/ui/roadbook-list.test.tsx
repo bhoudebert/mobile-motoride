@@ -47,6 +47,9 @@ test("pulling the list down asks the server again, and shows it is asking while 
     kept: [],
     fetching: null,
     onGet: () => {},
+    onRefresh: () => {},
+    asking: null,
+    problem: null,
     onRetry,
   });
   const rbs = prepared().slice(0, 1);

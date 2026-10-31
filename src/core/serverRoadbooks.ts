@@ -1,14 +1,28 @@
 import type { ImportedRoadbook } from "./library.ts";
 
+/**
+ * Where a roadbook stands on the server (agentRide `GET /roadbooks`): the ready file is made from it as it is and on the map
+ * in use (`current`), is older (`outdated`, it still works), is being remade (`refreshing`) or the last try failed (`failed`).
+ */
+export type RoadbookState = "current" | "outdated" | "refreshing" | "failed";
+
 /** A roadbook a server lists (agentRide's `GET /roadbooks`); `id` is its number in that server's library. */
 export interface ServerRoadbook {
   id: number;
   name: string;
   distanceKm: number;
   ridingMinutes: number;
-  /** Changes when the route, the stops, the cameras or the name change. */
+  /** The version of the file ready to download now: changes only when a new file is ready. */
   stamp: string;
+  /** A server that says nothing of it (an older one) is taken as `current`. */
+  state: RoadbookState;
+  /** The UTC day of the map the ready file was made on, when the server keeps its own. */
+  mapDay?: string;
+  /** Why the last try failed, when `state` is `failed`. */
+  error?: string;
 }
+
+const STATES: readonly RoadbookState[] = ["current", "outdated", "refreshing", "failed"];
 
 /** The roadbooks of a server's answer; an entry that is not one is left out, never thrown. */
 export function parseServerList(body: unknown): ServerRoadbook[] {
@@ -17,16 +31,30 @@ export function parseServerList(body: unknown): ServerRoadbook[] {
   return list.flatMap((r): ServerRoadbook[] => {
     const o = r as Record<string, unknown> | null;
     if (!o || typeof o !== "object") return [];
-    const { id, name, distanceKm, ridingMinutes, stamp } = o;
+    const { id, name, distanceKm, ridingMinutes, stamp, state, mapDay, error } = o;
     if (typeof id !== "number" || !Number.isInteger(id) || id < 0) return [];
     if (typeof name !== "string" || !name || typeof stamp !== "string" || !stamp) return [];
     const finite = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0);
-    return [{ id, name, distanceKm: finite(distanceKm), ridingMinutes: finite(ridingMinutes), stamp }];
+    return [
+      {
+        id,
+        name,
+        distanceKm: finite(distanceKm),
+        ridingMinutes: finite(ridingMinutes),
+        stamp,
+        state: STATES.includes(state as RoadbookState) ? (state as RoadbookState) : "current",
+        ...(typeof mapDay === "string" && mapDay ? { mapDay } : {}),
+        ...(typeof error === "string" && error ? { error } : {}),
+      },
+    ];
   });
 }
 
-/** What the list offers for a server roadbook: fetch it, fetch its new version, or nothing. */
-export type ServerAction = "download" | "refresh" | "current";
+/**
+ * What the list offers for a server roadbook: fetch it, fetch its new version, nothing, or one of the three states the
+ * server reports for a copy that is up to date as a file.
+ */
+export type ServerAction = "download" | "refresh" | "current" | "outdated" | "refreshing" | "failed";
 
 /**
  * The kept copy of a server roadbook: the one fetched under the same server number, else the one with the same origin
@@ -43,11 +71,19 @@ export function keptFor(entry: ServerRoadbook, kept: readonly ImportedRoadbook[]
   );
 }
 
-/** Compares stamps, never `generatedAt`, which changes on every download. */
+/**
+ * Compares stamps, never `generatedAt`, which changes on every download. A roadbook being remade offers nothing until it
+ * is ready; otherwise a stamp that is not the one held means a new file is ready to download (the old one still works,
+ * so an outdated roadbook is downloaded too); with the file held, the state says what to show: a check, "outdated map" to
+ * ask for a new file, or the failure with a tap to try again. After a download the held stamp is the listed one, so the
+ * update is not offered again on the next opening.
+ */
 export function serverAction(entry: ServerRoadbook, kept: readonly ImportedRoadbook[]): ServerAction {
   const same = keptFor(entry, kept);
   if (!same) return "download";
-  return same.serverStamp === entry.stamp ? "current" : "refresh";
+  if (entry.state === "refreshing") return "refreshing";
+  if (same.serverStamp !== entry.stamp) return "refresh";
+  return entry.state === "outdated" ? "outdated" : entry.state === "failed" ? "failed" : "current";
 }
 
 /** The stamp of an `ETag` header: without quotes or the weak mark; null when there is none. */
