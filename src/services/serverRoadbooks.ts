@@ -46,7 +46,7 @@ export async function listServerRoadbooks(
  */
 export const FILE_WAIT_MS = 15_000;
 
-/** One roadbook file. `slow`: the server did not answer in time, or its gateway gave up (504, 408): it is still making it. */
+/** One roadbook file. `slow`: the server did not answer in time, said 202 (still making it) or its gateway gave up (504, 408). */
 export async function fetchServerRoadbook(
   server: ServerSetting,
   id: number,
@@ -57,6 +57,8 @@ export async function fetchServerRoadbook(
       headers: { Authorization: `Bearer ${server.token}` },
       signal: AbortSignal.timeout(timeoutMs),
     });
+    // 202: the server is making the file and says so (`Retry-After`); 504 and 408: a gateway gave up on a build that goes on.
+    if (res.status === 202) return { ok: false, reason: "slow" };
     if (!res.ok)
       return { ok: false, reason: res.status === 504 || res.status === 408 ? "slow" : problemOf(res.status) };
     return { ok: true, text: await res.text(), stamp: stampOfEtag(res.headers?.get?.("ETag")) };

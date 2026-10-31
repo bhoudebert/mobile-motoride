@@ -113,6 +113,7 @@ export const home: Translated<typeof English> = {
   "home.server.refreshing": "{name} est en cours de mise à jour sur votre serveur",
   "home.server.state.outdated": "Carte périmée. Touchez pour mettre à jour.",
   "home.server.state.outdatedFile": "Carte périmée sur votre serveur",
+  "home.server.state.toPrepare": "Pas encore faite : votre serveur la prépare à la demande.",
   "home.server.state.refreshing": "Mise à jour en cours sur votre serveur…",
   "home.server.state.failed": "Mise à jour échouée : {error}. Touchez pour réessayer.",
   "home.server.error.map_down": "le service de cartes ne répond pas",

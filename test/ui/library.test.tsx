@@ -483,7 +483,9 @@ type Fake = {
   error?: string;
   errorCode?: string;
   /** The server has no file ready: the first request would make it, and its gateway gives up (504). */
-  hold?: boolean;
+  hold?: boolean | "202";
+  /** The list says the first file does not exist (`ready: false`). */
+  ready?: boolean;
 };
 const fakeServer = (fake: Fake) =>
   fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
@@ -502,12 +504,14 @@ const fakeServer = (fake: Fake) =>
               state: fake.state,
               ...(fake.error ? { error: fake.error } : {}),
               ...(fake.errorCode ? { errorCode: fake.errorCode } : {}),
+              ...(fake.ready === undefined ? {} : { ready: fake.ready }),
             },
           ],
         }),
       };
     if (url === `${SERVER.url}/roadbook/7/refresh` && init?.method === "POST")
       return { ok: true, status: 202, json: async () => ({}) };
+    if (/\/roadbook\/7$/.test(url) && fake.hold === "202") return { ok: true, status: 202, json: async () => ({}) };
     if (/\/roadbook\/7$/.test(url) && fake.hold) return { ok: false, status: 504 };
     if (/\/roadbook\/7$/.test(url))
       return {
@@ -751,4 +755,31 @@ test("a file the server has not made yet is not waited for: the server is asked 
   } finally {
     jest.useRealTimers();
   }
+});
+
+test("a roadbook the list says has no file yet is not requested: the server is asked to prepare it at once", async () => {
+  await withServer();
+  fakeServer({ state: "outdated", stamp: "s1", ready: false });
+  await toList();
+  await flush();
+  expect(screen.getByText("Not made yet: your server prepares it when asked.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  // No download was tried (it would have waited for the build); the server was asked.
+  expect(fetchMock.mock.calls.some(([u]) => /\/roadbook\/7$/.test(String(u)))).toBe(false);
+  expect(posts()).toEqual([`${SERVER.url}/roadbook/7/refresh`]);
+  expect(screen.getByText(/Your server is preparing Agent loop/)).toBeTruthy();
+  expect(screen.getByText("Under refresh on your server…")).toBeTruthy();
+});
+
+test("a 202 on the download means the server is making the file: the phone waits for it like for a 504", async () => {
+  await withServer();
+  fakeServer({ state: "outdated", stamp: "s1", hold: "202" });
+  await toList();
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  expect(kept()).toHaveLength(0);
+  expect(screen.getByText(/Your server is preparing Agent loop/)).toBeTruthy();
+  expect(posts()).toEqual([`${SERVER.url}/roadbook/7/refresh`]);
 });

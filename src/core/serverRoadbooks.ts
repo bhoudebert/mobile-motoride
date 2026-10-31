@@ -20,6 +20,11 @@ export interface ServerRoadbook {
   stamp: string;
   /** A server that says nothing of it (an older one) is taken as `current`. */
   state: RoadbookState;
+  /**
+   * False until the first file exists: there is nothing to download, the server has to prepare it (`POST .../refresh`) and a
+   * `GET` would wait for the build. A server that says nothing of it is taken as ready.
+   */
+  ready: boolean;
   /** The UTC day of the map the ready file was made on, when the server keeps its own. */
   mapDay?: string;
   /** Why the last try failed, when `state` is `failed`: one short English sentence. */
@@ -37,7 +42,7 @@ export function parseServerList(body: unknown): ServerRoadbook[] {
   return list.flatMap((r): ServerRoadbook[] => {
     const o = r as Record<string, unknown> | null;
     if (!o || typeof o !== "object") return [];
-    const { id, name, distanceKm, ridingMinutes, stamp, state, mapDay, error, errorCode } = o;
+    const { id, name, distanceKm, ridingMinutes, stamp, state, ready, mapDay, error, errorCode } = o;
     if (typeof id !== "number" || !Number.isInteger(id) || id < 0) return [];
     if (typeof name !== "string" || !name || typeof stamp !== "string" || !stamp) return [];
     const finite = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0);
@@ -49,6 +54,7 @@ export function parseServerList(body: unknown): ServerRoadbook[] {
         ridingMinutes: finite(ridingMinutes),
         stamp,
         state: STATES.includes(state as RoadbookState) ? (state as RoadbookState) : "current",
+        ready: ready !== false,
         ...(typeof mapDay === "string" && mapDay ? { mapDay } : {}),
         ...(typeof error === "string" && error ? { error } : {}),
         ...(ERROR_CODES.includes(errorCode as ErrorCode) ? { errorCode: errorCode as ErrorCode } : {}),

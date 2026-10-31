@@ -114,6 +114,11 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     async (server: ServerSetting, listed: ServerRoadbook, open = true): Promise<"done" | "slow"> => {
       setFetching(listed.id);
       try {
+        // No file yet: nothing to fetch, and a request would wait for the build. The caller asks the server to prepare it.
+        if (!listed.ready) {
+          setNotice({ kind: "info", text: t("home.server.preparing", { name: listed.name }) });
+          return "slow";
+        }
         setNotice({ kind: "busy" });
         const got = await fetchServerRoadbook(server, listed.id);
         if (!got.ok && got.reason === "slow") {

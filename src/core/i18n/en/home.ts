@@ -107,6 +107,7 @@ export const home = {
   "home.server.refreshing": "{name} is being updated on your server",
   "home.server.state.outdated": "Map out of date. Tap to update.",
   "home.server.state.outdatedFile": "Map out of date on your server",
+  "home.server.state.toPrepare": "Not made yet: your server prepares it when asked.",
   "home.server.state.refreshing": "Under refresh on your server…",
   "home.server.state.failed": "Update failed: {error}. Tap to try again.",
   "home.server.error.map_down": "the map service is not answering",
