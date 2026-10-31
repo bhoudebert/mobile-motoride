@@ -95,10 +95,12 @@ Expo Go cannot run MapLibre, so the app runs as a development build:
 The phone reaches a server on your machine through the USB port forward, so nothing has to be deployed to try it:
 
 ```bash
-npm run dev:server   # starts ../agentRide's server, makes a rider, forwards the port, sets the server in the app
+npm run dev:server   # starts ../agentRide's server, makes a rider, pushes the test roadbooks, forwards the port, sets the server in the app
 ```
 
-The app asks to use the server (`Use it`); then Menu, Server, Test. A rider of a hosted server joins by scanning the
+The app asks to use the server (`Use it`); then Menu, Server, Test. A new server also gets the test roadbooks
+(`test/fixtures/roadbooks`) pushed to it, so the Roadbooks screen lists them to download (it needs an agentRide with
+pushed roadbooks; without it the list stays empty). A rider of a hosted server joins by scanning the
 QR code of `npm run admin -- invite <email> --pin` (agentRide) with the phone's camera: the app asks for the PIN and
 keeps a token of its own. The token is kept in `~/ride-dev-data/token.txt`
 (in case you must type it into the app by hand: address `http://localhost:18973`). Open the follow link on your PC as it

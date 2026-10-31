@@ -12,10 +12,9 @@ import { webcrypto } from "node:crypto";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import type { Roadbook } from "../src/core/types.ts";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { encodePolyline } from "../test/helpers/polyline.ts";
+import { fixtureRoadbooks, pushFixtures } from "./device/fixtureServer.ts";
 import {
   above,
   appCrashes,
@@ -250,28 +249,8 @@ async function setNetwork(on: boolean) {
   await sleep(on ? 6000 : 3000);
 }
 
-/** The roadbooks kept for the tests: real ones made by agentRide, pushed to the test server in file order. */
-const fixtureRoadbooks: Roadbook[] = readdirSync(new URL("../test/fixtures/roadbooks/", import.meta.url))
-  .filter((f) => f.endsWith(".json"))
-  .sort()
-  .map(
-    (f) => JSON.parse(readFileSync(new URL(`../test/fixtures/roadbooks/${f}`, import.meta.url), "utf8")) as Roadbook,
-  );
-
 let seedServer: ChildProcess | null = null;
 let seedDir: string | null = null;
-
-/** A fixture roadbook as the file agentRide hands out (`motoride-roadbook`, docs/roadbook-format.md). */
-function fileOf(rb: Roadbook, n: number): string {
-  const { id: _id, line, ...rest } = rb;
-  return JSON.stringify({
-    format: "motoride-roadbook",
-    version: 1,
-    ...rest,
-    line: encodePolyline(line),
-    origin: { app: "agentRide", roadbook: n, name: rb.name },
-  });
-}
 
 /**
  * The app ships no roadbook (ADR 0044): the ones the smoke rides come from a server, as a rider's do. agentRide's
@@ -304,16 +283,8 @@ async function seedRoadbooksFromServer(): Promise<boolean> {
   check("roadbooks: the test server is up", up);
   if (!up) return false;
   adb("reverse", `tcp:${port}`, `tcp:${port}`);
-  let pushed = 0;
-  for (const [i, rb] of fixtureRoadbooks.entries()) {
-    const res = await fetch(`http://127.0.0.1:${port}/roadbooks`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: fileOf(rb, i + 1),
-    });
-    if (res.ok) pushed++;
-  }
-  const kept = pushed === fixtureRoadbooks.length;
+  const pushed = await pushFixtures(`http://127.0.0.1:${port}`, token);
+  const kept = pushed === fixtureRoadbooks().length;
   check("roadbooks: the server keeps the roadbooks pushed to it", kept, `${pushed}`);
   if (!kept) return false;
   adb(
@@ -337,7 +308,7 @@ async function seedRoadbooksFromServer(): Promise<boolean> {
   // Offered to download, or already kept by an earlier run (the same roadbooks come back with the same origin).
   const offered = await waitFor(/^(Download |FROM YOUR SERVER,)/i, 30);
   check("roadbooks: the list offers them on the server", !!offered);
-  for (let i = 0; i < fixtureRoadbooks.length; i++) {
+  for (let i = 0; i < fixtureRoadbooks().length; i++) {
     if (!(await tap(/^Download /))) break;
     await waitFor("Demo", 30);
     await tap("Back to the list");
