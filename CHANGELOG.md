@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.2.0...v1.3.0) (2026-10-31)
+
+
+### Features
+
+* **library:** do not wait for a file the server has not made ([#48](https://github.com/bhoudebert/mobile-motoride/issues/48)) ([250c8ff](https://github.com/bhoudebert/mobile-motoride/commit/250c8ff2b17e9f412813cbc2ff338f20a99efb08))
+* **library:** show the state of a server roadbook and update it with a tap ([#44](https://github.com/bhoudebert/mobile-motoride/issues/44)) ([dcf8009](https://github.com/bhoudebert/mobile-motoride/commit/dcf800918f82f593be64f557f117a2045d8cd3fe))
+* **ride:** mark the start and the finish of a roadbook on the map ([#47](https://github.com/bhoudebert/mobile-motoride/issues/47)) ([56cffbe](https://github.com/bhoudebert/mobile-motoride/commit/56cffbe3901cbbdfe3836d2712ec7d0aa40a4711))
+
+
+### Bug Fixes
+
+* **library:** follow a roadbook the server renumbers ([#46](https://github.com/bhoudebert/mobile-motoride/issues/46)) ([de119b2](https://github.com/bhoudebert/mobile-motoride/commit/de119b29e859294e72d29b513ed0c5f3942cf89e))
+* **rides:** never lose a ride to a failed save, list a track without its summary ([#49](https://github.com/bhoudebert/mobile-motoride/issues/49)) ([b1316c0](https://github.com/bhoudebert/mobile-motoride/commit/b1316c01baf7ecb78934fa81bc8c8723151e3d42))
+
 ## [1.2.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.1.0...v1.2.0) (2026-10-31)
 
 
