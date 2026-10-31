@@ -24,7 +24,7 @@ test("a Key button opens a card that explains every mark of the map in plain wor
   await fireEvent.press(screen.getByLabelText("Show the map key"));
   expect(screen.getByText("Map key")).toBeTruthy();
   for (const [title, detail] of [
-    ["Your route", /Follow the green line.*arrows/],
+    ["Your route", /Follow the green line.*bright stretch with white chevrons.*turns pale/],
     ["Way to your next point", /Dashed red/],
     ["Route point", /point of your roadbook/],
     ["Stop on the way", /café or fuel stop/],

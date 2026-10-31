@@ -95,7 +95,8 @@ export const ride = {
 
   "ride.legend.title": "Map key",
   "ride.legend.route": "Your route",
-  "ride.legend.routeDetail": "Follow the green line. The arrows show which way to ride.",
+  "ride.legend.routeDetail":
+    "Follow the green line. The bright stretch with white chevrons is the next 3 km, the way to ride now; the part you have ridden turns pale.",
   "ride.legend.approach": "Way to your next point",
   "ride.legend.approachDetail": "Dashed red: the road to join the route, or to the point you chose.",
   "ride.legend.point": "Route point",

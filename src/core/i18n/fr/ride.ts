@@ -98,7 +98,8 @@ export const ride: Translated<typeof English> = {
 
   "ride.legend.title": "Légende de la carte",
   "ride.legend.route": "Votre tracé",
-  "ride.legend.routeDetail": "Suivez la ligne verte. Les flèches indiquent le sens de la route.",
+  "ride.legend.routeDetail":
+    "Suivez la ligne verte. Le tronçon vif aux chevrons blancs, ce sont les 3 prochains km, le sens à suivre maintenant ; la partie déjà roulée devient pâle.",
   "ride.legend.approach": "Chemin vers votre prochain point",
   "ride.legend.approachDetail": "Rouge en pointillés : la route pour rejoindre le tracé, ou le point choisi.",
   "ride.legend.point": "Point du tracé",
