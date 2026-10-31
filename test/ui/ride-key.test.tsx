@@ -26,6 +26,9 @@ test("a Key button opens a card that explains every mark of the map in plain wor
   for (const [title, detail] of [
     ["Your route", /Follow the green line.*bright stretch with white chevrons.*turns pale/],
     ["Way to your next point", /Dashed red/],
+    ["Start", /Where the roadbook begins/],
+    ["Finish", /Where the roadbook ends/],
+    ["Start and finish", /A loop: it ends where it began/],
     ["Route point", /point of your roadbook/],
     ["Stop on the way", /café or fuel stop/],
     ["Hairpin", /Red dot: slow right down/],

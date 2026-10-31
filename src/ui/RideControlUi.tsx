@@ -1,7 +1,10 @@
 import { t } from "../core/i18n/index.ts";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { formatDistance } from "../core/format.ts";
+import routeFinishImage from "../../assets/route-finish.png";
+import routeLoopImage from "../../assets/route-loop.png";
+import routeStartImage from "../../assets/route-start.png";
 import type { JoinOptions, StartChoice } from "../core/skip.ts";
 import { colors, fonts, themed } from "./theme.ts";
 
@@ -174,6 +177,21 @@ export function LegendCard({ onClose, top }: { onClose: () => void; top: number 
         detail={t("ride.legend.approachDetail")}
       />
       <LegendRow
+        swatch={<Image source={routeStartImage} style={styles.swEnd} />}
+        title={t("ride.legend.start")}
+        detail={t("ride.legend.startDetail")}
+      />
+      <LegendRow
+        swatch={<Image source={routeFinishImage} style={styles.swEnd} />}
+        title={t("ride.legend.finish")}
+        detail={t("ride.legend.finishDetail")}
+      />
+      <LegendRow
+        swatch={<Image source={routeLoopImage} style={styles.swEnd} />}
+        title={t("ride.legend.loop")}
+        detail={t("ride.legend.loopDetail")}
+      />
+      <LegendRow
         swatch={<View style={styles.swPoint} />}
         title={t("ride.legend.point")}
         detail={t("ride.legend.pointDetail")}
@@ -330,6 +348,7 @@ const styles = themed(() =>
       borderColor: colors.rust,
       borderStyle: "dashed",
     },
+    swEnd: { width: 26, height: 26 },
     swPoint: {
       width: 20,
       height: 20,

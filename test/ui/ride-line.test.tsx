@@ -5,7 +5,7 @@ import { resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
 import { layers, resetMapMock, sources } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
-import { at, first } from "./helpers.ts";
+import { at, bareRoadbook, first } from "./helpers.ts";
 
 // Spec ride-navigation, "Direction on the line": chevrons, and the part already ridden pale.
 beforeEach(async () => {
@@ -82,4 +82,20 @@ test("the 3 km just ahead of the rider are drawn again on top, bright, with bold
   const later = sources["line-next"].geometry.coordinates as [number, number][];
   expect(near(later[0]!, 20_000)).toBeLessThan(0.001);
   expect(later).not.toEqual(first10);
+});
+
+test("the map marks where a roadbook begins and ends: one mark for a loop, a start and a finish for a road", async () => {
+  // The fixture roadbooks are loops.
+  await render(<RideScreen rb={first()} onBack={() => {}} />);
+  await flush(30);
+  const marks = (sources["route-ends"] as any).features;
+  expect(marks.map((f: any) => f.properties.icon)).toEqual(["route-loop"]);
+  expect(layers["route-ends"].layout["icon-image"]).toEqual(["get", "icon"]);
+});
+
+test("a roadbook that is not a loop has a start and a finish", async () => {
+  await render(<RideScreen rb={bareRoadbook()} onBack={() => {}} />);
+  await flush(30);
+  const marks = (sources["route-ends"] as any).features;
+  expect(marks.map((f: any) => f.properties.icon)).toEqual(["route-finish", "route-start"]);
 });
