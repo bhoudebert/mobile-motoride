@@ -29,6 +29,18 @@ When the ride ends, by End, by leaving the ride, or because the app was closed, 
 - **WHEN** the app was killed during a ride and is opened again
 - **THEN** the track up to the last write is saved as a recovered ride
 
+A ride SHALL NEVER be lost to a failed save. The checkpoint written while the ride ran SHALL be deleted only once the track is on the phone: when the save fails (the phone is full, a write is cut), the checkpoint SHALL be kept, put aside under its own name so that the next ride's checkpoint cannot replace it, and saved as a recovered ride at the next launch, and again at each launch until it is. A file the app could not fill SHALL NOT be left behind empty.
+
+#### Scenario: The phone cannot write the track
+
+- **WHEN** a ride ends and the track cannot be written
+- **THEN** no ride is listed, the checkpoint is kept, and at the next launch the ride is saved as recovered and the rider is told
+
+#### Scenario: A track without its summary
+
+- **WHEN** a track is on the phone but its summary (the small file the list reads) is missing or unreadable, as when a save was cut between the two
+- **THEN** the ride is listed all the same, its summary rebuilt from the GPX (the roadbook and where it came from, the state, the times, the distance, the climb and the peaks when the file says them, else worked out from the points) and written back, the track is not touched, and the ride can be shared; a file with fewer than two points is left alone and not listed
+
 ### Requirement: Keep the readings of the gauges
 
 When lean or braking is on and the phone is calibrated (spec instruments), each point of the track SHALL also carry the lean, the lateral G, the braking G and the smoothed turning rate at that moment. The GPX SHALL write the altitude as the point's standard elevation and the sensor readings as extensions in the application's own namespace, which another program ignores, and its metadata SHALL carry the climb when the track has altitudes and the peak lean to the left and to the right when it has lean readings. The list of rides SHALL say them under the ride's line, as "Climb 412 m · Lean 38° L · 41° R", and say nothing for a ride that has none. A ride made without the gauges SHALL be saved as before.
@@ -49,7 +61,7 @@ The menu SHALL open the list of recorded rides, newest first, each with the road
 
 ### Requirement: Which roadbook it followed
 
-The GPX SHALL say which roadbook the ride followed in a way another program can check: the roadbook's name and its identifier in this app, and, for a roadbook that came from agentRide, the program's own number for it with its name. An identifier alone SHALL NOT be enough to match, because numbers repeat from one library to another: a reader SHALL take a match only when the name agrees too.
+The roadbook is what the app rode on: a ride that has no agentRide origin (a roadbook imported from a GPX, or a route to a place) SHALL simply carry no origin, in its summary and its GPX, and is listed and shared like any other; a summary rebuilt from a GPX that names no roadbook has an empty roadbook identifier and takes its name from the GPX. The GPX SHALL say which roadbook the ride followed in a way another program can check: the roadbook's name and its identifier in this app, and, for a roadbook that came from agentRide, the program's own number for it with its name. An identifier alone SHALL NOT be enough to match, because numbers repeat from one library to another: a reader SHALL take a match only when the name agrees too.
 
 #### Scenario: A number that means something else
 

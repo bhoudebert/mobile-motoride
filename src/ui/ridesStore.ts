@@ -11,7 +11,7 @@ import {
   type RideState,
   type TrackPoint,
 } from "../core/recording.ts";
-import { parseRideGpx } from "../core/review.ts";
+import { metaFromGpx, parseRideGpx } from "../core/review.ts";
 import type { RoadbookOrigin } from "../core/types.ts";
 
 const folder = () => new Directory(Paths.document, "rides");
@@ -23,8 +23,15 @@ const ensure = () => {
 async function put(name: string, text: string) {
   ensure();
   const f = file(name);
-  if (!f.exists) f.create();
-  await f.write(text);
+  const created = !f.exists;
+  if (created) f.create();
+  try {
+    await f.write(text);
+  } catch (e) {
+    // A file this call made and could not fill is not left empty behind: an empty track is not a ride.
+    if (created) f.delete();
+    throw e;
+  }
 }
 
 /** What a ride is called while it runs: written about once a minute, so a closed app loses little (spec ride-recording). */
@@ -72,33 +79,88 @@ export async function saveRide(c: Checkpoint, endedAt: number, state: RideState)
   return meta;
 }
 
-/** The ride a closed app left behind, saved as recovered; null when there is none worth keeping. */
-export async function recoverRide(): Promise<RideMeta | null> {
+/** Where a checkpoint is put aside when its ride could not be saved, so a ride that follows cannot overwrite it. */
+const UNSAVED = (startedAt: number) => `unsaved-${startedAt}.json`;
+
+/**
+ * The ride could not be saved: keep what was written while it ran. The checkpoint is renamed (copied, then deleted) so the next
+ * ride's checkpoint does not replace it; if even that fails it stays where it is. `recoverRides` saves it at the next launch.
+ */
+export async function keepUnsaved(startedAt: number): Promise<void> {
   try {
     const f = file(CHECKPOINT);
-    if (!f.exists) return null;
-    const c = JSON.parse(await f.text()) as Checkpoint & { v?: number };
+    if (!f.exists) return;
+    await put(UNSAVED(startedAt), await f.text());
     f.delete();
-    if (c.v !== 1 || !Array.isArray(c.points) || c.points.length < 2) return null;
-    return await saveRide(c, c.points[c.points.length - 1]!.time, c.completed ? "completed" : "recovered");
   } catch {
-    return null;
+    // It stays as in-progress.json: still there for the next launch.
   }
 }
 
-/** The recorded rides, newest first; one whose meta cannot be read is left out. */
+/** The rides a closed app, or a save that failed, left behind, each saved as recovered; empty when there is none worth keeping. */
+export async function recoverRides(): Promise<RideMeta[]> {
+  const out: RideMeta[] = [];
+  try {
+    const dir = folder();
+    const left = dir
+      .list()
+      .filter((e) => e instanceof File && (e.name === CHECKPOINT || /^unsaved-\d+\.json$/.test(e.name)));
+    for (const f of left as File[]) {
+      try {
+        const c = JSON.parse(await f.text()) as Checkpoint & { v?: number };
+        if (c.v !== 1 || !Array.isArray(c.points) || c.points.length < 2) {
+          f.delete();
+          continue;
+        }
+        const meta = await saveRide(c, c.points[c.points.length - 1]!.time, c.completed ? "completed" : "recovered");
+        // Deleted only once the track is on the phone: a failed save leaves it for the next launch.
+        f.delete();
+        if (meta) out.push(meta);
+      } catch {
+        // Unreadable or not savable now: left in place, tried again at the next launch.
+      }
+    }
+  } catch {
+    // No folder to read.
+  }
+  return out;
+}
+
+/**
+ * The recorded rides, newest first. A ride is its track; its summary (`.json`) is what the list reads. A track with no summary,
+ * or one that cannot be read (a save cut between the two files), is listed all the same: the summary is rebuilt from the GPX and
+ * written back. The track is never touched, and one that cannot be read as a ride is left alone and left out.
+ */
 export async function listRides(): Promise<RideMeta[]> {
   try {
     const dir = folder();
     if (!dir.exists) return [];
     const out: RideMeta[] = [];
-    for (const entry of dir.list()) {
-      if (!(entry instanceof File) || !entry.name.endsWith(".json") || entry.name === CHECKPOINT) continue;
+    const entries = dir.list().filter((e): e is File => e instanceof File);
+    const listed = new Set<string>();
+    for (const entry of entries) {
+      if (!entry.name.endsWith(".json") || entry.name === CHECKPOINT || entry.name.startsWith("unsaved-")) continue;
       try {
         const meta = parseMeta(await entry.text());
-        if (meta && file(`${meta.id}.gpx`).exists) out.push(meta);
+        if (meta && file(`${meta.id}.gpx`).exists) {
+          out.push(meta);
+          listed.add(meta.id);
+        }
       } catch {
-        // Unreadable: skipped.
+        // Unreadable: its track, if there is one, is looked at below.
+      }
+    }
+    for (const entry of entries) {
+      if (!entry.name.endsWith(".gpx")) continue;
+      const id = entry.name.slice(0, -".gpx".length);
+      if (listed.has(id)) continue;
+      try {
+        const meta = metaFromGpx(id, await entry.text());
+        if (!meta) continue;
+        out.push(meta);
+        await put(`${id}.json`, serializeMeta(meta)).catch(() => {});
+      } catch {
+        // Not a track we can read: left alone.
       }
     }
     return out.sort((a, b) => b.startedAt - a.startedAt);

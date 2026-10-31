@@ -29,6 +29,7 @@ export interface TrackPoint {
 }
 
 export type RideState = "completed" | "stopped" | "recovered";
+export const STATES_OF_RIDE: readonly RideState[] = ["completed", "stopped", "recovered"];
 
 /** What the list of rides needs, kept beside the track so the list never reads the track. */
 export interface RideMeta {
