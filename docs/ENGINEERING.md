@@ -12,7 +12,7 @@ agentRide ──GPX──▶ [bundle script] ──JSON──▶ app
 
 - **Expo** (managed workflow with a development build, ADR 0002) and
   **MapLibre Native** for the map (ADR 0003). Expo Go cannot run MapLibre.
-- **Local-first**: no backend in v1 (ADR 0004). Roadbooks ship inside the app.
+- **Local-first**: no backend in v1 (ADR 0004). The app ships no roadbook (ADR 0044): a rider imports a file or fetches from their server.
 - **Core is pure** so the safety logic (corner detection, warning timing) is
   tested without a phone (ADR 0005, 0006).
 
@@ -316,3 +316,7 @@ calibration are kept in AsyncStorage (`ui/instrumentSettings.ts`). The card (`ui
 
 See `ROADMAP.md`: traffic, danger zones, crash detection, accounts, sync,
 offline tiles, iOS.
+
+## Orientation
+
+The app is portrait everywhere except the ride screen (ADR 0045): `app.json` allows every orientation, `src/ui/orientation.ts` locks portrait at start and when the ride screen closes, and the ride screen unlocks while it is open. Held sideways, the panel becomes a column on the left and the rest of the screen is a "stage" for the map and everything that stands on it (`src/core/layout.ts` sizes the column).

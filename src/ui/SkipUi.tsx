@@ -14,13 +14,28 @@ export const UNDO_TIMEOUT_MS = 7_500;
  */
 export const SKIP_SQUARE = 92;
 export const SKIP_GAP = 8;
+/** Sideways the square is smaller: a 360 dp tall screen cannot spare 92 (ADR 0045). */
+export const SKIP_SQUARE_SIDE = 64;
 
 /**
  * At the top, in the row of the banners, at the right: the point that can be skipped. Always available, at any speed (spec
  * live-corrections): the rider who finds the road blocked is riding. The banners leave room for it. For 7.5 seconds after a skip
  * it is the UNDO: yellow at first, it fades to the green of SKIP STEP, which it then is again.
  */
-export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: number; onPress: () => void }) {
+export function SkipSquare({
+  skip,
+  top,
+  onPress,
+  compact = false,
+  left,
+}: {
+  skip: SkipState;
+  top: number;
+  onPress: () => void;
+  compact?: boolean;
+  /** Sideways the square stands at the top left of the map, at this distance from its edge (else at the right). */
+  left?: number;
+}) {
   const last = skip.last;
   const fade = useRef(new Animated.Value(0)).current;
   const forget = useRef(skip.forgetLast);
@@ -48,12 +63,22 @@ export function SkipSquare({ skip, top, onPress }: { skip: SkipState; top: numbe
       accessibilityRole="button"
       accessibilityLabel={undoing ? t("ride.skip.undoA11y") : t("ride.skip.button", { name })}
       accessibilityState={{ disabled: !undoing && !skip.canSkip }}
-      style={[styles.skipPress, { top }]}
+      style={[
+        styles.skipPress,
+        { top },
+        left !== undefined && { left, right: undefined },
+        compact && styles.skipCompact,
+      ]}
     >
       <Animated.View style={[styles.skip, undoing ? { backgroundColor: background } : null]}>
         <Animated.Text
-          style={[styles.skipText, undoing ? { color: ink, textTransform: "uppercase" } : null]}
-          numberOfLines={4}
+          style={[
+            styles.skipText,
+            compact && styles.skipTextCompact,
+            undoing ? { color: ink, textTransform: "uppercase" } : null,
+          ]}
+          // UNDO is one word on one line, however small the square: a word is never broken ("UND" over "O").
+          numberOfLines={undoing ? 1 : 2}
           adjustsFontSizeToFit
           minimumFontScale={0.4}
         >
@@ -114,8 +139,10 @@ const styles = themed(() =>
       borderRadius: 4,
       alignItems: "center",
       justifyContent: "center",
-      padding: 6,
+      padding: 4,
     },
+    skipCompact: { width: SKIP_SQUARE_SIDE, height: SKIP_SQUARE_SIDE },
+    skipTextCompact: { fontSize: 17 },
     skipText: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 26, textAlign: "center" },
     card: {
       position: "absolute",

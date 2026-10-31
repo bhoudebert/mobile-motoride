@@ -9,6 +9,7 @@ import spaceGroteskBold from "./assets/fonts/SpaceGrotesk-Bold.ttf";
 import spaceGroteskMedium from "./assets/fonts/SpaceGrotesk-Medium.ttf";
 import jetBrainsMono from "./assets/fonts/JetBrainsMono-Regular.ttf";
 import { DestinationScreen } from "./src/ui/DestinationScreen.tsx";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "./src/ui/ErrorBoundary.tsx";
 import { HomeScreen, roadbookDetail } from "./src/ui/HomeScreen.tsx";
 import { RideScreen } from "./src/ui/RideScreen.tsx";
@@ -31,6 +32,7 @@ import { t } from "./src/core/i18n/index.ts";
 import { useLanguage, useLanguageSetting } from "./src/ui/languageSetting.ts";
 import { useScheme, useThemeSetting } from "./src/ui/themeSetting.ts";
 import { useRecents } from "./src/ui/recents.ts";
+import { lockPortrait } from "./src/ui/orientation.ts";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -59,6 +61,8 @@ export default function App() {
   const scheme = useScheme();
   const crashSettings = useCrashSettings();
   const ready = (fontsLoaded || fontError !== null) && lang.ready && look.ready;
+  // Every screen is portrait; the ride screen lets the phone turn while it is open (ADR 0045).
+  useEffect(() => lockPortrait(), []);
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
@@ -131,7 +135,7 @@ export default function App() {
   const leave = (from: "home" | "roadbooks") => setScreen(from === "home" ? { name: "home" } : { name: "roadbooks" });
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <ImportNoticeBar
         notice={library.notice ?? info}
@@ -215,6 +219,6 @@ export default function App() {
           onTheme={look.change}
         />
       )}
-    </>
+    </SafeAreaProvider>
   );
 }

@@ -185,14 +185,38 @@ start, it is 58 km/h. The distance remaining keeps the whole name ("122 km left,
 
 ### Requirement: The compass
 
-While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed.
+While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed. There SHALL be only one compass, and the map's own compass SHALL be off: upright the chip stands in the row of chips by the traffic chip; held sideways (ADR 0045) the same chip stands at the top right of the map, with the notices between it and the skip square at the top left.
 
 #### Scenario: Riding east
 
 - **WHEN** the rider rides facing east
 - **THEN** the chip reads "E", its needle points left and it is named "Heading: east"
 
+#### Scenario: Sideways
+
+- **WHEN** the phone is held sideways while riding
+- **THEN** the compass chip is at the top right of the map and not in the row of chips
+
 #### Scenario: Before Start
 
 - **WHEN** the ride screen is open and the rider has not pressed Start
 - **THEN** there is no compass chip
+
+### Requirement: Landscape on the ride screen
+
+The phone SHALL be free to turn on the ride screen, and only there: every other screen SHALL stay upright, and the app SHALL lock the phone upright again as soon as the ride screen closes (ADR 0045). A sideways screen is short, so the map SHALL be kept clear. Held sideways, the ride screen SHALL put everything the rider reads in a column at the left, a third of the width and between 260 and 340 dp, the full height: at its head the instruction and the warning of the next corner as **one card** (the instruction with its glyph, "Right in 150 m, then left"; when a corner warning is on, the card turns yellow, or rust for a hairpin, and reads the corner first, "SHARP RIGHT", "110 m · ride at 30 km/h", then the instruction), under it the speed, the limit and the distance left, and at its foot Back, Pause and End, always in reach and never folded away; the column SHALL NOT scroll, everything in it fitting the screen. The corner warning SHALL NOT also be drawn on the map. The other notices (a camera or zone ahead, paused, locating, a route being found, the map or the location off) SHALL stay on the map as one short line at its top; the status bar SHALL be hidden and the top SHALL keep no margin, the camera being at a side; the skip square SHALL stand at the top left of the map, above the left gauges, smaller, and the notices SHALL lie between it and the compass; the gauges SHALL be shared between the left and the right side of the map, never one tall stack; the chips and the map buttons SHALL stand at the bottom of the map, the buttons in two rows of four, nothing covering another. On an iPhone the sides SHALL leave room for the cut-out. Cards (sheets) SHALL keep covering the screen and scroll. A phone that cannot turn, or an older build without the module, SHALL stay upright and work as before.
+
+#### Scenario: Turning the phone on the ride
+
+- **WHEN** the ride screen is open and the phone is turned sideways
+- **THEN** the panel is a column on the left, the map fills the rest with only its buttons, chips, gauges, compass and the skip square on it, and Start (or Back and End) can be pressed
+
+#### Scenario: A corner ahead, sideways
+
+- **WHEN** the phone is sideways and a sharp right is 110 m ahead
+- **THEN** the card at the head of the column is yellow and reads "SHARP RIGHT" and the distance and speed, with the instruction under it, and no yellow notice is drawn on the map
+
+#### Scenario: Leaving the ride
+
+- **WHEN** the rider goes back to the list with the phone sideways
+- **THEN** the list is upright

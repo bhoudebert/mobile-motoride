@@ -3,7 +3,7 @@
     "name": "MotoRide",
     "slug": "mobile-motoride",
     "scheme": "mobilemotoride",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
@@ -58,6 +58,7 @@
     "plugins": [
       "@maplibre/maplibre-react-native",
       "expo-dev-client",
+      ["expo-screen-orientation", { "initialOrientation": "PORTRAIT_UP" }],
       [
         "expo-location",
         {

@@ -9,8 +9,21 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { useKeepAwake } from "expo-keep-awake";
 import { speak, stopSpeaking } from "./speech.ts";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, BackHandler, Easing, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import {
+  Animated,
+  BackHandler,
+  Easing,
+  Linking,
+  Platform,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import arrowImage from "../../assets/arrow.png";
 import riderImage from "../../assets/rider.png";
 import pumpImage from "../../assets/pump.png";
@@ -42,11 +55,13 @@ import { nextVoice, speaks, voiceName, type VoiceMode } from "../core/voice.ts";
 import { t } from "../core/i18n/index.ts";
 import type { MotionReading } from "../core/instruments.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
+import { hudWidth, isLandscape } from "../core/layout.ts";
+import { lockPortrait, unlockOrientation } from "./orientation.ts";
 import { INSTRUCTION_BAR_HEIGHT, INSTRUCTION_BAR_TOP, InstructionBar } from "./InstructionBar.tsx";
 import { JunctionCard } from "./JunctionCard.tsx";
 import { ATTRIBUTION, BASEMAP_LABEL, BASEMAP_ORDER, BASEMAP_STYLES, type Basemap } from "./mapStyle.ts";
 import { EndConfirm, JoinCard, LegendCard, StartFromList } from "./RideControlUi.tsx";
-import { SKIP_GAP, SKIP_SQUARE, SkipConfirm, SkipSquare } from "./SkipUi.tsx";
+import { SKIP_GAP, SKIP_SQUARE, SKIP_SQUARE_SIDE, SkipConfirm, SkipSquare } from "./SkipUi.tsx";
 import { SpeedLimitSign } from "./SpeedLimitSign.tsx";
 import { colors, fonts, themed } from "./theme.ts";
 import { useRide, type RideMode } from "./useRide.ts";
@@ -79,9 +94,14 @@ import { runCalibration, useInstruments } from "./useInstruments.ts";
 
 type Tone = "rust" | "signal" | "ink";
 
-const BELOW_BAR = INSTRUCTION_BAR_TOP + INSTRUCTION_BAR_HEIGHT + 8;
+/** Landscape (ADR 0045): the status bar is hidden and the camera is at a side, so the top has no margin to keep. */
+const LANDSCAPE_BAR_TOP = 8;
+/** Sideways the compass chip (48 dp) stands at the top right of the map, the skip square at the top left; notices lie between. */
+const COMPASS_SPACE = 8 + 48 + 8;
+/** What an iPhone held sideways needs on each side when the system cannot say (no provider, as under test). */
+const LANDSCAPE_SIDE_FALLBACK = Platform.OS === "ios" ? 47 : 0;
+/** The panel's column also needs room for the map buttons: the buttons keep a column to themselves. */
 /** The gauges start under the room of a warning banner, so a warning is never covered. */
-const GAUGES_TOP = BELOW_BAR + 120;
 const FOLLOW_ZOOM = 16;
 /** How long the buttons stay once the rider has asked for them. */
 const CONTROLS_SHOWN_MS = 8000;
@@ -92,14 +112,48 @@ const SLIDE_MS = 220;
 /** A drag this long (dp) and mostly vertical is taken by the panel, not by the button under the finger. */
 const DRAG_DP = 10;
 const ROW_BLOCK = 64;
-const OVERVIEW_PADDING = { top: BELOW_BAR + 20, right: 40, bottom: 320, left: 40 };
+const overviewPadding = (belowBar: number, landscape: boolean) => ({
+  top: belowBar + 20,
+  right: 40,
+  bottom: landscape ? 40 : 320,
+  left: 40,
+});
 
-function Banner({ tone, title, sub, right }: { tone: Tone; title: string; sub: string; right: number }) {
+function Banner({
+  tone,
+  title,
+  sub,
+  right,
+  top,
+  compact = false,
+  left = 12,
+}: {
+  tone: Tone;
+  title: string;
+  sub: string;
+  right: number;
+  top: number;
+  compact?: boolean;
+  left?: number;
+}) {
   const text = tone === "signal" ? colors.onSignal : tone === "rust" ? colors.onRust : colors.paper;
   return (
-    <View style={[styles.banner, { backgroundColor: colors[tone], right }]} accessibilityLiveRegion="polite">
-      <Text style={[styles.bannerTitle, { color: text }]}>{title}</Text>
-      <Text style={[styles.bannerSub, { color: text }]}>{sub}</Text>
+    <View
+      style={[styles.banner, compact && styles.bannerCompact, { backgroundColor: colors[tone], right, top, left }]}
+      accessibilityLiveRegion="polite"
+    >
+      <Text
+        style={[styles.bannerTitle, compact && styles.bannerTitleCompact, { color: text }]}
+        numberOfLines={compact ? 1 : undefined}
+      >
+        {title}
+      </Text>
+      <Text
+        style={[styles.bannerSub, compact && styles.bannerSubCompact, { color: text }]}
+        numberOfLines={compact ? 1 : undefined}
+      >
+        {sub}
+      </Text>
     </View>
   );
 }
@@ -141,6 +195,28 @@ export function RideScreen({
   onRideSaved?: (meta: RideMeta) => void;
 }) {
   useKeepAwake();
+  // The phone may turn on this screen only (ADR 0045); in landscape the panel is a column and the map takes the rest.
+  const { width, height } = useWindowDimensions();
+  const landscape = isLandscape(width, height);
+  // The camera cut-out, the notch and the system bars as the system reports them for the way the phone is held.
+  const insets = useContext(SafeAreaInsetsContext);
+  const sideL = landscape ? (insets ? insets.left : LANDSCAPE_SIDE_FALLBACK) : 0;
+  const sideR = landscape ? (insets ? insets.right : LANDSCAPE_SIDE_FALLBACK) : 0;
+  const hudW = landscape ? hudWidth(width) + sideL : 0;
+  const topPad = landscape ? Math.max(LANDSCAPE_BAR_TOP, insets?.top ?? 0) : 0;
+  // Sideways the instruction bar is in the panel column, so the map's top row (warnings, skip) starts at the top.
+  const barTop = landscape ? topPad : INSTRUCTION_BAR_TOP;
+  const belowBar = landscape ? topPad : barTop + INSTRUCTION_BAR_HEIGHT + 8;
+  const gaugesTop = landscape ? topPad + SKIP_SQUARE_SIDE + 8 : belowBar + 120;
+  // Sideways the status bar goes (the clock and the icons would cover the top of the screen the ride needs).
+  useEffect(() => {
+    StatusBar.setHidden(landscape, "fade");
+    return () => StatusBar.setHidden(false, "fade");
+  }, [landscape]);
+  useEffect(() => {
+    unlockOrientation();
+    return lockPortrait;
+  }, []);
   // Development builds only: a scripted ride that shows junction guidance rides a roadbook given junctions.
   const [demoJunctions, setDemoJunctions] = useState(false);
   const rb = useMemo(() => (demoJunctions ? withDemoJunctions(roadbook) : roadbook), [roadbook, demoJunctions]);
@@ -148,6 +224,8 @@ export function RideScreen({
   const [paused, setPaused] = useState(false);
   // The panel's own height: the map buttons stand on its top edge, whatever it holds.
   const [panelH, setPanelH] = useState(PANEL_GUESS);
+  // In landscape the panel is a column at the left, so nothing stands on its top edge.
+  const lower = landscape ? (insets?.bottom ?? 0) : panelH;
   const [voice, setVoice] = useVoiceMode();
   const [replay, setReplay] = useState<ReplayPhase[] | null>(null);
   /** Only the `startfrom` scenario applies a start point to a scripted ride. */
@@ -234,8 +312,10 @@ export function RideScreen({
     if ("done" in result) setCalibration(result.done);
     return result;
   };
+  // Sideways the skip square is at the top left of the map: the notices start after it.
+  const bannerLeft = landscape && (skip.plan || skip.last) ? 8 + SKIP_SQUARE_SIDE + SKIP_GAP : 12;
   /** A banner stops short of the skip square, so it is never hidden behind it. */
-  const bannerRight = skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
+  const bannerRight = landscape ? COMPASS_SPACE : skip.plan || skip.last ? 12 + SKIP_SQUARE + SKIP_GAP : 12;
   // A route being found, or the point passed, takes the question away.
   useEffect(() => {
     if (confirming && !skip.canSkip) setConfirming(false);
@@ -291,7 +371,8 @@ export function RideScreen({
     }),
     [slide],
   );
-  const showButtons = !running || controls || closing;
+  // Sideways the buttons stay: the column has the room, and the grabber that folds them away is not offered.
+  const showButtons = !running || controls || closing || landscape;
   useEffect(() => {
     if (!running) {
       slide.setValue(0);
@@ -377,8 +458,32 @@ export function RideScreen({
 
   const overview = () => {
     setFollow(false);
-    camera.current?.fitBounds(bounds, { padding: OVERVIEW_PADDING, bearing: 0, pitch: 0, duration: 700 });
+    camera.current?.fitBounds(bounds, {
+      padding: overviewPadding(belowBar, landscape),
+      bearing: 0,
+      pitch: 0,
+      duration: 700,
+    });
   };
+
+  // Turning the phone resizes the map under a camera fitted to the old size: before the ride, fit the route again.
+  const wasLandscape = useRef(landscape);
+  useEffect(() => {
+    if (wasLandscape.current === landscape) return;
+    wasLandscape.current = landscape;
+    if (running) return;
+    const timer = setTimeout(
+      () =>
+        camera.current?.fitBounds(bounds, {
+          padding: overviewPadding(belowBar, landscape),
+          bearing: 0,
+          pitch: 0,
+          duration: 0,
+        }),
+      400,
+    );
+    return () => clearTimeout(timer);
+  }, [landscape, running, bounds, belowBar]);
 
   const start = (m: RideMode) => {
     setDemoJunctions(false);
@@ -517,6 +622,194 @@ export function RideScreen({
     camera.current?.easeTo({ center, zoom: zoom + delta, duration: 300 });
   };
 
+  const hudBody = (
+    <>
+      {nav?.junction ? <JunctionCard junction={nav.junction.junction} /> : null}
+      {running && !modalOpen && !landscape ? (
+        <Pressable
+          style={styles.grabber}
+          onPress={() => setControls((c) => !c)}
+          accessibilityRole="button"
+          accessibilityLabel={controls ? t("ride.a11y.hideButtons") : t("ride.a11y.showButtons")}
+          accessibilityState={{ expanded: controls }}
+          accessibilityActions={[{ name: controls ? "collapse" : "expand" }]}
+          onAccessibilityAction={() => setControls((c) => !c)}
+        >
+          <View style={styles.grabberPill} />
+        </Pressable>
+      ) : null}
+      <View style={[styles.row, landscape && styles.rowWrap]}>
+        {/* Sideways and not yet riding, a speed and a limit are nothing: the room goes to the options below. */}
+        {landscape && !running ? null : (
+          <View>
+            <View style={[styles.speedBadge, nav?.over && styles.speedOver]}>
+              <Text style={[styles.speed, landscape && styles.speedSide, nav?.over && styles.speedTextOver]}>
+                {speed ?? "–"}
+              </Text>
+            </View>
+            <Text style={styles.unit}>
+              km/h
+              {mode === "demo"
+                ? paused
+                  ? t("ride.unit.demoPaused")
+                  : t("ride.unit.demo")
+                : paused
+                  ? t("ride.unit.paused")
+                  : ""}
+            </Text>
+          </View>
+        )}
+        {landscape && !running ? null : (
+          <SpeedLimitSign limit={nav?.speedLimit ?? UNKNOWN_LIMIT} over={nav?.over ?? false} compact={landscape} />
+        )}
+        <View
+          style={[styles.col, landscape && styles.colSide]}
+          accessible
+          accessibilityLabel={
+            finished
+              ? undefined
+              : t("ride.remainingName", {
+                  distance: formatDistance(nav?.remainingM ?? rb.totalM),
+                  duration: formatDuration(eta.seconds),
+                  clock: formatClock(eta.arrivalMs),
+                })
+          }
+        >
+          {/* The next fuel stop stands in the panel over the distance left, not on the map. */}
+          {modalOpen ? null : (
+            <FuelChip
+              inline
+              status={fuel.status}
+              stops={fuel.stops}
+              progressM={nav?.progressM ?? 0}
+              onPress={() => setFuelOpen(true)}
+            />
+          )}
+          <View style={landscape ? styles.colTexts : undefined}>
+            <Text style={[styles.big, landscape && styles.bigSide]}>
+              {formatDistance(nav?.remainingM ?? rb.totalM)}
+            </Text>
+            <Text style={styles.unit}>
+              {finished
+                ? t("ride.unit.demoFinished")
+                : `${formatDuration(eta.seconds)} · ${formatClock(eta.arrivalMs)}`}
+            </Text>
+          </View>
+        </View>
+      </View>
+      {/* Sideways and riding, the card above says all of it, in less room. */}
+      {landscape && running ? null : (
+        <Text style={styles.line} numberOfLines={1}>
+          {nav?.phase === "approach"
+            ? `${ride.approachName ? t("ride.line.to", { place: ride.approachName }) : ride.approachTarget === "route" ? t("ride.line.backToRoute") : t("ride.line.toStart")} · ${formatDistance(nav.toStartM)}`
+            : nav?.nextStop
+              ? t("ride.line.next", { name: nav.nextStop.name, distance: formatDistance(nav.nextStop.distanceM) })
+              : rb.roadbook.name}
+        </Text>
+      )}
+      {next && !(landscape && running) ? (
+        <Text style={styles.line}>
+          {t("ride.line.corner", {
+            severity: t(next.corner.severity === "hairpin" ? "ride.sev.hairpin" : "ride.sev.sharp"),
+            direction: t(next.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right"),
+            distance: formatDistance(next.distanceM),
+            speed: next.corner.advisoryKmh,
+          })}
+        </Text>
+      ) : null}
+      {!running ? <Text style={styles.note}>{t("ride.note.advisory")}</Text> : null}
+      {!running && !modalOpen && server ? <LiveShareChoice on={shareWanted} onChange={setShareWanted} /> : null}
+      {!running && basemap !== "off" ? (
+        <OfflineRow state={offline.state} onSave={offline.save} onRemove={offline.remove} />
+      ) : null}
+    </>
+  );
+  const buttonRow = (
+    <>
+      {showButtons ? (
+        <Animated.View
+          testID="ride-row"
+          style={running && !landscape ? rowStyle : undefined}
+          importantForAccessibility={controls || !running ? "auto" : "no-hide-descendants"}
+          accessibilityElementsHidden={running && !controls}
+        >
+          {/* The sharing line goes with the buttons: shown when they are, folded away with them. */}
+          {running && !modalOpen && server && mode === "gps" && !replay && !shareWanted ? (
+            <LiveShareOffer onShare={() => setShareWanted(true)} />
+          ) : null}
+          {!modalOpen && liveShare.status && liveShare.status !== "stopped" ? (
+            <LiveShareLine
+              status={liveShare.status}
+              canLink={liveShare.canLink}
+              onLink={liveShare.sendLink}
+              onStop={liveShare.stop}
+            />
+          ) : null}
+          <View style={[styles.row, running && styles.rowSlide]}>
+            <Pressable
+              style={[styles.button, landscape && styles.buttonSide, styles.secondary]}
+              onPress={goBack}
+              accessibilityRole="button"
+              accessibilityLabel={backLabel}
+            >
+              <Text style={[styles.buttonText, { color: colors.mossText }]}>{t("ride.btn.back")}</Text>
+            </Pressable>
+            {running && prep === "ready" ? (
+              <Pressable
+                style={[styles.button, landscape && styles.buttonSide, styles.secondary]}
+                onPress={() => {
+                  setTouched((t) => t + 1);
+                  setPaused((p) => !p);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  paused
+                    ? mode === "demo"
+                      ? "ride.a11y.resumeDemo"
+                      : "ride.a11y.resumeRide"
+                    : mode === "demo"
+                      ? "ride.a11y.pauseDemo"
+                      : "ride.a11y.pauseRide",
+                )}
+              >
+                <Text style={[styles.buttonText, { color: colors.mossText }]}>
+                  {paused ? t("ride.btn.resume") : t("ride.btn.pause")}
+                </Text>
+              </Pressable>
+            ) : null}
+            {running ? (
+              <Pressable
+                style={[styles.button, landscape && styles.buttonSide, styles.stop]}
+                onPress={() => (rideOn ? setEnding("end") : stop())}
+                accessibilityRole="button"
+                accessibilityLabel={mode === "gps" ? t("ride.a11y.endRide") : t("ride.a11y.endDemo")}
+              >
+                <Text style={[styles.buttonText, { color: colors.onRust }]}>{t("ride.btn.end")}</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Pressable
+                  style={[styles.button, landscape && styles.buttonSide, styles.secondary]}
+                  onPress={() => start("demo")}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.buttonText, { color: colors.mossText }]}>{t("ride.btn.demo")}</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.button, landscape && styles.buttonSide, styles.start]}
+                  onPress={() => start("gps")}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.buttonText, { color: colors.onSignal }]}>{t("ride.btn.start")}</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </Animated.View>
+      ) : null}
+    </>
+  );
+
   return (
     <View style={styles.screen}>
       {/* The ride screen proper. While a sheet is open it leaves the screen reader's tree: only the sheet can be reached. */}
@@ -526,114 +819,40 @@ export function RideScreen({
         importantForAccessibility={modalOpen ? "no-hide-descendants" : "auto"}
         accessibilityElementsHidden={modalOpen}
       >
-        <Map
-          // A new style drops the layers added by the app: remount the map so they are drawn again.
-          key={basemap}
-          ref={map}
-          style={StyleSheet.absoluteFill}
-          mapStyle={BASEMAP_STYLES[basemap]}
-          onDidFailLoadingMap={basemapFailedNow}
-          attribution={false}
-          logo={false}
-          onRegionWillChange={(e) => {
-            if (e.nativeEvent.userInteraction) setFollow(false);
-          }}
-        >
-          <Camera ref={camera} initialViewState={{ bounds, padding: OVERVIEW_PADDING }} />
-          <Images images={{ arrow: { source: arrowImage, sdf: true }, rider: riderImage, pump: pumpImage }} />
-          <GeoJSONSource id="line" data={line}>
-            <Layer
-              id="line-casing"
-              type="line"
-              paint={{ "line-color": colors.paper, "line-width": 11 }}
-              layout={{ "line-cap": "round", "line-join": "round" }}
-            />
-            <Layer
-              id="line"
-              type="line"
-              paint={{ "line-color": colors.route, "line-width": 7 }}
-              layout={{ "line-cap": "round", "line-join": "round" }}
-            />
-            <Layer
-              id="line-arrows"
-              type="symbol"
-              layout={{
-                "symbol-placement": "line",
-                "symbol-spacing": 70,
-                "icon-image": "arrow",
-                "icon-size": 0.4,
-                "icon-rotation-alignment": "map",
-                "icon-allow-overlap": true,
-                "icon-ignore-placement": true,
-              }}
-              paint={{ "icon-color": colors.paper }}
-            />
-          </GeoJSONSource>
-          {traffic.stretches.length > 0 ? (
-            <GeoJSONSource id="traffic" data={trafficLines}>
+        {/* Map and what stands on it: the whole screen, or what the panel column leaves in landscape. */}
+        <View testID="ride-stage" style={[styles.stage, landscape && { left: hudW, right: sideR }]}>
+          <Map
+            // A new style drops the layers added by the app: remount the map so they are drawn again.
+            key={basemap}
+            ref={map}
+            style={StyleSheet.absoluteFill}
+            mapStyle={BASEMAP_STYLES[basemap]}
+            onDidFailLoadingMap={basemapFailedNow}
+            attribution={false}
+            logo={false}
+            // The map's own compass is off: the one compass is our chip, in the row of chips upright and at the top right sideways.
+            compass={false}
+            onRegionWillChange={(e) => {
+              if (e.nativeEvent.userInteraction) setFollow(false);
+            }}
+          >
+            <Camera ref={camera} initialViewState={{ bounds, padding: overviewPadding(belowBar, landscape) }} />
+            <Images images={{ arrow: { source: arrowImage, sdf: true }, rider: riderImage, pump: pumpImage }} />
+            <GeoJSONSource id="line" data={line}>
               <Layer
-                id="traffic"
+                id="line-casing"
                 type="line"
-                paint={{
-                  "line-color": ["match", ["get", "level"], "slow", LEVEL_COLOR.slow, LEVEL_COLOR.heavy],
-                  "line-width": 7,
-                  "line-opacity": 0.9,
-                }}
-                layout={{ "line-cap": "round", "line-join": "round" }}
-              />
-            </GeoJSONSource>
-          ) : null}
-          {fuel.stops.length > 0 ? (
-            <GeoJSONSource id="fuel" data={poisCollection(fuel.stops)}>
-              <Layer
-                id="fuel"
-                type="symbol"
-                layout={{
-                  "icon-image": "pump",
-                  "icon-size": 0.38,
-                  "icon-allow-overlap": false,
-                  "icon-anchor": "center",
-                }}
-              />
-            </GeoJSONSource>
-          ) : null}
-          {places.selected ? (
-            <GeoJSONSource
-              id="place"
-              data={{
-                type: "Feature",
-                properties: {},
-                geometry: { type: "Point", coordinates: [places.selected.poi.lon, places.selected.poi.lat] },
-              }}
-            >
-              <Layer
-                id="place"
-                type="circle"
-                paint={{
-                  "circle-radius": 11,
-                  "circle-color": colors.signal,
-                  "circle-stroke-width": 4,
-                  "circle-stroke-color": colors.onSignal,
-                }}
-              />
-            </GeoJSONSource>
-          ) : null}
-          {approach ? (
-            <GeoJSONSource id="approach" data={approach}>
-              <Layer
-                id="approach-casing"
-                type="line"
-                paint={{ "line-color": colors.paper, "line-width": 10 }}
+                paint={{ "line-color": colors.paper, "line-width": 11 }}
                 layout={{ "line-cap": "round", "line-join": "round" }}
               />
               <Layer
-                id="approach"
+                id="line"
                 type="line"
-                paint={{ "line-color": colors.hazard, "line-width": 5, "line-dasharray": [2, 1.5] }}
-                layout={{ "line-join": "round" }}
+                paint={{ "line-color": colors.route, "line-width": 7 }}
+                layout={{ "line-cap": "round", "line-join": "round" }}
               />
               <Layer
-                id="approach-arrows"
+                id="line-arrows"
                 type="symbol"
                 layout={{
                   "symbol-placement": "line",
@@ -647,213 +866,347 @@ export function RideScreen({
                 paint={{ "icon-color": colors.paper }}
               />
             </GeoJSONSource>
-          ) : null}
-          <GeoJSONSource id="corners" data={corners}>
-            <Layer
-              id="corners"
-              type="circle"
-              // Only when zoomed in far enough to tell them apart: the overview reads route first (spec ride-navigation).
-              minzoom={11}
-              paint={{
-                "circle-radius": 5,
-                "circle-color": ["match", ["get", "severity"], "hairpin", colors.hazard, colors.signal],
-                "circle-stroke-color": colors.ink,
-                "circle-stroke-width": 1.5,
-              }}
-            />
-          </GeoJSONSource>
-          <GeoJSONSource id="cameras" data={cameras}>
-            <Layer
-              id="cameras"
-              type="circle"
-              minzoom={11}
-              paint={{
-                "circle-radius": 6,
-                "circle-color": colors.limitRed,
-                "circle-stroke-color": colors.white,
-                "circle-stroke-width": 2,
-              }}
-            />
-          </GeoJSONSource>
-          <GeoJSONSource id="stops" data={stops}>
-            <Layer
-              id="stops"
-              type="circle"
-              paint={{
-                // A route point is a big dark dot with a pale ring; a service stop (café, fuel) a hollow one.
-                "circle-radius": ["match", ["get", "kind"], "stop", 7, 10],
-                "circle-color": ["match", ["get", "kind"], "stop", colors.paper, colors.route],
-                "circle-stroke-color": ["match", ["get", "kind"], "stop", colors.accent, colors.paper],
-                "circle-stroke-width": 3,
-              }}
-            />
-          </GeoJSONSource>
-          {rider ? (
-            <GeoJSONSource id="rider" data={rider}>
+            {traffic.stretches.length > 0 ? (
+              <GeoJSONSource id="traffic" data={trafficLines}>
+                <Layer
+                  id="traffic"
+                  type="line"
+                  paint={{
+                    "line-color": ["match", ["get", "level"], "slow", LEVEL_COLOR.slow, LEVEL_COLOR.heavy],
+                    "line-width": 7,
+                    "line-opacity": 0.9,
+                  }}
+                  layout={{ "line-cap": "round", "line-join": "round" }}
+                />
+              </GeoJSONSource>
+            ) : null}
+            {fuel.stops.length > 0 ? (
+              <GeoJSONSource id="fuel" data={poisCollection(fuel.stops)}>
+                <Layer
+                  id="fuel"
+                  type="symbol"
+                  layout={{
+                    "icon-image": "pump",
+                    "icon-size": 0.38,
+                    "icon-allow-overlap": false,
+                    "icon-anchor": "center",
+                  }}
+                />
+              </GeoJSONSource>
+            ) : null}
+            {places.selected ? (
+              <GeoJSONSource
+                id="place"
+                data={{
+                  type: "Feature",
+                  properties: {},
+                  geometry: { type: "Point", coordinates: [places.selected.poi.lon, places.selected.poi.lat] },
+                }}
+              >
+                <Layer
+                  id="place"
+                  type="circle"
+                  paint={{
+                    "circle-radius": 11,
+                    "circle-color": colors.signal,
+                    "circle-stroke-width": 4,
+                    "circle-stroke-color": colors.onSignal,
+                  }}
+                />
+              </GeoJSONSource>
+            ) : null}
+            {approach ? (
+              <GeoJSONSource id="approach" data={approach}>
+                <Layer
+                  id="approach-casing"
+                  type="line"
+                  paint={{ "line-color": colors.paper, "line-width": 10 }}
+                  layout={{ "line-cap": "round", "line-join": "round" }}
+                />
+                <Layer
+                  id="approach"
+                  type="line"
+                  paint={{ "line-color": colors.hazard, "line-width": 5, "line-dasharray": [2, 1.5] }}
+                  layout={{ "line-join": "round" }}
+                />
+                <Layer
+                  id="approach-arrows"
+                  type="symbol"
+                  layout={{
+                    "symbol-placement": "line",
+                    "symbol-spacing": 70,
+                    "icon-image": "arrow",
+                    "icon-size": 0.4,
+                    "icon-rotation-alignment": "map",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                  }}
+                  paint={{ "icon-color": colors.paper }}
+                />
+              </GeoJSONSource>
+            ) : null}
+            <GeoJSONSource id="corners" data={corners}>
               <Layer
-                id="rider"
-                type="symbol"
-                layout={{
-                  "icon-image": "rider",
-                  "icon-size": 0.5,
-                  "icon-rotate": ["get", "bearing"],
-                  "icon-rotation-alignment": "map",
-                  "icon-allow-overlap": true,
-                  "icon-ignore-placement": true,
+                id="corners"
+                type="circle"
+                // Only when zoomed in far enough to tell them apart: the overview reads route first (spec ride-navigation).
+                minzoom={11}
+                paint={{
+                  "circle-radius": 5,
+                  "circle-color": ["match", ["get", "severity"], "hairpin", colors.hazard, colors.signal],
+                  "circle-stroke-color": colors.ink,
+                  "circle-stroke-width": 1.5,
                 }}
               />
             </GeoJSONSource>
-          ) : null}
-        </Map>
-
-        {nav ? <InstructionBar nav={nav} /> : null}
-
-        {warning ? (
-          <Banner
-            right={bannerRight}
-            tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
-            title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
-              direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
-            })}
-            sub={t("ride.banner.cornerSub", {
-              distance: formatDistance(next?.distanceM ?? warning.distanceM),
-              speed: warning.corner.advisoryKmh,
-            })}
-          />
-        ) : null}
-
-        {!warning && zone && nav ? (
-          <Banner
-            right={bannerRight}
-            tone="ink"
-            title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
-            sub={
-              zone.kind === "camera"
-                ? t(zone.kmh ? "ride.banner.cameraAheadKmh" : "ride.banner.cameraAhead", {
-                    distance: formatDistance(Math.max(0, zone.atM - nav.progressM)),
-                    kmh: zone.kmh ?? 0,
-                  })
-                : t("ride.banner.zoneToGo", { distance: formatDistance(Math.max(0, zone.endM - nav.progressM)) })
-            }
-          />
-        ) : null}
-
-        {paused && mode === "gps" ? (
-          <Banner right={bannerRight} tone="ink" title={t("ride.banner.paused")} sub={t("ride.banner.pausedSub")} />
-        ) : null}
-
-        {mode === "gps" && prep === "locating" ? (
-          <Banner right={bannerRight} tone="ink" title={t("ride.banner.locating")} sub={t("ride.banner.locatingSub")} />
-        ) : null}
-
-        {mode === "gps" && prep === "routing" ? (
-          <Banner
-            right={bannerRight}
-            tone="ink"
-            title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
-            sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
-          />
-        ) : null}
-
-        {nav?.phase === "approach" && ride.approachDirect ? (
-          <Banner
-            right={bannerRight}
-            tone="signal"
-            title={
-              ride.approachName
-                ? t("ride.banner.noRouteTo", { place: ride.approachName })
-                : ride.approachTarget === "route"
-                  ? t("ride.banner.noRouteBack")
-                  : t("ride.banner.noRouteStart")
-            }
-            sub={t("ride.banner.noRouteSub")}
-          />
-        ) : null}
-
-        {basemapFailed ? (
-          <Banner
-            right={bannerRight}
-            tone="ink"
-            title={t("ride.banner.mapOffline")}
-            sub={t("ride.banner.mapOfflineSub")}
-          />
-        ) : null}
-
-        {permission === "denied" ? (
-          <Banner
-            right={bannerRight}
-            tone="ink"
-            title={t("ride.banner.locationOff")}
-            sub={t("ride.banner.locationOffSub")}
-          />
-        ) : null}
-
-        <SkipSquare skip={skip} top={BELOW_BAR} onPress={() => setConfirming(true)} />
-
-        {basemap !== "off" ? (
-          <Text style={[styles.attribution, { bottom: panelH + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
-        ) : null}
-
-        {/* A question on screen has the room to itself: the map controls step aside (and leave the screen reader's tree). */}
-        {modalOpen ? null : (
-          <View style={[styles.controls, { bottom: panelH + 12 }]}>
-            {/* Side by side: the column of buttons stands on the panel and must not reach the bar at the top. */}
-            <View style={styles.zoomRow}>
-              <RoundButton label="−" name={t("ride.map.zoomOut")} onPress={() => zoomBy(-1)} />
-              <RoundButton label="+" name={t("ride.map.zoomIn")} onPress={() => zoomBy(1)} />
-            </View>
-            <RoundButton icon="map-outline" name={t("ride.map.routeName")} onPress={overview} />
-            {running ? <RoundButton icon="locate" name={t("ride.map.meName")} onPress={() => setFollow(true)} /> : null}
-            <RoundButton
-              icon="layers-outline"
-              name={t("ride.map.basemapName", { basemap: BASEMAP_LABEL[basemap] })}
-              onPress={nextBasemap}
-            />
-            <RoundButton
-              icon="information-circle-outline"
-              name={t("ride.map.keyName")}
-              onPress={() => setLegend(true)}
-            />
-            <RoundButton
-              icon={VOICE_ICON[voice]}
-              name={t("ride.voice.tap", { name: voiceName(voice) })}
-              onPress={changeVoice}
-            />
-            <RoundButton icon="speedometer-outline" name={t("ride.map.gaugesName")} onPress={() => setGauges(true)} />
-          </View>
-        )}
-
-        {modalOpen ? null : (
-          <InstrumentsOverlay
-            top={GAUGES_TOP}
-            settings={gaugeSettings}
-            values={instruments.values}
-            calibrated={calibration !== null}
-            onCalibrate={() => setGauges(true)}
-          />
-        )}
-
-        {modalOpen ? null : (
-          <View style={[styles.fuelChip, { bottom: panelH + 12 }]} pointerEvents="box-none">
-            {places.selected ? (
-              <SelectedPlaceChip
-                place={places.selected}
-                progressM={nav?.progressM ?? 0}
-                onClear={() => places.select(null)}
+            <GeoJSONSource id="cameras" data={cameras}>
+              <Layer
+                id="cameras"
+                type="circle"
+                minzoom={11}
+                paint={{
+                  "circle-radius": 6,
+                  "circle-color": colors.limitRed,
+                  "circle-stroke-color": colors.white,
+                  "circle-stroke-width": 2,
+                }}
               />
+            </GeoJSONSource>
+            <GeoJSONSource id="stops" data={stops}>
+              <Layer
+                id="stops"
+                type="circle"
+                paint={{
+                  // A route point is a big dark dot with a pale ring; a service stop (café, fuel) a hollow one.
+                  "circle-radius": ["match", ["get", "kind"], "stop", 7, 10],
+                  "circle-color": ["match", ["get", "kind"], "stop", colors.paper, colors.route],
+                  "circle-stroke-color": ["match", ["get", "kind"], "stop", colors.accent, colors.paper],
+                  "circle-stroke-width": 3,
+                }}
+              />
+            </GeoJSONSource>
+            {rider ? (
+              <GeoJSONSource id="rider" data={rider}>
+                <Layer
+                  id="rider"
+                  type="symbol"
+                  layout={{
+                    "icon-image": "rider",
+                    "icon-size": 0.5,
+                    "icon-rotate": ["get", "bearing"],
+                    "icon-rotation-alignment": "map",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                  }}
+                />
+              </GeoJSONSource>
             ) : null}
-            <View style={styles.chipRow}>
-              <PlacesChip onPress={() => setPlacesOpen(true)} />
-              <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
-              <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
-              {running && nav ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
+          </Map>
+
+          {nav && !landscape ? <InstructionBar nav={nav} /> : null}
+
+          {warning && !landscape ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone={warning.corner.severity === "hairpin" ? "rust" : "signal"}
+              title={t(warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp", {
+                direction: t(warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right").toUpperCase(),
+              })}
+              sub={t("ride.banner.cornerSub", {
+                distance: formatDistance(next?.distanceM ?? warning.distanceM),
+                speed: warning.corner.advisoryKmh,
+              })}
+            />
+          ) : null}
+
+          {!warning && zone && nav ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="ink"
+              title={zone.kind === "camera" ? t("ride.banner.camera") : t("ride.banner.zone")}
+              sub={
+                zone.kind === "camera"
+                  ? t(zone.kmh ? "ride.banner.cameraAheadKmh" : "ride.banner.cameraAhead", {
+                      distance: formatDistance(Math.max(0, zone.atM - nav.progressM)),
+                      kmh: zone.kmh ?? 0,
+                    })
+                  : t("ride.banner.zoneToGo", { distance: formatDistance(Math.max(0, zone.endM - nav.progressM)) })
+              }
+            />
+          ) : null}
+
+          {paused && mode === "gps" ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="ink"
+              title={t("ride.banner.paused")}
+              sub={t("ride.banner.pausedSub")}
+            />
+          ) : null}
+
+          {mode === "gps" && prep === "locating" ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="ink"
+              title={t("ride.banner.locating")}
+              sub={t("ride.banner.locatingSub")}
+            />
+          ) : null}
+
+          {mode === "gps" && prep === "routing" ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="ink"
+              title={routingTo ? t("ride.banner.routingTo", { place: routingTo }) : t("ride.banner.routingStart")}
+              sub={routingTo ? t("ride.banner.routingSubTo", { place: routingTo }) : t("ride.banner.routingSubStart")}
+            />
+          ) : null}
+
+          {nav?.phase === "approach" && ride.approachDirect ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="signal"
+              title={
+                ride.approachName
+                  ? t("ride.banner.noRouteTo", { place: ride.approachName })
+                  : ride.approachTarget === "route"
+                    ? t("ride.banner.noRouteBack")
+                    : t("ride.banner.noRouteStart")
+              }
+              sub={t("ride.banner.noRouteSub")}
+            />
+          ) : null}
+
+          {basemapFailed ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="ink"
+              title={t("ride.banner.mapOffline")}
+              sub={t("ride.banner.mapOfflineSub")}
+            />
+          ) : null}
+
+          {permission === "denied" ? (
+            <Banner
+              top={belowBar}
+              right={bannerRight}
+              compact={landscape}
+              left={bannerLeft}
+              tone="ink"
+              title={t("ride.banner.locationOff")}
+              sub={t("ride.banner.locationOffSub")}
+            />
+          ) : null}
+
+          {running && nav && landscape ? (
+            <View style={[styles.compassSide, { top: topPad }]} pointerEvents="none">
+              <CompassChip headingDeg={nav.bearingDeg} />
             </View>
-          </View>
-        )}
+          ) : null}
+          <SkipSquare
+            skip={skip}
+            top={belowBar}
+            compact={landscape}
+            left={landscape ? 8 : undefined}
+            onPress={() => setConfirming(true)}
+          />
+
+          {basemap !== "off" ? (
+            <Text style={[styles.attribution, { bottom: lower + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
+          ) : null}
+
+          {/* A question on screen has the room to itself: the map controls step aside (and leave the screen reader's tree). */}
+          {modalOpen ? null : (
+            <View
+              testID="map-buttons"
+              style={[styles.controls, landscape && styles.controlsSide, { bottom: lower + 12 }]}
+            >
+              {/* Side by side: the column of buttons stands on the panel and must not reach the bar at the top. */}
+              <View style={styles.zoomRow}>
+                <RoundButton label="−" name={t("ride.map.zoomOut")} onPress={() => zoomBy(-1)} />
+                <RoundButton label="+" name={t("ride.map.zoomIn")} onPress={() => zoomBy(1)} />
+              </View>
+              <RoundButton icon="map-outline" name={t("ride.map.routeName")} onPress={overview} />
+              {running ? (
+                <RoundButton icon="locate" name={t("ride.map.meName")} onPress={() => setFollow(true)} />
+              ) : null}
+              <RoundButton
+                icon="layers-outline"
+                name={t("ride.map.basemapName", { basemap: BASEMAP_LABEL[basemap] })}
+                onPress={nextBasemap}
+              />
+              <RoundButton
+                icon="information-circle-outline"
+                name={t("ride.map.keyName")}
+                onPress={() => setLegend(true)}
+              />
+              <RoundButton
+                icon={VOICE_ICON[voice]}
+                name={t("ride.voice.tap", { name: voiceName(voice) })}
+                onPress={changeVoice}
+              />
+              <RoundButton icon="speedometer-outline" name={t("ride.map.gaugesName")} onPress={() => setGauges(true)} />
+            </View>
+          )}
+
+          {modalOpen ? null : (
+            <InstrumentsOverlay
+              top={gaugesTop}
+              settings={gaugeSettings}
+              values={instruments.values}
+              calibrated={calibration !== null}
+              onCalibrate={() => setGauges(true)}
+              landscape={landscape}
+            />
+          )}
+
+          {modalOpen ? null : (
+            <View style={[styles.fuelChip, { bottom: lower + 12 }]} pointerEvents="box-none">
+              {places.selected ? (
+                <SelectedPlaceChip
+                  place={places.selected}
+                  progressM={nav?.progressM ?? 0}
+                  onClear={() => places.select(null)}
+                />
+              ) : null}
+              <View style={styles.chipRow}>
+                <PlacesChip onPress={() => setPlacesOpen(true)} />
+                <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
+                <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
+                {running && nav && !landscape ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
+              </View>
+            </View>
+          )}
+        </View>
 
         <View
           testID="hud"
-          style={styles.hud}
+          style={[
+            styles.hud,
+            landscape && styles.hudSide,
+            landscape && { width: hudW, paddingLeft: 16 + sideL, paddingTop: topPad },
+          ]}
           onLayout={(e) => setPanelH(Math.round(e.nativeEvent.layout.height))}
           // The panel takes a vertical drag before the buttons on it can swallow it, so a swipe works from anywhere on it.
           onStartShouldSetResponderCapture={(e) => {
@@ -873,171 +1226,42 @@ export function RideScreen({
             if (swipe) setControls(swipe === "up");
           }}
         >
-          {nav?.junction ? <JunctionCard junction={nav.junction.junction} /> : null}
-          {running && !modalOpen ? (
-            <Pressable
-              style={styles.grabber}
-              onPress={() => setControls((c) => !c)}
-              accessibilityRole="button"
-              accessibilityLabel={controls ? t("ride.a11y.hideButtons") : t("ride.a11y.showButtons")}
-              accessibilityState={{ expanded: controls }}
-              accessibilityActions={[{ name: controls ? "collapse" : "expand" }]}
-              onAccessibilityAction={() => setControls((c) => !c)}
-            >
-              <View style={styles.grabberPill} />
-            </Pressable>
-          ) : null}
-          <View style={styles.row}>
-            <View>
-              <View style={[styles.speedBadge, nav?.over && styles.speedOver]}>
-                <Text style={[styles.speed, nav?.over && styles.speedTextOver]}>{speed ?? "–"}</Text>
-              </View>
-              <Text style={styles.unit}>
-                km/h
-                {mode === "demo"
-                  ? paused
-                    ? t("ride.unit.demoPaused")
-                    : t("ride.unit.demo")
-                  : paused
-                    ? t("ride.unit.paused")
-                    : ""}
-              </Text>
-            </View>
-            <SpeedLimitSign limit={nav?.speedLimit ?? UNKNOWN_LIMIT} over={nav?.over ?? false} />
-            <View
-              style={styles.col}
-              accessible
-              accessibilityLabel={
-                finished
-                  ? undefined
-                  : t("ride.remainingName", {
-                      distance: formatDistance(nav?.remainingM ?? rb.totalM),
-                      duration: formatDuration(eta.seconds),
-                      clock: formatClock(eta.arrivalMs),
-                    })
-              }
-            >
-              {/* The next fuel stop stands in the panel over the distance left, not on the map. */}
-              {modalOpen ? null : (
-                <FuelChip
+          {landscape ? (
+            <>
+              {nav ? (
+                <InstructionBar
+                  nav={nav}
                   inline
-                  status={fuel.status}
-                  stops={fuel.stops}
-                  progressM={nav?.progressM ?? 0}
-                  onPress={() => setFuelOpen(true)}
-                />
-              )}
-              <Text style={styles.big}>{formatDistance(nav?.remainingM ?? rb.totalM)}</Text>
-              <Text style={styles.unit}>
-                {finished
-                  ? t("ride.unit.demoFinished")
-                  : `${formatDuration(eta.seconds)} · ${formatClock(eta.arrivalMs)}`}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.line} numberOfLines={1}>
-            {nav?.phase === "approach"
-              ? `${ride.approachName ? t("ride.line.to", { place: ride.approachName }) : ride.approachTarget === "route" ? t("ride.line.backToRoute") : t("ride.line.toStart")} · ${formatDistance(nav.toStartM)}`
-              : nav?.nextStop
-                ? t("ride.line.next", { name: nav.nextStop.name, distance: formatDistance(nav.nextStop.distanceM) })
-                : rb.roadbook.name}
-          </Text>
-          {next ? (
-            <Text style={styles.line}>
-              {t("ride.line.corner", {
-                severity: t(next.corner.severity === "hairpin" ? "ride.sev.hairpin" : "ride.sev.sharp"),
-                direction: t(next.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right"),
-                distance: formatDistance(next.distanceM),
-                speed: next.corner.advisoryKmh,
-              })}
-            </Text>
-          ) : null}
-          {!running ? <Text style={styles.note}>{t("ride.note.advisory")}</Text> : null}
-          {!running && !modalOpen && server ? <LiveShareChoice on={shareWanted} onChange={setShareWanted} /> : null}
-          {!running && basemap !== "off" ? (
-            <OfflineRow state={offline.state} onSave={offline.save} onRemove={offline.remove} />
-          ) : null}
-          {showButtons ? (
-            <Animated.View
-              testID="ride-row"
-              style={running ? rowStyle : undefined}
-              importantForAccessibility={controls || !running ? "auto" : "no-hide-descendants"}
-              accessibilityElementsHidden={running && !controls}
-            >
-              {/* The sharing line goes with the buttons: shown when they are, folded away with them. */}
-              {running && !modalOpen && server && mode === "gps" && !replay && !shareWanted ? (
-                <LiveShareOffer onShare={() => setShareWanted(true)} />
-              ) : null}
-              {!modalOpen && liveShare.status && liveShare.status !== "stopped" ? (
-                <LiveShareLine
-                  status={liveShare.status}
-                  canLink={liveShare.canLink}
-                  onLink={liveShare.sendLink}
-                  onStop={liveShare.stop}
+                  corner={
+                    warning
+                      ? {
+                          tone: warning.corner.severity === "hairpin" ? "rust" : "signal",
+                          title: t(
+                            warning.corner.severity === "hairpin" ? "ride.banner.hairpin" : "ride.banner.sharp",
+                            {
+                              direction: t(
+                                warning.corner.direction === "left" ? "ride.dir.left" : "ride.dir.right",
+                              ).toUpperCase(),
+                            },
+                          ),
+                          sub: t("ride.banner.cornerSub", {
+                            distance: formatDistance(next?.distanceM ?? warning.distanceM),
+                            speed: warning.corner.advisoryKmh,
+                          }),
+                        }
+                      : undefined
+                  }
                 />
               ) : null}
-              <View style={[styles.row, running && styles.rowSlide]}>
-                <Pressable
-                  style={[styles.button, styles.secondary]}
-                  onPress={goBack}
-                  accessibilityRole="button"
-                  accessibilityLabel={backLabel}
-                >
-                  <Text style={[styles.buttonText, { color: colors.mossText }]}>{t("ride.btn.back")}</Text>
-                </Pressable>
-                {running && prep === "ready" ? (
-                  <Pressable
-                    style={[styles.button, styles.secondary]}
-                    onPress={() => {
-                      setTouched((t) => t + 1);
-                      setPaused((p) => !p);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={t(
-                      paused
-                        ? mode === "demo"
-                          ? "ride.a11y.resumeDemo"
-                          : "ride.a11y.resumeRide"
-                        : mode === "demo"
-                          ? "ride.a11y.pauseDemo"
-                          : "ride.a11y.pauseRide",
-                    )}
-                  >
-                    <Text style={[styles.buttonText, { color: colors.mossText }]}>
-                      {paused ? t("ride.btn.resume") : t("ride.btn.pause")}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {running ? (
-                  <Pressable
-                    style={[styles.button, styles.stop]}
-                    onPress={() => (rideOn ? setEnding("end") : stop())}
-                    accessibilityRole="button"
-                    accessibilityLabel={mode === "gps" ? t("ride.a11y.endRide") : t("ride.a11y.endDemo")}
-                  >
-                    <Text style={[styles.buttonText, { color: colors.onRust }]}>{t("ride.btn.end")}</Text>
-                  </Pressable>
-                ) : (
-                  <>
-                    <Pressable
-                      style={[styles.button, styles.secondary]}
-                      onPress={() => start("demo")}
-                      accessibilityRole="button"
-                    >
-                      <Text style={[styles.buttonText, { color: colors.mossText }]}>{t("ride.btn.demo")}</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.button, styles.start]}
-                      onPress={() => start("gps")}
-                      accessibilityRole="button"
-                    >
-                      <Text style={[styles.buttonText, { color: colors.onSignal }]}>{t("ride.btn.start")}</Text>
-                    </Pressable>
-                  </>
-                )}
-              </View>
-            </Animated.View>
-          ) : null}
+              <View style={styles.hudBodySide}>{hudBody}</View>
+              {buttonRow}
+            </>
+          ) : (
+            <>
+              {hudBody}
+              {buttonRow}
+            </>
+          )}
         </View>
       </View>
 
@@ -1045,7 +1269,7 @@ export function RideScreen({
       {join && !choosingMore ? (
         <JoinCard
           options={join.options}
-          top={BELOW_BAR}
+          top={belowBar}
           onGo={join.pick}
           onMore={() => setChoosingMore(true)}
           onCancel={stop}
@@ -1055,7 +1279,7 @@ export function RideScreen({
         <StartFromList
           choices={choices}
           current={join.options.nearest}
-          top={BELOW_BAR}
+          top={belowBar}
           onClose={() => setChoosingMore(false)}
           onPick={(c) => {
             setChoosingMore(false);
@@ -1063,7 +1287,7 @@ export function RideScreen({
           }}
         />
       ) : null}
-      {legend ? <LegendCard top={BELOW_BAR} onClose={() => setLegend(false)} /> : null}
+      {legend ? <LegendCard top={belowBar} onClose={() => setLegend(false)} /> : null}
       {crash.alert ? (
         <CrashAlert
           alert={crash.alert}
@@ -1074,7 +1298,7 @@ export function RideScreen({
       ) : null}
       {placesOpen ? (
         <PlacesCard
-          top={BELOW_BAR}
+          top={belowBar}
           kind={places.kind}
           status={places.status}
           results={places.results}
@@ -1095,7 +1319,7 @@ export function RideScreen({
       ) : null}
       {weatherOpen ? (
         <WeatherCard
-          top={BELOW_BAR}
+          top={belowBar}
           status={weather.status}
           outlook={weather.outlook}
           enabled={weather.enabled}
@@ -1106,7 +1330,7 @@ export function RideScreen({
       ) : null}
       {trafficOpen ? (
         <TrafficCard
-          top={BELOW_BAR}
+          top={belowBar}
           status={traffic.status}
           outlook={traffic.outlook}
           enabled={traffic.enabled}
@@ -1119,7 +1343,7 @@ export function RideScreen({
       ) : null}
       {fuelOpen ? (
         <FuelCard
-          top={BELOW_BAR}
+          top={belowBar}
           status={fuel.status}
           stops={fuel.stops}
           progressM={nav?.progressM ?? 0}
@@ -1132,7 +1356,7 @@ export function RideScreen({
       ) : null}
       {gauges ? (
         <InstrumentsCard
-          top={BELOW_BAR}
+          top={belowBar}
           settings={gaugeSettings}
           onChange={setGaugeSettings}
           calibration={calibration}
@@ -1145,14 +1369,12 @@ export function RideScreen({
         <EndConfirm
           roadbookName={rb.roadbook.name}
           leaving={ending === "back"}
-          top={BELOW_BAR}
+          top={belowBar}
           onKeep={() => setEnding(null)}
           onEnd={endNow}
         />
       ) : null}
-      {confirming && skip.plan ? (
-        <SkipConfirm skip={skip} top={BELOW_BAR} onClose={() => setConfirming(false)} />
-      ) : null}
+      {confirming && skip.plan ? <SkipConfirm skip={skip} top={belowBar} onClose={() => setConfirming(false)} /> : null}
     </View>
   );
 }
@@ -1164,7 +1386,12 @@ const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper },
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-    banner: { position: "absolute", top: BELOW_BAR, left: 12, borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
+    compassSide: { position: "absolute", right: 8 },
+    stage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+    banner: { position: "absolute", borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
+    bannerCompact: { padding: 8, minHeight: SKIP_SQUARE_SIDE, justifyContent: "center" },
+    bannerTitleCompact: { fontSize: 22 },
+    bannerSubCompact: { fontSize: 15 },
     bannerTitle: { fontFamily: fonts.bold, fontSize: 28 },
     bannerSub: { fontFamily: fonts.sans, fontSize: 18 },
     attribution: {
@@ -1203,6 +1430,18 @@ const styles = themed(() =>
       borderTopLeftRadius: 8,
       borderTopRightRadius: 8,
     },
+    // Landscape: a column on the left, the full height, scrolling if it holds more than the screen shows.
+    // The readouts take what the bar above and the buttons below leave: no scrolling in a panel (ADR 0045).
+    hudBodySide: { flexGrow: 1, flexShrink: 1, justifyContent: "center", gap: 4 },
+    hudSide: {
+      right: undefined,
+      top: 0,
+      paddingBottom: 8,
+      gap: 6,
+      borderRadius: 0,
+      justifyContent: "space-between",
+    },
+    controlsSide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", width: 204 },
     // A wide, tall target inside the top of the panel, so nothing clips it; only the pill is drawn.
     grabber: {
       position: "absolute",
@@ -1219,15 +1458,23 @@ const styles = themed(() =>
     grabberPill: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.mossMuted },
     row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 12 },
     col: { alignItems: "flex-end" },
+    // Sideways the fuel stop and the distance left share one row, so the column keeps its height.
+    colSide: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" },
+    colTexts: { alignItems: "flex-end" },
     speedBadge: { borderRadius: 8, paddingHorizontal: 8 },
     speedOver: { backgroundColor: colors.limitRed },
     speed: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 56, lineHeight: 64 },
     speedTextOver: { color: colors.white },
+    speedSide: { fontSize: 46, lineHeight: 52 },
+    bigSide: { fontSize: 24 },
     big: { color: colors.mossText, fontFamily: fonts.bold, fontSize: 28 },
     unit: { color: colors.mossMuted, fontFamily: fonts.mono, fontSize: 12 },
     line: { color: colors.mossText, fontFamily: fonts.sans, fontSize: 16 },
     note: { color: colors.mossMuted, fontFamily: fonts.mono, fontSize: 11 },
+    buttonSide: { height: 48 },
     button: { flex: 1, height: 56, alignItems: "center", justifyContent: "center", borderRadius: 4 },
+    // The column is narrower than speed, limit and distance side by side: the distance goes under them.
+    rowWrap: { flexWrap: "wrap", rowGap: 4 },
     rowSlide: { paddingTop: 8 },
     buttonText: { fontFamily: fonts.bold, fontSize: 18 },
     start: { backgroundColor: colors.signal },
