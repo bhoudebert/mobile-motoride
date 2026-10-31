@@ -101,7 +101,9 @@ test("sideways, the sides leave the room the system reports for the camera cut-o
   expect(hud.paddingLeft).toBe(16 + 40);
   expect(hud.width).toBe(287 + 40);
   expect(style("ride-stage").left).toBe(287 + 40);
-  expect(style("ride-stage").right).toBe(12);
+  // The map bleeds to the right edge; what stands on it keeps clear of the inset.
+  expect(style("ride-stage").right).toBe(0);
+  expect(style("ride-overlay").right).toBe(12);
   // The map buttons stand above the gesture bar.
   expect(style("map-buttons").bottom).toBe(20 + 12);
 });
