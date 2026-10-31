@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.2.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.1.0...v1.2.0) (2026-10-31)
+
+
+### Features
+
+* **dev:** load agentRide's .env in the dev server ([#35](https://github.com/bhoudebert/mobile-motoride/issues/35)) ([6d20e33](https://github.com/bhoudebert/mobile-motoride/commit/6d20e33f2a062f802c607e3b2a756a5cee515388))
+* **library:** list the roadbooks of the rider's server with download and refresh ([#27](https://github.com/bhoudebert/mobile-motoride/issues/27)) ([be42c0b](https://github.com/bhoudebert/mobile-motoride/commit/be42c0b79b3833596a4e40d6550d656e34df82ac))
+* **library:** replace a kept roadbook with its refreshed file ([#26](https://github.com/bhoudebert/mobile-motoride/issues/26)) ([3984597](https://github.com/bhoudebert/mobile-motoride/commit/3984597151cca9aef838dbc4c1a166d9c40abd51))
+* **library:** ship no roadbook with the app ([#28](https://github.com/bhoudebert/mobile-motoride/issues/28)) ([2a533bd](https://github.com/bhoudebert/mobile-motoride/commit/2a533bd571fb15f679a807d23188bbcc3c3d001b))
+* **ride:** a bright stretch with white chevrons ahead, the ridden part pale ([#38](https://github.com/bhoudebert/mobile-motoride/issues/38)) ([1ce82be](https://github.com/bhoudebert/mobile-motoride/commit/1ce82be93386fe4d19c91a37a52163e76a80fd24))
+* **ride:** a compass chip beside the traffic chip, and a motorcycle on it ([#36](https://github.com/bhoudebert/mobile-motoride/issues/36)) ([7813326](https://github.com/bhoudebert/mobile-motoride/commit/7813326a59b987032fdb87609f445f4bdc9528af))
+* **ride:** let the phone turn on the ride screen, with the panel in a column ([#37](https://github.com/bhoudebert/mobile-motoride/issues/37)) ([0614a8d](https://github.com/bhoudebert/mobile-motoride/commit/0614a8dc8e6fdd10c62d7a275c7fa15995633b4d))
+* **ride:** skip the next point from a square beside the warning ([#23](https://github.com/bhoudebert/mobile-motoride/issues/23)) ([d84b89a](https://github.com/bhoudebert/mobile-motoride/commit/d84b89a252a02ac394664f9251483b01d89f5323))
+* **traffic:** say when the server has no traffic data for the road ([#24](https://github.com/bhoudebert/mobile-motoride/issues/24)) ([1cd8d0c](https://github.com/bhoudebert/mobile-motoride/commit/1cd8d0c2d6fa080046d59b7afc76ad97e4095dba))
+* **ui:** pull a list down to refresh it ([#34](https://github.com/bhoudebert/mobile-motoride/issues/34)) ([d471d85](https://github.com/bhoudebert/mobile-motoride/commit/d471d85c19e543fd38a44f49318bcd8d0bd559e9))
+
+
+### Bug Fixes
+
+* **ride:** sideways, the map bleeds to the right edge ([#39](https://github.com/bhoudebert/mobile-motoride/issues/39)) ([ba16027](https://github.com/bhoudebert/mobile-motoride/commit/ba160279312227a8400b36bb748424636b4b262b))
+* **ride:** skip square at the top left, map buttons never reach it ([#41](https://github.com/bhoudebert/mobile-motoride/issues/41)) ([0545854](https://github.com/bhoudebert/mobile-motoride/commit/0545854ab32397dff38fe61c3f924a2320f4e3c2))
+* **ride:** the skip square steps aside for a card ([#42](https://github.com/bhoudebert/mobile-motoride/issues/42)) ([31164cc](https://github.com/bhoudebert/mobile-motoride/commit/31164cc6240c7d862fb8161876412bab085227d9))
+* **ui:** keep the top controls below the iPhone camera ([#21](https://github.com/bhoudebert/mobile-motoride/issues/21)) ([6b315ab](https://github.com/bhoudebert/mobile-motoride/commit/6b315ab65111d8abb7ccc6b7348b86774c220890))
+* **voice:** lower the music on iOS and give it back ([#22](https://github.com/bhoudebert/mobile-motoride/issues/22)) ([06055bb](https://github.com/bhoudebert/mobile-motoride/commit/06055bb6d549d2133bd6739fa4a65f56db2bc36a))
+
 ## [1.1.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.0.0...v1.1.0) (2026-10-23)
 
 
