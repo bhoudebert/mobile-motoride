@@ -2,7 +2,7 @@ import { ARRIVED_M } from "../core/navigator.ts";
 import { CHECKPOINT_MS, keeps, pointOf, type RideMeta, type TrackPoint } from "../core/recording.ts";
 import type { MotionReading } from "../core/instruments.ts";
 import type { Fix, RoadbookOrigin } from "../core/types.ts";
-import { clearCheckpoint, saveRide, writeCheckpoint, type Checkpoint } from "./ridesStore.ts";
+import { clearCheckpoint, keepUnsaved, saveRide, writeCheckpoint, type Checkpoint } from "./ridesStore.ts";
 
 /**
  * The track of one GPS ride (spec ride-recording): fixes go in, a checkpoint is written about once a minute, and when the
@@ -41,7 +41,11 @@ export class RideRecorder {
     };
   }
 
-  /** The ride is over: save the track; null when it was too short to be a ride. */
+  /**
+   * The ride is over: save the track; null when it was too short to be a ride, or when it could not be saved. The checkpoint
+   * goes only once the track is on the phone: if the save fails, what was written while the ride ran is kept, put aside so the
+   * next ride cannot replace it, and saved at the next launch (spec ride-recording).
+   */
   async finish(): Promise<RideMeta | null> {
     const last = this.points.at(-1);
     try {
@@ -50,9 +54,12 @@ export class RideRecorder {
         last?.time ?? this.startedAt,
         this.completed ? "completed" : "stopped",
       );
-      return meta;
-    } finally {
       await clearCheckpoint();
+      return meta;
+    } catch (e) {
+      console.warn("The ride could not be saved; it is kept and saved at the next launch", e);
+      await keepUnsaved(this.startedAt);
+      return null;
     }
   }
 }

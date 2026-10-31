@@ -27,7 +27,7 @@ import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer } from "./src/ui/serverSetting.ts";
 import { serverAction, type ServerRoadbook } from "./src/core/serverRoadbooks.ts";
 import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
-import { recoverRide } from "./src/ui/ridesStore.ts";
+import { recoverRides } from "./src/ui/ridesStore.ts";
 import { formatDistance } from "./src/core/format.ts";
 import { t } from "./src/core/i18n/index.ts";
 import { useLanguage, useLanguageSetting } from "./src/ui/languageSetting.ts";
@@ -87,7 +87,7 @@ export default function App() {
   }, [info]);
   // A ride the app was closed during is saved at the next launch.
   useEffect(() => {
-    void recoverRide().then((m) => m && saved(m, true));
+    void recoverRides().then((list) => list.forEach((m) => saved(m, true)));
   }, []);
   // A roadbook that has just come in opens its ride, from the list it now belongs to.
   const library = useImport((rb) => {

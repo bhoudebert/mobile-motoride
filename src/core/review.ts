@@ -1,7 +1,14 @@
 import type { FeatureCollection, LineString, Point } from "geojson";
 import { haversineM } from "./geo.ts";
-import type { TrackPoint } from "./recording.ts";
-import type { LatLon } from "./types.ts";
+import {
+  STATES_OF_RIDE,
+  summarizeTrack,
+  trackDistanceM,
+  type RideMeta,
+  type RideState,
+  type TrackPoint,
+} from "./recording.ts";
+import type { LatLon, RoadbookOrigin } from "./types.ts";
 
 // ---- Reading a ride back from its GPX (spec ride-review, ADR 0034)
 
@@ -40,6 +47,66 @@ export function parseRideGpx(text: string): TrackPoint[] {
     points.push(p);
   }
   return points;
+}
+
+const unescapeXml = (s: string): string =>
+  s
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+
+/**
+ * The summary of a ride rebuilt from its GPX alone, for a track whose `.json` is missing or unreadable (a save cut between
+ * the two files). What the file says is used (the roadbook, its origin, the state, the times, the distance, the climb and the
+ * peaks); what it does not say is worked out from the points. A ride that followed no roadbook has no origin, and no
+ * roadbook id (spec ride-recording). Null when the file has fewer than two points: nothing to list.
+ */
+export function metaFromGpx(id: string, text: string): RideMeta | null {
+  const points = parseRideGpx(text);
+  if (points.length < 2) return null;
+  const open = /<motoride:ride\b([^>]*?)\/?>/.exec(text)?.[1] ?? "";
+  const get = (name: string): string | undefined => {
+    const v = attr(open, name);
+    return v === undefined ? undefined : unescapeXml(v);
+  };
+  const title = /<metadata>[\s\S]*?<name>([^<]*)<\/name>/.exec(text)?.[1];
+  const roadbookName = get("name") ?? (title ? unescapeXml(title) : id);
+  const source = get("source");
+  const origin: RoadbookOrigin | null = source
+    ? {
+        app: source,
+        ...(num(get("sourceRoadbook")) !== null ? { roadbook: num(get("sourceRoadbook"))! } : {}),
+        ...(num(get("sourceRide")) !== null ? { ride: num(get("sourceRide"))! } : {}),
+        ...(get("sourceName") !== undefined ? { name: get("sourceName")! } : {}),
+      }
+    : null;
+  const time = (name: string, fallback: number): number => {
+    const t = Date.parse(get(name) ?? "");
+    return Number.isFinite(t) ? t : fallback;
+  };
+  const state = get("state");
+  const summary = summarizeTrack(points);
+  const field = (name: string): number | undefined => num(get(name)) ?? undefined;
+  const climbM = field("climbM") ?? summary.climbM;
+  const peakLeftDeg = field("peakLeftDeg") ?? summary.peakLeftDeg;
+  const peakRightDeg = field("peakRightDeg") ?? summary.peakRightDeg;
+  return {
+    id,
+    roadbookId: get("roadbook") ?? "",
+    roadbookName,
+    ...(origin ? { origin } : {}),
+    startedAt: time("startedAt", points[0]!.time),
+    endedAt: time("endedAt", points[points.length - 1]!.time),
+    distanceM: field("distanceM") ?? trackDistanceM(points),
+    points: points.length,
+    // A ride that does not say how it ended is one found without its summary: recovered.
+    state: STATES_OF_RIDE.includes(state as RideState) ? (state as RideState) : "recovered",
+    ...(climbM !== undefined ? { climbM } : {}),
+    ...(peakLeftDeg !== undefined ? { peakLeftDeg } : {}),
+    ...(peakRightDeg !== undefined ? { peakRightDeg } : {}),
+  };
 }
 
 // ---- The figures

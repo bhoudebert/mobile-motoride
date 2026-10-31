@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import App from "../../App.tsx";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
-import { dirs, files, resetFiles } from "./filesystem.mock.ts";
+import { dirs, File, files, resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
 import { resetMapMock } from "./maplibre.mock.tsx";
 import { isAvailableAsync, shareAsync, state as sharing } from "./sharing.mock.ts";
@@ -392,4 +392,72 @@ test("pulling My rides down reads the rides again", async () => {
   await flush(25);
   expect(screen.getByText("Late loop")).toBeTruthy();
   expect(screen.getByTestId("rides-list").props.refreshControl.props.refreshing).toBe(false);
+});
+
+test("a ride whose save fails is not lost: its checkpoint is kept, and it is saved as recovered at the next launch", async () => {
+  const rb = skippableRoadbook();
+  await startGps(rb);
+  await rideTo(rb, 100, 1500);
+  expect(files.has(`${folder}in-progress.json`)).toBe(true);
+
+  // The phone cannot write the track (disk full, a write cut): the ride must survive.
+  const write = jest.spyOn(File.prototype, "write").mockImplementation(async function (this: File, text: string) {
+    if (this.uri.endsWith(".gpx")) throw new Error("No space left on device");
+    files.set(this.uri, text);
+  });
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+  await endRide();
+  await flush();
+  expect(gpxFiles()).toHaveLength(0);
+  const kept = [...files.keys()].filter((k) => k.startsWith(folder) && /(in-progress|unsaved-.*)\.json$/.test(k));
+  expect(kept).toHaveLength(1);
+  expect(JSON.parse(files.get(kept[0]!)!).points.length).toBeGreaterThan(5);
+  write.mockRestore();
+  warn.mockRestore();
+
+  // The next launch saves it.
+  await screen.unmount();
+  await render(<App />);
+  await flush();
+  expect(gpxFiles()).toHaveLength(1);
+  expect(metaOf(gpxFiles()[0]!).state).toBe("recovered");
+  expect([...files.keys()].some((k) => /(in-progress|unsaved-.*)\.json$/.test(k))).toBe(false);
+});
+
+test("a ride that was saved is no longer a checkpoint, and one too short to keep leaves nothing either", async () => {
+  const rb = skippableRoadbook();
+  await startGps(rb);
+  await rideTo(rb, 100, 1500);
+  await endRide();
+  await flush();
+  expect(gpxFiles()).toHaveLength(1);
+  expect([...files.keys()].some((k) => /(in-progress|unsaved-.*)\.json$/.test(k))).toBe(false);
+});
+
+test("a track whose summary is missing is still listed, with its summary rebuilt from the GPX, and can be shared", async () => {
+  const rb = skippableRoadbook();
+  await startGps(rb);
+  await rideTo(rb, 100, 1500);
+  await endRide();
+  await flush();
+  await screen.unmount();
+  const [gpxUri] = gpxFiles();
+  const gpx = files.get(gpxUri!)!;
+  const original = metaOf(gpxUri!);
+  // The save was cut between the two files: the track is there, its summary is not.
+  files.delete(gpxUri!.replace(/\.gpx$/, ".json"));
+
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Open the menu"));
+  await fireEvent.press(screen.getByLabelText("My rides"));
+  await flush(25);
+  expect(screen.getByText(rb.roadbook.name)).toBeTruthy();
+  expect(screen.getByText(original.state === "completed" ? "Completed" : "Stopped early")).toBeTruthy();
+  // The track itself was not touched; the summary was written back for next time.
+  expect(files.get(gpxUri!)).toBe(gpx);
+  expect(files.has(gpxUri!.replace(/\.gpx$/, ".json"))).toBe(true);
+  await fireEvent.press(screen.getByLabelText(`Share the ride of ${rb.roadbook.name}`));
+  await flush();
+  expect(shareAsync).toHaveBeenCalledWith(gpxUri, expect.objectContaining({ mimeType: "application/gpx+xml" }));
 });
