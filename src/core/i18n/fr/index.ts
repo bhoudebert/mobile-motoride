@@ -13,6 +13,7 @@ import { places } from "./places.ts";
 import { weather } from "./weather.ts";
 import { traffic } from "./traffic.ts";
 import { safety } from "./safety.ts";
+import { compass } from "./compass.ts";
 
 /** The French table: the type makes a missing or an extra key a compile error. */
 export const fr: Translated<typeof en> = {
@@ -29,6 +30,7 @@ export const fr: Translated<typeof en> = {
   ...weather,
   ...traffic,
   ...safety,
+  ...compass,
 };
 export const FR_AREAS = {
   common,
@@ -44,4 +46,5 @@ export const FR_AREAS = {
   weather,
   traffic,
   safety,
+  compass,
 };

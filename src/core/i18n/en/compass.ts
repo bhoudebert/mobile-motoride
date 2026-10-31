@@ -1,0 +1,20 @@
+/** The compass of the ride screen (spec ride-navigation). */
+export const compass = {
+  "compass.name": "Heading: {point}",
+  "compass.point.n": "north",
+  "compass.point.ne": "north-east",
+  "compass.point.e": "east",
+  "compass.point.se": "south-east",
+  "compass.point.s": "south",
+  "compass.point.sw": "south-west",
+  "compass.point.w": "west",
+  "compass.point.nw": "north-west",
+  "compass.short.n": "N",
+  "compass.short.ne": "NE",
+  "compass.short.e": "E",
+  "compass.short.se": "SE",
+  "compass.short.s": "S",
+  "compass.short.sw": "SW",
+  "compass.short.w": "W",
+  "compass.short.nw": "NW",
+} as const;

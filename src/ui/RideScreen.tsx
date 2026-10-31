@@ -66,6 +66,7 @@ import { useFuel } from "./useFuel.ts";
 import { PlacesCard, PlacesChip, SelectedPlaceChip } from "./PlacesUi.tsx";
 import { usePlaces } from "./usePlaces.ts";
 import { WeatherCard, WeatherRow } from "./WeatherUi.tsx";
+import { CompassChip } from "./CompassChip.tsx";
 import { LEVEL_COLOR, TrafficCard, TrafficChip } from "./TrafficUi.tsx";
 import { useTraffic } from "./useTraffic.ts";
 import { useWeather } from "./useWeather.ts";
@@ -845,6 +846,7 @@ export function RideScreen({
               <PlacesChip onPress={() => setPlacesOpen(true)} />
               <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
               <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
+              {running && nav ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
             </View>
           </View>
         )}
