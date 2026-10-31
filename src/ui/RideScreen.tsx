@@ -96,6 +96,8 @@ type Tone = "rust" | "signal" | "ink";
 
 /** Landscape (ADR 0045): the bar sits near the top, where an iPhone has no notch and Android keeps its status bar. */
 const LANDSCAPE_BAR_TOP = Platform.OS === "ios" ? 8 : (StatusBar.currentHeight ?? 0) + 4;
+/** Sideways the compass chip (48 dp) stands at the top right of the map: what the skip square and the notices leave free. */
+const COMPASS_SPACE = 8 + 48 + 8;
 /** What an iPhone held sideways needs on each side when the system cannot say (no provider, as under test). */
 const LANDSCAPE_SIDE_FALLBACK = Platform.OS === "ios" ? 47 : 0;
 /** The panel's column also needs room for the map buttons: the buttons keep a column to themselves. */
@@ -800,9 +802,8 @@ export function RideScreen({
             onDidFailLoadingMap={basemapFailedNow}
             attribution={false}
             logo={false}
-            // One compass, never two: sideways the map's own (top left, clear of the skip square), upright the chip by the traffic.
-            compass={landscape}
-            compassPosition={{ top: topPad, left: 8 }}
+            // The map's own compass is off: the one compass is our chip, in the row of chips upright and at the top right sideways.
+            compass={false}
             onRegionWillChange={(e) => {
               if (e.nativeEvent.userInteraction) setFollow(false);
             }}
@@ -1082,7 +1083,18 @@ export function RideScreen({
             />
           ) : null}
 
-          <SkipSquare skip={skip} top={belowBar} compact={landscape} onPress={() => setConfirming(true)} />
+          {running && nav && landscape ? (
+            <View style={[styles.compassSide, { top: topPad }]} pointerEvents="none">
+              <CompassChip headingDeg={nav.bearingDeg} />
+            </View>
+          ) : null}
+          <SkipSquare
+            skip={skip}
+            top={belowBar}
+            compact={landscape}
+            right={landscape ? COMPASS_SPACE : undefined}
+            onPress={() => setConfirming(true)}
+          />
 
           {basemap !== "off" ? (
             <Text style={[styles.attribution, { bottom: lower + 12 + 48 + 4 }]}>{ATTRIBUTION}</Text>
@@ -1146,7 +1158,6 @@ export function RideScreen({
                 <PlacesChip onPress={() => setPlacesOpen(true)} />
                 <WeatherRow status={weather.status} outlook={weather.outlook} onPress={() => setWeatherOpen(true)} />
                 <TrafficChip status={traffic.status} outlook={traffic.outlook} onPress={() => setTrafficOpen(true)} />
-                {/* Sideways the map's own compass at its top right says where north is: one compass, not two. */}
                 {running && nav && !landscape ? <CompassChip headingDeg={nav.bearingDeg} /> : null}
               </View>
             </View>
@@ -1339,6 +1350,7 @@ const styles = themed(() =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.paper },
     layer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+    compassSide: { position: "absolute", right: 8 },
     stage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
     banner: { position: "absolute", left: 12, borderRadius: 4, padding: 16, minHeight: SKIP_SQUARE },
     bannerCompact: { padding: 8, minHeight: SKIP_SQUARE_SIDE, justifyContent: "center" },

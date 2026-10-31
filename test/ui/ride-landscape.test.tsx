@@ -106,7 +106,7 @@ test("sideways, the sides leave the room the system reports for the camera cut-o
   expect(style("map-buttons").bottom).toBe(20 + 12);
 });
 
-test("one compass, never two: the chip upright, the map's own sideways", async () => {
+test("sideways the compass chip stands at the top right of the map, not in the row of chips", async () => {
   const [lat, lon] = at(first(), 1_000);
   location.state.position = { latitude: lat, longitude: lon };
   size(844, 390);
@@ -116,8 +116,14 @@ test("one compass, never two: the chip upright, the map's own sideways", async (
   await flush(30);
   const [la, lo] = at(first(), 1_200);
   await act(async () => location.pushFix(la, lo, 20, Date.now()));
-  expect(screen.queryByTestId("compass-chip", { hidden: true })).toBeNull();
-  expect(lastMap.props.compass).toBe(true);
+  const chip = screen.getByTestId("compass-chip", { hidden: true });
+  expect(screen.getAllByTestId("compass-chip", { hidden: true })).toHaveLength(1);
+  expect(lastMap.props.compass).toBe(false);
+  // Its holder is pinned to the top right, not to the row of chips at the bottom.
+  const holder = StyleSheet.flatten(chip.parent!.props.style) as Record<string, unknown>;
+  expect(holder.right).toBe(8);
+  expect(holder.top).toBeDefined();
+  expect(holder.bottom).toBeUndefined();
 });
 
 test("upright the compass chip is the only compass: the map's own is off", async () => {

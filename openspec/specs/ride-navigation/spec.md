@@ -185,7 +185,7 @@ start, it is 58 km/h. The distance remaining keeps the whole name ("122 km left,
 
 ### Requirement: The compass
 
-While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed. There SHALL be only one compass at a time: upright it is this chip and the map's own compass SHALL be off; held sideways (ADR 0045) the chip SHALL NOT show and the map's own compass, at the top left of the map, is the only one.
+While riding, the ride screen SHALL show a round compass chip in the row of chips, beside the traffic chip (and alone when traffic is not offered): a needle pointing to the north of the screen, which turns along the rider's heading, and the short name of the point the rider faces (N, NE, E, SE, S, SW, W, NW; in French N, NE, E, SE, S, SO, O, NO), each point covering 45 degrees centred on it. Its name for a screen reader SHALL be the whole sentence ("Heading: north-east"). It SHALL NOT show before Start, and it SHALL do nothing when pressed. There SHALL be only one compass, and the map's own compass SHALL be off: upright the chip stands in the row of chips by the traffic chip; held sideways (ADR 0045) the same chip stands at the top right of the map, with the skip square and the notices beside it.
 
 #### Scenario: Riding east
 
@@ -195,7 +195,7 @@ While riding, the ride screen SHALL show a round compass chip in the row of chip
 #### Scenario: Sideways
 
 - **WHEN** the phone is held sideways while riding
-- **THEN** there is no compass chip in the row of chips
+- **THEN** the compass chip is at the top right of the map and not in the row of chips
 
 #### Scenario: Before Start
 
