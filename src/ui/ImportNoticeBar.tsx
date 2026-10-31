@@ -13,6 +13,16 @@ export function ImportNoticeBar({ notice, onDismiss }: { notice: ImportNotice; o
         <Text style={styles.text}>
           {notice.kind === "busy" ? (notice.text ?? t("home.notice.importing")) : notice.text}
         </Text>
+        {notice.kind === "info" && notice.action ? (
+          <Pressable
+            style={styles.ok}
+            onPress={notice.action.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={notice.action.label}
+          >
+            <Text style={styles.okText}>{notice.action.label}</Text>
+          </Pressable>
+        ) : null}
         {notice.kind !== "busy" ? (
           <Pressable
             style={styles.ok}
@@ -40,7 +50,7 @@ const styles = themed(() =>
       ...lift,
     },
     text: { flex: 1, color: colors.mossText, fontFamily: fonts.sans, fontSize: 14, paddingVertical: 14 },
-    ok: { minWidth: 56, minHeight: 48, alignItems: "center", justifyContent: "center" },
+    ok: { minWidth: 56, minHeight: 48, paddingHorizontal: 8, alignItems: "center", justifyContent: "center" },
     okText: { color: colors.signal, fontFamily: fonts.bold, fontSize: 15 },
   }),
 );

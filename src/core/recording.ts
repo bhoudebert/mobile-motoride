@@ -46,6 +46,9 @@ export interface RideMeta {
   climbM?: number;
   peakLeftDeg?: number;
   peakRightDeg?: number;
+  /** When the track was sent to the rider's server, and the id it answered with: set once, never undone (spec ride-recording). */
+  uploadedAt?: number;
+  serverRideId?: string;
 }
 
 /** Whether a fix goes into the track: a good one, and not the same place again. */
@@ -204,7 +207,9 @@ export function parseMeta(text: string): RideMeta | null {
     )
       return null;
     const { v: _v, ...meta } = r;
-    for (const k of ["climbM", "peakLeftDeg", "peakRightDeg"]) if (k in meta && !finite(meta[k])) delete meta[k];
+    for (const k of ["climbM", "peakLeftDeg", "peakRightDeg", "uploadedAt"])
+      if (k in meta && !finite(meta[k])) delete meta[k];
+    if ("serverRideId" in meta && typeof meta["serverRideId"] !== "string") delete meta["serverRideId"];
     return meta as unknown as RideMeta;
   } catch {
     return null;
