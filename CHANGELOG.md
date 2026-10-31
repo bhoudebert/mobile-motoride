@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.3.0...v1.4.0) (2026-10-31)
+
+
+### Features
+
+* **rides:** send a recorded ride to the rider's server ([#50](https://github.com/bhoudebert/mobile-motoride/issues/50)) ([64692b0](https://github.com/bhoudebert/mobile-motoride/commit/64692b028ec4f19847142580fed7b484d94bfbfd))
+
 ## [1.3.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.2.0...v1.3.0) (2026-10-31)
 
 
