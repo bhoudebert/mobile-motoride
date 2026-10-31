@@ -33,9 +33,12 @@ jobs:
     secrets: inherit
 
   ios:
-    # The same for iOS: an unsigned IPA attached to the release (ADR 0041). Free on a public repository.
+    # The same for iOS: the signed build goes to TestFlight, an unsigned IPA is attached to the release when the secrets are missing
+    # (ADR 0041, 0042). Free on a public repository.
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     uses: ./.github/workflows/ios.yml
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
+    # Without this the Apple secrets are empty in the called workflow and the build is unsigned, nothing goes to TestFlight.
+    secrets: inherit
