@@ -11,10 +11,10 @@ import { pointAt } from "../src/core/track.ts";
 import { fixAt } from "./helpers/path.ts";
 import type { Roadbook } from "../src/core/types.ts";
 
-const dir = new URL("../src/data/bundled/", import.meta.url);
+const dir = new URL("./fixtures/roadbooks/", import.meta.url);
 const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
 
-test("roadbooks are bundled", () => {
+test("the fixture roadbooks are there", () => {
   assert.ok(files.length > 0);
 });
 

@@ -31,6 +31,8 @@ export const home = {
   "home.detail.oneway": "{distance} · one way",
   "home.error.title": "Something went wrong",
   "home.list.subtitle": "Pick a roadbook",
+  "home.list.empty": "No roadbook yet. Import a file to start.",
+  "home.list.emptyServer": "No roadbook yet. Import a file, or make one on your server.",
   "home.list.import": "Import a roadbook",
   "home.list.imported": "Imported from a file",
   "home.list.fromServer": "From your server",

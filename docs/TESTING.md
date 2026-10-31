@@ -4,13 +4,13 @@ The rule: nothing ships that has not passed the four layers of
 [ADR 0009](adr/0009-testing-strategy-for-the-app.md). A change that touches what a rider sees or does comes with a
 test that fails without it.
 
-| Layer          | Command                | Covers                                                                             |
-| -------------- | ---------------------- | ---------------------------------------------------------------------------------- |
-| Core           | `npm test`             | geometry, corners, maneuvers, instructions, navigator, approach, bundled roadbooks |
-| UI             | `npm run test:ui`      | every screen, state and control on fakes; accessibility; error handling            |
-| Bundle         | `npm run bundle:check` | the JavaScript bundle builds                                                       |
-| Gate           | `npm run quality`      | typecheck, lint, format, the three above, with coverage thresholds                 |
-| Device (phone) | `npm run smoke:device` | the installed app on a real, unlocked phone: flow, crashes, layout                 |
+| Layer          | Command                | Covers                                                                                                                 |
+| -------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Core           | `npm test`             | geometry, corners, maneuvers, instructions, navigator, approach, fixture roadbooks (real ones kept in `test/fixtures`) |
+| UI             | `npm run test:ui`      | every screen, state and control on fakes; accessibility; error handling                                                |
+| Bundle         | `npm run bundle:check` | the JavaScript bundle builds                                                                                           |
+| Gate           | `npm run quality`      | typecheck, lint, format, the three above, with coverage thresholds                                                     |
+| Device (phone) | `npm run smoke:device` | the installed app on a real, unlocked phone: flow, crashes, layout                                                     |
 
 ## What the phone test drives
 
@@ -18,7 +18,7 @@ The demo (paused to be read), every roadbook, and **scripted GPS rides** (ADR 00
 `mobilemotoride://replay/<scenario>` and the app, in a development build, takes its fixes from a script instead of the
 GPS, so the real GPS path runs on the real screen without the phone moving: `approach` (routed to the start by the real
 Valhalla), `offroute` (the way back, then the route back), `wrongway`, `skip` (the question, the skip, the new route,
-Undo), `join` (the join card), `startfrom` (a ride to a point without asking), `zone` (a danger zone), `roundabout` and `lanes` (junction guidance on made-up junctions, since no bundled roadbook has any yet), `ride` (the speed limit; also used for pause, the end
+Undo), `join` (the join card), `startfrom` (a ride to a point without asking), `zone` (a danger zone), `roundabout` and `lanes` (junction guidance on made-up junctions, since no real roadbook has any yet), `ride` (the speed limit; also used for pause, the end
 question, Back and the phone's Back key). It also opens the gauges card, switches lean on and calibrates the phone (it must lie still on the desk) and reads the lean. It also goes to the home screen and back, and turns Wi-Fi and
 mobile data off for a step to see the basemap fall back and the approach become a straight line; it turns them back on,
 whatever happens. What it cannot test: the phone's real GPS, the permission dialog, real speed and heading noise, the
@@ -57,6 +57,8 @@ vibration, the voice. Those are the ride.
    change, which a ticking demo never gives); read the screenshots it saves in `.smoke/` (they are not committed).
    While working on one area, run only its sections: `npm run smoke:device -- --only voice,key` (sections: voice, demo, background,
    roadbooks, gps, destination, import, rides, control, key, join, zone, offline; the app opening and the list are always checked). A full run takes about 6 minutes; the full run is the one before a release.
+   The run downloads the test roadbooks to the phone from its own server, and deletes at the end the ones it downloaded (a
+   roadbook that was already on the phone stays). `npm run dev:server` pushes the same roadbooks to your dev server.
    The `share` section needs agentRide next to this repository (`../agentRide`): it starts its server on this computer, the
    phone reaches it through adb, and what the phone sends is decrypted here the way a follower's browser does.
 4. **Cameras: check the table of countries** (`src/core/cameraPolicy.ts`, `docs/danger-zones-by-country.md`, ADR 0021)

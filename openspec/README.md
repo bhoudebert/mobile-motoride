@@ -7,7 +7,7 @@ into the specs and its folder moves to `changes/archive/` (dated).
 
 | Capability        | Covers                                                                                    |
 | ----------------- | ----------------------------------------------------------------------------------------- |
-| roadbook-import   | GPX turned into a roadbook, bundled roadbooks, the library list                           |
+| roadbook-import   | GPX turned into a roadbook, the roadbook file, the library list                           |
 | ride-navigation   | Following a roadbook with GPS: progress, next stop, off route, the ride screen            |
 | turn-instructions | "Straight 1.2 km", "Left in 150 m": turns found on the line, the top instruction, bearing |
 | speed-limits      | The limit on the line from the roadbook file, always on screen, red when over             |

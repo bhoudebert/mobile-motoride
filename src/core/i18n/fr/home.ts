@@ -34,6 +34,8 @@ export const home: Translated<typeof English> = {
   "home.detail.oneway": "{distance} · aller simple",
   "home.error.title": "Un problème est survenu",
   "home.list.subtitle": "Choisissez un roadbook",
+  "home.list.empty": "Aucun roadbook pour l'instant. Importez un fichier pour commencer.",
+  "home.list.emptyServer": "Aucun roadbook pour l'instant. Importez un fichier, ou créez-en un sur votre serveur.",
   "home.list.import": "Importer un roadbook",
   "home.list.imported": "Importé depuis un fichier",
   "home.list.fromServer": "Depuis votre serveur",

@@ -5,9 +5,10 @@ import { ErrorBoundary } from "../../src/ui/ErrorBoundary.tsx";
 import { RoadbookList } from "../../src/ui/RoadbookList.tsx";
 import { Text } from "react-native";
 import { flush } from "./flush.ts";
-import { prepared, revealButtons } from "./helpers.ts";
+import { keepFixtures, prepared, revealButtons } from "./helpers.ts";
+import { resetFiles } from "./filesystem.mock.ts";
 
-test("the list shows every bundled roadbook with its figures", async () => {
+test("the list shows every roadbook with its figures", async () => {
   const onOpen = jest.fn();
   await render(<RoadbookList roadbooks={prepared()} onOpen={onOpen} />);
   for (const rb of prepared()) expect(screen.getByText(rb.roadbook.name)).toBeTruthy();
@@ -15,6 +16,15 @@ test("the list shows every bundled roadbook with its figures", async () => {
   await fireEvent.press(screen.getByText("Pays des Collines loop"));
   expect(onOpen).toHaveBeenCalledTimes(1);
   expect(onOpen.mock.calls[0]![0].roadbook.name).toBe("Pays des Collines loop");
+});
+
+test("the app ships no roadbook: a rider with none kept is told how to get one", async () => {
+  resetFiles();
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Roadbooks"));
+  expect(screen.getByText("No roadbook yet. Import a file to start.")).toBeTruthy();
+  expect(screen.queryByText("Pays des Collines loop")).toBeNull();
 });
 
 test("the app opens on the map, not on a titled list, and goes to the roadbooks and back", async () => {
@@ -29,6 +39,8 @@ test("the app opens on the map, not on a titled list, and goes to the roadbooks 
 });
 
 test("a roadbook chosen on the list goes back to the list, one opened from the recent rides goes back to the map", async () => {
+  resetFiles();
+  keepFixtures();
   await render(<App />);
   await fireEvent.press(screen.getByLabelText("Roadbooks"));
   await fireEvent.press(screen.getByText("Pays des Collines loop"));
@@ -48,6 +60,8 @@ test("a roadbook chosen on the list goes back to the list, one opened from the r
 
 test("recent rides are kept between launches, newest first without repeats, and can be cleared", async () => {
   await AsyncStorage.clear();
+  resetFiles();
+  keepFixtures();
   const first = await render(<App />);
   await fireEvent.press(screen.getByLabelText("Roadbooks"));
   await fireEvent.press(screen.getByText("Pays des Collines loop"));

@@ -1,10 +1,12 @@
 // A local agentRide server for the phone on the USB cable (README, "Try live sharing with a local server"):
 // starts ../agentRide's server, makes a rider if there is none, forwards the port, and sets the server in the app.
+// A new server gets the test roadbooks (test/fixtures/roadbooks) pushed to it, to try the list on the phone.
 // Ctrl-C stops it. The test of the phone (`npm run smoke:device`) replaces the app's server; run this again after it.
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { fixtureRoadbooks, listedCount, pushFixtures } from "./device/fixtureServer.ts";
 
 const agentRide = resolve(import.meta.dirname, "../../agentRide");
 const data = process.env.RIDE_DEV_DIR ?? join(homedir(), "ride-dev-data");
@@ -37,6 +39,8 @@ const stop = () => {
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 
+await seedRoadbooks();
+
 try {
   execFileSync("adb", ["reverse", `tcp:${port}`, `tcp:${port}`]);
   const link = `mobilemotoride://server?url=${encodeURIComponent(`http://localhost:${port}`)}&token=${token}`;
@@ -44,4 +48,24 @@ try {
   console.log(`Server on http://localhost:${port}, token in ${tokenFile}. Answer "Use it" on the phone. Ctrl-C stops.`);
 } catch {
   console.log("No phone through adb: the server runs, set it by hand in the app (Menu, Server) when one is connected.");
+}
+
+/** Push the test roadbooks once the server is up, unless it keeps some already (a re-run adds nothing). */
+async function seedRoadbooks() {
+  const base = `http://127.0.0.1:${port}`;
+  let up = false;
+  for (let i = 0; i < 30 && !up; i++) {
+    up = await fetch(`${base}/health`).then(
+      (r) => r.ok,
+      () => false,
+    );
+    if (!up) await new Promise((r) => setTimeout(r, 500));
+  }
+  if (!up) return console.log("The server did not answer: no test roadbook pushed.");
+  if (!existsSync(join(agentRide, "src/pushedRoadbooks.ts"))) {
+    return console.log("This agentRide cannot keep pushed roadbooks yet: the roadbook list stays empty.");
+  }
+  if (((await listedCount(base, token)) ?? 0) > 0) return;
+  const pushed = await pushFixtures(base, token);
+  console.log(`${pushed} of ${fixtureRoadbooks().length} test roadbooks pushed to the server.`);
 }

@@ -52,8 +52,8 @@ The full path every feature follows is in `docs/EVOLVING.md`. Short form:
 - Screens (`src/ui/`) call core, they do not compute geometry.
 - Rider-safety rules (what triggers a warning, how early) are enforced in code
   and specified in `openspec/specs/corner-warnings`, never left to a screen.
-- GPX files come from `../agentRide/exports` and are **not** committed raw;
-  `npm run bundle:roadbooks` converts them (ADR 0005).
+- The app ships no roadbook (ADR 0044): a rider imports a file or fetches from their server. Real roadbooks for the
+  tests live in `test/fixtures/roadbooks`; the device smoke pushes them to a local agentRide server.
 - Never copy another product's code, assets or private API. Features are built from public documentation
   and open data.
 
@@ -64,7 +64,6 @@ npm run quality           # the gate (core, UI, bundle)
 npm run test:ui           # UI tests only (Jest)
 npm run smoke:device      # the installed app on a phone, through adb
 npm test                  # core unit tests
-npm run bundle:roadbooks  # GPX exports -> src/data/bundled
 npm run android           # build and run the dev client on a device
 npm start                 # Metro for the dev client
 ```
