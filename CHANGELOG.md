@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.4.0...v1.5.0) (2026-10-31)
+
+
+### Features
+
+* **rides:** list the rides of the server with the phone's ([#55](https://github.com/bhoudebert/mobile-motoride/issues/55)) ([f45a20b](https://github.com/bhoudebert/mobile-motoride/commit/f45a20b6cd9d0f4479801e1e62fdf9fa260b43af))
+* **rides:** the actions of a ride are icons ([#53](https://github.com/bhoudebert/mobile-motoride/issues/53)) ([d8d9aac](https://github.com/bhoudebert/mobile-motoride/commit/d8d9aacf044e7d0cdcd3fbe574eb8edf5fe0c199))
+
 ## [1.4.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.3.0...v1.4.0) (2026-10-31)
 
 
