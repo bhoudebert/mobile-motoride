@@ -366,3 +366,30 @@ test("My rides says the climb and the peak leans of a ride that has them", async
   await flush(25);
   expect(screen.getByText("Climb 412 m · Lean 38° L · 41° R")).toBeTruthy();
 });
+
+test("pulling My rides down reads the rides again", async () => {
+  dirs.add("file:///document/rides");
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Open the menu"));
+  await fireEvent.press(screen.getByLabelText("My rides"));
+  await flush(25);
+  expect(screen.queryByText("Late loop")).toBeNull();
+
+  const late: RideMeta = {
+    id: "2026-10-18T08-00-00-late",
+    roadbookId: "late",
+    roadbookName: "Late loop",
+    startedAt: Date.UTC(2026, 9, 18, 8),
+    endedAt: Date.UTC(2026, 9, 18, 9),
+    distanceM: 10_000,
+    points: 10,
+    state: "completed",
+  };
+  files.set(`${folder}${late.id}.gpx`, "<gpx/>");
+  files.set(`${folder}${late.id}.json`, serializeMeta(late));
+  await act(async () => screen.getByTestId("rides-list").props.refreshControl.props.onRefresh());
+  await flush(25);
+  expect(screen.getByText("Late loop")).toBeTruthy();
+  expect(screen.getByTestId("rides-list").props.refreshControl.props.refreshing).toBe(false);
+});

@@ -18,10 +18,19 @@ export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview
   const [confirming, setConfirming] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const reload = useCallback(() => {
     listRides().then(setRides);
   }, []);
   useEffect(reload, [reload]);
+  // Pull down from the top to read the rides again (spec home-screen, "Pull to refresh").
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    void listRides()
+      .then(setRides)
+      .finally(() => setRefreshing(false));
+  }, []);
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       onBack();
@@ -58,6 +67,9 @@ export function RidesScreen({ onBack, onReview }: { onBack: () => void; onReview
         data={rides ?? []}
         keyExtractor={(r) => r.id}
         contentContainerStyle={styles.list}
+        testID="rides-list"
+        refreshing={refreshing}
+        onRefresh={refresh}
         renderItem={({ item: r }) => (
           <View style={styles.card}>
             <Text style={styles.name}>{r.roadbookName}</Text>
