@@ -25,11 +25,14 @@ export const INSTRUCTION_BAR_TOP = TOP_INSET + 8;
 export const INSTRUCTION_BAR_HEIGHT = 92;
 
 /** "Straight 1.2 km", "Left in 150 m, then right": what comes next, at the top (spec turn-instructions). */
-export function InstructionBar({ nav }: { nav: NavState }) {
+export function InstructionBar({ nav, top = INSTRUCTION_BAR_TOP }: { nav: NavState; top?: number }) {
   const off = nav.offRoute;
   const { instruction } = nav;
   return (
-    <View style={[styles.bar, { backgroundColor: off ? colors.ink : colors.moss }]} accessibilityLiveRegion="polite">
+    <View
+      style={[styles.bar, { top, backgroundColor: off ? colors.ink : colors.moss }]}
+      accessibilityLiveRegion="polite"
+    >
       <Text style={styles.glyph} accessibilityElementsHidden importantForAccessibility="no">
         {instruction.kind === "rejoin" && instruction.relativeDeg != null
           ? arrowFor(instruction.relativeDeg)

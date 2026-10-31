@@ -31,6 +31,7 @@ import { t } from "./src/core/i18n/index.ts";
 import { useLanguage, useLanguageSetting } from "./src/ui/languageSetting.ts";
 import { useScheme, useThemeSetting } from "./src/ui/themeSetting.ts";
 import { useRecents } from "./src/ui/recents.ts";
+import { lockPortrait } from "./src/ui/orientation.ts";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -59,6 +60,8 @@ export default function App() {
   const scheme = useScheme();
   const crashSettings = useCrashSettings();
   const ready = (fontsLoaded || fontError !== null) && lang.ready && look.ready;
+  // Every screen is portrait; the ride screen lets the phone turn while it is open (ADR 0045).
+  useEffect(() => lockPortrait(), []);
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);

@@ -196,3 +196,17 @@ While riding, the ride screen SHALL show a round compass chip in the row of chip
 
 - **WHEN** the ride screen is open and the rider has not pressed Start
 - **THEN** there is no compass chip
+
+### Requirement: Landscape on the ride screen
+
+The phone SHALL be free to turn on the ride screen, and only there: every other screen SHALL stay upright, and the app SHALL lock the phone upright again as soon as the ride screen closes (ADR 0045). Held sideways, the ride screen SHALL put the panel (speed, limit, distance, the lines, the buttons) in a column at the left, two fifths of the width and between 300 and 400 dp, the full height, with the readouts scrolling above the buttons if they do not all fit and the buttons always in reach; the map, the instruction bar, the warnings, the skip square, the gauges and the map buttons SHALL fill what the column leaves, and the map buttons SHALL stand at the bottom of the map, in two columns, not on a panel's edge. On an iPhone the sides SHALL leave room for the cut-out. Cards (sheets) SHALL keep covering the screen and scroll. A phone that cannot turn, or an older build without the module, SHALL stay upright and work as before.
+
+#### Scenario: Turning the phone on the ride
+
+- **WHEN** the ride screen is open and the phone is turned sideways
+- **THEN** the panel is a column on the left, the map fills the rest, and Start (or Back and End) can be pressed
+
+#### Scenario: Leaving the ride
+
+- **WHEN** the rider goes back to the list with the phone sideways
+- **THEN** the list is upright
