@@ -684,3 +684,28 @@ test("a refresh that ends on the same stamp downloads nothing, and the card is u
     jest.useRealTimers();
   }
 });
+
+test("a roadbook the server renumbered is one card, refreshed in place under its new number", async () => {
+  await withServer();
+  serverSays([{ id: 1_000_000, name: "Agent loop", stamp: "s1" }], () => refreshed(3000, "2026-10-10T00:00:00.000Z"));
+  await toList();
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Download Agent loop"));
+  await flush();
+  const [first] = kept();
+  expect(JSON.parse(files.get(first!)!).serverId).toBe(1_000_000);
+  await revealButtons();
+  await fireEvent.press(screen.getByLabelText("Back to the list"));
+
+  // The server took it into the library: a new number, the old one is gone.
+  serverSays([{ id: 3, name: "Agent loop", stamp: "s9" }], () => refreshed(5000, "2026-10-20T00:00:00.000Z"), "s9");
+  await reopen();
+  expect(screen.getAllByText("Agent loop")).toHaveLength(1);
+  expect(screen.queryByText("On your server")).toBeNull();
+  await fireEvent.press(screen.getByLabelText("Refresh Agent loop, a newer version is on your server"));
+  await flush();
+  expect(kept()).toEqual([first]);
+  const stored = JSON.parse(files.get(first!)!);
+  expect(stored.serverId).toBe(3);
+  expect(stored.serverStamp).toBe("s9");
+});

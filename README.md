@@ -101,8 +101,8 @@ npm run dev:server   # starts ../agentRide's server, makes a rider, pushes the t
 The app asks to use the server (`Use it`); then Menu, Server, Test. The server loads `../agentRide/.env` as agentRide's own `npm run serve` does (Claude key, traffic, Mapillary), but keeps its
 data apart in `~/ride-dev-data`. Mind `RIDE_REMOTE_URL` there: a roadbook pushed from this server goes to that real one.
 A new server also gets the test roadbooks
-(`test/fixtures/roadbooks`) pushed to it, so the Roadbooks screen lists them to download (it needs an agentRide with
-pushed roadbooks; without it the list stays empty). A rider of a hosted server joins by scanning the
+(`test/fixtures/roadbooks`) pushed to it, so the Roadbooks screen lists them to download (it needs an agentRide that takes
+`PUT /roadbooks`; without it the list stays empty). A rider of a hosted server joins by scanning the
 QR code of `npm run admin -- invite <email> --pin` (agentRide) with the phone's camera: the app asks for the PIN and
 keeps a token of its own. The token is kept in `~/ride-dev-data/token.txt`
 (in case you must type it into the app by hand: address `http://localhost:18973`). Open the follow link on your PC as it

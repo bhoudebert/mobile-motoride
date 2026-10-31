@@ -18,12 +18,12 @@ export const POLL_MS = 4000;
  *
  * While a roadbook is `refreshing` the list is asked again every few seconds without showing it is being asked. `refresh`
  * asks the server for a new file of one roadbook; when that roadbook is ready (`current`, and its stamp is not the one held)
- * `onReady` is called once with the listed entry, to download it.
+ * `onReady` is called once with the listed entry (and the whole answer), to download it.
  */
 export function useServerRoadbooks(
   server: ServerSetting | null,
   enabled: boolean,
-  onReady?: (entry: ServerRoadbook) => void,
+  onReady?: (entry: ServerRoadbook, listed: readonly ServerRoadbook[]) => void,
 ) {
   const [list, setList] = useState<ServerList | null>(null);
   const [round, setRound] = useState(0);
@@ -41,7 +41,7 @@ export function useServerRoadbooks(
       if (!awaiting.current.has(e.id)) continue;
       if (e.state === "current") {
         awaiting.current.delete(e.id);
-        ready.current?.(e);
+        ready.current?.(e, items);
       } else if (e.state === "failed" || e.state === "outdated") awaiting.current.delete(e.id);
     }
   }, []);

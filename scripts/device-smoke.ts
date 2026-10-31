@@ -259,8 +259,8 @@ let seedDir: string | null = null;
  */
 async function seedRoadbooksFromServer(): Promise<boolean> {
   const agentRide = resolve("../agentRide");
-  if (!existsSync(join(agentRide, "src/pushedRoadbooks.ts"))) {
-    check("roadbooks: agentRide with the push to a server is next to this repository (../agentRide)", false);
+  if (!existsSync(join(agentRide, "src/serve.ts"))) {
+    check("roadbooks: agentRide is next to this repository (../agentRide)", false);
     return false;
   }
   seedDir = mkdtempSync(join(tmpdir(), "smoke-roadbooks-"));

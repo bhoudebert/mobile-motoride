@@ -107,9 +107,9 @@ export default function App() {
     server,
     screen.name === "roadbooks",
     server
-      ? (entry) => {
+      ? (entry, listed) => {
           // Only a file that is not the one held comes down: a refresh that ends on the same stamp changes nothing.
-          if (serverAction(entry, library.items) === "refresh") void library.fromServer(server, entry, false);
+          if (serverAction(entry, library.items, listed) === "refresh") void library.fromServer(server, entry, false);
         }
       : undefined,
   );
