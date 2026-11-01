@@ -1,4 +1,4 @@
-import { decodePolyline } from "./polyline.ts";
+import { decodePolyline, encodePolyline } from "./polyline.ts";
 import { slugify, tidyStopName } from "./gpx.ts";
 import type {
   Camera,
@@ -171,4 +171,25 @@ export function parseRoadbookFile(text: string, id?: string): Roadbook {
       ? { generatedAt: doc["generatedAt"] }
       : {}),
   };
+}
+
+/**
+ * A roadbook as a `motoride-roadbook` file (docs/roadbook-format.md), to send to the rider's server. The junctions are not
+ * written: the app keeps them in the order the rider meets the exits, which the file cannot say again (the roundabout's
+ * traffic side is lost), so a roadbook sent from the phone has none until the server makes its own.
+ */
+export function serializeRoadbookFile(rb: Roadbook): string {
+  return JSON.stringify({
+    format: FORMAT,
+    version: SUPPORTED_VERSION,
+    name: rb.name,
+    description: rb.description,
+    ...(rb.generatedAt ? { generatedAt: rb.generatedAt } : {}),
+    ...(rb.origin ? { origin: rb.origin } : {}),
+    line: encodePolyline(rb.line),
+    stops: rb.stops,
+    limits: rb.limits ?? [],
+    cameras: rb.cameras ?? [],
+    countries: rb.countries ?? [],
+  });
 }

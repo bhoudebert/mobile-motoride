@@ -39,6 +39,10 @@ to load falls back to Off. `EXPO_PUBLIC_MAP_STYLE_URL` replaces the Light style.
 not be used by an app (OSM tile usage policy).
 "Get a server" in the Server screen (spec `hosted-server`, ADR 0047) is on by default, at `https://sidecar-motoride.memorledge.app`:
 `EXPO_PUBLIC_HOSTED_SERVER=0` switches it off and `EXPO_PUBLIC_SIDECAR_URL` points a build at another sidecar.
+"Send to your server" in the roadbook list (spec `roadbook-library`, ADR 0049) pushes the roadbooks kept only on the phone with
+`PUT /roadbooks` (the roadbook file, the phone's token): the server numbers each one itself and keys it on its origin and name, so a
+second send replaces. The sending stops on `library_full`, on 409 (100 sent roadbooks) and on a refused token, and waits when the
+server asks (`Retry-After`). The room left comes from `GET /me`; the limit is never written in the app.
 
 ## Guidance
 

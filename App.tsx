@@ -24,11 +24,12 @@ import { RoadbookList } from "./src/ui/RoadbookList.tsx";
 import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer, useServerSettled } from "./src/ui/serverSetting.ts";
+import { useSendRoadbooks } from "./src/ui/useSendRoadbooks.ts";
 import { useLibraryId } from "./src/ui/libraryIdentity.ts";
 import { detachRides } from "./src/ui/ridesStore.ts";
 import { useRideUpload } from "./src/ui/useRideUpload.ts";
 import type { RideMeta } from "./src/core/recording.ts";
-import { serverAction, type ServerRoadbook } from "./src/core/serverRoadbooks.ts";
+import { onlyOnPhone, serverAction, type ServerRoadbook } from "./src/core/serverRoadbooks.ts";
 import { useServerRoadbooks } from "./src/ui/useServerRoadbooks.ts";
 import { recoverRides } from "./src/ui/ridesStore.ts";
 import { formatDistance } from "./src/core/format.ts";
@@ -143,6 +144,12 @@ export default function App() {
         }
       : undefined,
   );
+  // The roadbooks that are only on the phone can be sent to the server (spec roadbook-library).
+  const onlyLocal = onlyOnPhone(
+    library.items,
+    serverRoadbooks.list?.status === "ready" ? serverRoadbooks.list.items : null,
+  );
+  const sendRoadbooks = useSendRoadbooks(server, onlyLocal, library.link, serverRoadbooks.reload);
   // A file the server has not made yet is made on the first request and a long route takes minutes: the phone waits a
   // little, then asks the server to prepare it and the roadbook comes down by itself when it is ready.
   const getRoadbook = async (s: NonNullable<typeof server>, entry: ServerRoadbook) => {
@@ -243,6 +250,11 @@ export default function App() {
                     asking: serverRoadbooks.asking,
                     problem: serverRoadbooks.problem,
                     onRetry: serverRoadbooks.reload,
+                    send: {
+                      count: onlyLocal.length,
+                      state: sendRoadbooks,
+                      onRides: () => setScreen({ name: "rides" }),
+                    },
                   }
                 : undefined
             }

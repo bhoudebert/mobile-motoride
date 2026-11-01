@@ -25,3 +25,28 @@ export function decodePolyline(encoded: string, precision = 6): LatLon[] {
   }
   return points;
 }
+
+/** Encode points as a polyline (precision 6 for Valhalla, agentRide and the roadbook file). */
+export function encodePolyline(points: LatLon[], precision = 6): string {
+  const factor = 10 ** precision;
+  let out = "";
+  let lat = 0;
+  let lon = 0;
+  const put = (delta: number) => {
+    let v = delta < 0 ? ~(delta << 1) : delta << 1;
+    while (v >= 0x20) {
+      out += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+      v >>= 5;
+    }
+    out += String.fromCharCode(v + 63);
+  };
+  for (const [la, lo] of points) {
+    const nlat = Math.round(la * factor);
+    const nlon = Math.round(lo * factor);
+    put(nlat - lat);
+    put(nlon - lon);
+    lat = nlat;
+    lon = nlon;
+  }
+  return out;
+}
