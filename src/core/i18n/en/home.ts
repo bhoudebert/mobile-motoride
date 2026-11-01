@@ -200,4 +200,6 @@ export const home = {
   "home.send.problem.failed": "Your server did not take it. The roadbooks are still on this phone: try again later.",
   "home.send.one": "Send {name} to your server",
   "home.send.sendingOne": "Sending {name} to your server…",
+  "home.list.share": "Save or share the file of {name}",
+  "home.list.shareTitle": "Roadbook {name}",
 } as const;

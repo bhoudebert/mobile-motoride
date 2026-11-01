@@ -216,4 +216,6 @@ export const home: Translated<typeof English> = {
     "Votre serveur ne l'a pas pris. Les roadbooks sont toujours sur ce téléphone : réessayez plus tard.",
   "home.send.one": "Envoyer {name} vers votre serveur",
   "home.send.sendingOne": "Envoi de {name} vers votre serveur…",
+  "home.list.share": "Enregistrer ou partager le fichier de {name}",
+  "home.list.shareTitle": "Roadbook {name}",
 };

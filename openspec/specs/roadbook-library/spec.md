@@ -175,3 +175,17 @@ Each copy kept from a server SHALL carry the identity of the library it came fro
 
 - **WHEN** the server answers 413 `library_full` to a row's send
 - **THEN** the row says the library is full and what to do, the roadbook stays on the phone and the send icon stays
+
+### Requirement: Save a roadbook as a file
+
+Every roadbook kept on the phone SHALL have, on its row beside the other icons, a share icon ("Save or share the file of <name>") that writes the roadbook as a `motoride-roadbook` file (`<name>.motoride.json`) and hands it to the system's share sheet, so the rider can keep it in the phone's files, a drive or a mail, or send it to another phone, which imports it by the rules of "Import a file". A phone that cannot share files, or a share that fails, SHALL say so in words and change nothing. The file does not carry the junction guidance (roundabout exits and lanes), which the app cannot write back exactly.
+
+#### Scenario: Save a roadbook
+
+- **WHEN** the rider taps the share icon of a kept roadbook
+- **THEN** the share sheet opens with a `.motoride.json` file that imports back with the same name, line and stops
+
+#### Scenario: Nothing to share with
+
+- **WHEN** the phone cannot share files
+- **THEN** the screen says "This phone cannot share files from the app." and nothing changes
