@@ -51,7 +51,7 @@ export function RoadbookList({
     problem: ServerProblem | null;
     onRetry: () => void;
     /** "Send to your server": the roadbooks only on the phone, and the sending (spec roadbook-library). */
-    send?: { count: number; state: SendState; onRides?: () => void };
+    send?: { count: number; ids: ReadonlySet<string>; state: SendState; onRides?: () => void };
   };
   /** Back to the home screen, with the phone's Back button too. */
   onBack?: () => void;
@@ -174,6 +174,26 @@ export function RoadbookList({
                         }
                       />
                     ) : null}
+                    {server?.send?.ids.has(id) ? (
+                      server.send.state.rows[id] === "sending" ? (
+                        <View
+                          accessibilityLabel={t("home.send.sendingOne", { name: rb.roadbook.name })}
+                          style={styles.serverAction}
+                        >
+                          <ActivityIndicator color={colors.accent} />
+                        </View>
+                      ) : (
+                        <Pressable
+                          style={styles.serverAction}
+                          disabled={server.send.state.sending !== null}
+                          onPress={() => server.send?.state.sendOne(id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t("home.send.one", { name: rb.roadbook.name })}
+                        >
+                          <Icon name="cloud-upload-outline" />
+                        </Pressable>
+                      )
+                    ) : null}
                     <Pressable
                       style={styles.serverAction}
                       onPress={() => setConfirming(id)}
@@ -185,6 +205,13 @@ export function RoadbookList({
                   </View>
                 ) : null}
               </View>
+              {server?.send && server.send.state.rows[id] && server.send.state.rows[id] !== "sending" ? (
+                <Text style={styles.serverNote} accessibilityRole="alert">
+                  {t(
+                    `home.send.problem.${server.send.state.rows[id] === "libraryFull" ? "libraryFullPlain" : server.send.state.rows[id]}` as MessageKey,
+                  )}
+                </Text>
+              ) : null}
               {pending?.has(id) && onComplete ? (
                 <Pressable
                   style={styles.complete}

@@ -198,4 +198,6 @@ export const home = {
   "home.send.problem.invalid": "Your server did not accept that roadbook file.",
   "home.send.problem.unreachable": "Your server could not be reached. The roadbooks are still on this phone.",
   "home.send.problem.failed": "Your server did not take it. The roadbooks are still on this phone: try again later.",
+  "home.send.one": "Send {name} to your server",
+  "home.send.sendingOne": "Sending {name} to your server…",
 } as const;

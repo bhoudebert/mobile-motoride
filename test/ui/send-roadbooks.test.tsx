@@ -96,3 +96,38 @@ test("nothing is offered to send when there is no server", async () => {
   await fireEvent.press(screen.getByLabelText("Roadbooks"));
   expect(screen.queryByText(/only on this phone/)).toBeNull();
 });
+
+test("each roadbook that is only on the phone has its own send icon, which sends that one and links it", async () => {
+  await openList();
+  expect(screen.getAllByLabelText(/^Send [A-Z].* to your server$/)).toHaveLength(4);
+  await fireEvent.press(screen.getByLabelText("Send Pays des Collines loop to your server"));
+  await flush(25);
+  expect(puts).toHaveLength(1);
+  expect(JSON.parse(puts[0]!).name).toBe("Pays des Collines loop");
+  expect(screen.queryByLabelText("Send Pays des Collines loop to your server")).toBeNull();
+  expect(screen.getAllByLabelText(/^Send [A-Z].* to your server$/)).toHaveLength(3);
+  expect(kept().filter((k) => k.serverId !== undefined)).toHaveLength(1);
+  expect(screen.getByText("3 roadbooks are only on this phone.")).toBeTruthy();
+});
+
+test("a refusal shows on the row it concerns, and the roadbook stays on the phone", async () => {
+  answerFor = () => json(413, { error: "library_full" });
+  await openList();
+  await fireEvent.press(screen.getByLabelText("Send Pays des Collines loop to your server"));
+  await flush(25);
+  expect(
+    screen.getByText(
+      "Your server library is full. Your rides are still on this phone; delete older ones from the server to make room.",
+    ),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Send Pays des Collines loop to your server")).toBeTruthy();
+  expect(kept().filter((k) => k.serverId !== undefined)).toHaveLength(0);
+});
+
+test("without a server a roadbook has no send icon", async () => {
+  fetchMock.mockImplementation(async () => json(200, { roadbooks: [] }));
+  await render(<App />);
+  await flush();
+  await fireEvent.press(screen.getByLabelText("Roadbooks"));
+  expect(screen.queryByLabelText(/to your server$/)).toBeNull();
+});

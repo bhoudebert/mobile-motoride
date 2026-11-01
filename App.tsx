@@ -252,6 +252,7 @@ export default function App() {
                     onRetry: serverRoadbooks.reload,
                     send: {
                       count: onlyLocal.length,
+                      ids: new Set(onlyLocal.map((k) => k.roadbook.id)),
                       state: sendRoadbooks,
                       onRides: () => setScreen({ name: "rides" }),
                     },
