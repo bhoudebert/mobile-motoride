@@ -25,6 +25,7 @@ import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
 import { useServer, useServerSettled } from "./src/ui/serverSetting.ts";
 import { useSendRoadbooks } from "./src/ui/useSendRoadbooks.ts";
+import { useBackupWarning } from "./src/ui/useBackupWarning.ts";
 import { useLibraryId } from "./src/ui/libraryIdentity.ts";
 import { detachRides } from "./src/ui/ridesStore.ts";
 import { useRideUpload } from "./src/ui/useRideUpload.ts";
@@ -122,6 +123,7 @@ export default function App() {
   const serverNow = useRef(server);
   serverNow.current = server;
   const rideUpload = useRideUpload(server);
+  const backupWarning = useBackupWarning(server, screen.name);
   // Copies kept from a server that is not the one in use (none set, another set, or kept before libraries had an identity)
   // become roadbooks and rides of the phone only: nothing is lost, nothing is matched across servers (ADR 0049).
   const libraryId = useLibraryId(server);
@@ -275,6 +277,7 @@ export default function App() {
           onImport={() => void library.pick()}
           onRides={() => setScreen({ name: "rides" })}
           onServer={() => setScreen({ name: "server" })}
+          serverWarning={backupWarning}
           onSafety={() => setScreen({ name: "safety" })}
           language={lang.setting}
           onLanguage={lang.change}

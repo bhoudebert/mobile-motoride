@@ -26,6 +26,9 @@ export interface HostedStatus {
   rejected: string | null;
   /** A short code to quote when asking for help; null until the sidecar gives one. */
   supportCode: string | null;
+  /** Whether a backup email is confirmed, and the address masked ("j***@proton.me"). */
+  emailConfirmed: boolean;
+  emailMasked: string | null;
 }
 
 const STATES: readonly string[] = ["none", "pending", "ready", "suspended", "ended"];
@@ -46,6 +49,8 @@ export function parseStatus(body: unknown): HostedStatus | null {
         : null,
     rejected: typeof body.rejected === "string" ? body.rejected : null,
     supportCode: typeof body.supportCode === "string" && body.supportCode ? body.supportCode : null,
+    emailConfirmed: body.emailConfirmed === true,
+    emailMasked: typeof body.emailMasked === "string" && body.emailMasked ? body.emailMasked : null,
   };
 }
 

@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { setLanguage } from "../../src/core/i18n/index.ts";
+import App from "../../App.tsx";
 import { ServerScreen } from "../../src/ui/ServerScreen.tsx";
 import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
 import { flush } from "./flush.ts";
@@ -282,4 +283,117 @@ test("traffic left to the host and a server that does not say which: said as the
 test("traffic off names no source", async () => {
   await hosted("yes", { ...ME, traffic: { mode: "off", perDay: null, usedToday: 0 } });
   expect(screen.queryByText(/Traffic source/)).toBeNull();
+});
+
+// The backup email, and recovering a server on another phone (spec hosted-server).
+const STATUS = (extra: Record<string, unknown> = {}) => json(200, { state: "ready", emailConfirmed: false, ...extra });
+
+test("without a backup email there is a warning and a way to add one; a code confirms it and the address shows masked", async () => {
+  answers["/v1/account/status"] = [STATUS()];
+  answers["/v1/account/email"] = [json(202, { sent: true })];
+  answers["/v1/account/email/verify"] = [STATUS({ emailConfirmed: true, emailMasked: "j***@proton.me" })];
+  await hosted("yes");
+  expect(screen.getByText(/No way back if you lose this phone/)).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Add a backup email"));
+  expect(screen.getByText(/whoever controls that mailbox can take your server over/)).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText("Backup email address"), "jane@proton.me");
+  await fireEvent.press(screen.getByLabelText("Send a code to this address"));
+  await flush();
+  expect(screen.getByText("A code was sent to jane@proton.me. It lasts 10 minutes.")).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText("Code from the email"), "123456");
+  await fireEvent.press(screen.getByLabelText("Confirm the code"));
+  await flush();
+  expect(screen.getByText("Backup email confirmed: j***@proton.me.")).toBeTruthy();
+  expect(screen.getByText("Backup email: j***@proton.me")).toBeTruthy();
+  expect(screen.queryByText(/No way back if you lose this phone/)).toBeNull();
+  expect(screen.getByLabelText("Remove the backup email")).toBeTruthy();
+});
+
+test("a wrong code, too many mails and a sidecar that cannot send mail are told in words", async () => {
+  answers["/v1/account/status"] = [STATUS()];
+  answers["/v1/account/email"] = [json(202, { sent: true })];
+  answers["/v1/account/email/verify"] = [json(422, { error: "bad_code" })];
+  await hosted("yes");
+  await fireEvent.press(screen.getByLabelText("Add a backup email"));
+  await fireEvent.changeText(screen.getByLabelText("Backup email address"), "jane@proton.me");
+  await fireEvent.press(screen.getByLabelText("Send a code to this address"));
+  await flush();
+  await fireEvent.changeText(screen.getByLabelText("Code from the email"), "000000");
+  await fireEvent.press(screen.getByLabelText("Confirm the code"));
+  await flush();
+  expect(screen.getByText("That code is wrong or expired. Ask for a new one.")).toBeTruthy();
+});
+
+test("a sidecar without mail says the backup is not available, and keeps the warning", async () => {
+  answers["/v1/account/status"] = [STATUS()];
+  answers["/v1/account/email"] = [json(503, { error: "email_unavailable" })];
+  await hosted("yes");
+  await fireEvent.press(screen.getByLabelText("Add a backup email"));
+  await fireEvent.changeText(screen.getByLabelText("Backup email address"), "jane@proton.me");
+  await fireEvent.press(screen.getByLabelText("Send a code to this address"));
+  await flush();
+  expect(screen.getByText("The backup email is not available now. Try again later.")).toBeTruthy();
+  expect(screen.getByText(/No way back if you lose this phone/)).toBeTruthy();
+});
+
+test("a phone whose server was recovered elsewhere says so and offers a new server", async () => {
+  answers["/v1/account/status"] = [json(410, { error: "account_moved" })];
+  await hosted("yes");
+  expect(screen.getByText("This server was recovered on another phone")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Forget this server and get a new one"));
+  await flush();
+  expect(stored.has("server-setting")).toBe(false);
+  expect(stored.has("hosted-account-token")).toBe(false);
+});
+
+test("recovering by email on a new phone: the address, the code, and the same server is joined", async () => {
+  answers["/v1/recovery/start"] = [json(202, { sent: true })];
+  answers["/v1/recovery/confirm"] = [STATUS()];
+  answers["/v1/invitations"] = [json(200, { state: "ready", invitation: { code: CODE, link: LINK, expiresAt: "x" } })];
+  sidecar();
+  await open();
+  await fireEvent.press(screen.getByLabelText("Recover my server by email"));
+  await fireEvent.changeText(screen.getByLabelText("Backup email address"), "jane@proton.me");
+  await fireEvent.press(screen.getByLabelText("Send a code to this address"));
+  await flush();
+  expect(screen.getByText("If this address is known, a code was sent.")).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText("Code from the email"), "654321");
+  await fireEvent.press(screen.getByLabelText("Recover my server with this code"));
+  await flush(25);
+  expect(calls.slice(0, 5)).toEqual(
+    ["/v1/recovery/start", "/v1/recovery/confirm", "/v1/invitations", "/enrol", "/health"].slice(0, 5),
+  );
+  expect(JSON.parse(stored.get("server-setting")!).url).toBe("https://rides.example.org");
+  expect(stored.get("hosted-server")).toBe("yes");
+  expect(stored.get("hosted-account-token")).toMatch(/^[0-9a-f-]{36}$/);
+});
+
+test("an unknown address gets the same words, and a wrong code at the end is told", async () => {
+  answers["/v1/recovery/start"] = [json(202, { sent: true })];
+  answers["/v1/recovery/confirm"] = [json(422, { error: "bad_code" })];
+  sidecar();
+  await open();
+  await fireEvent.press(screen.getByLabelText("Recover my server by email"));
+  await fireEvent.changeText(screen.getByLabelText("Backup email address"), "nobody@example.org");
+  await fireEvent.press(screen.getByLabelText("Send a code to this address"));
+  await flush();
+  expect(screen.getByText("If this address is known, a code was sent.")).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText("Code from the email"), "111111");
+  await fireEvent.press(screen.getByLabelText("Recover my server with this code"));
+  await flush();
+  expect(screen.getByText("That code is wrong or expired. Ask for a new one.")).toBeTruthy();
+  expect(stored.has("server-setting")).toBe(false);
+});
+
+test("the menu shows a warning beside Server while a server the app made has no backup email", async () => {
+  answers["/v1/account/status"] = [STATUS()];
+  stored.set("hosted-server", "yes");
+  stored.set("hosted-account-token", "11111111-1111-4111-8111-111111111111");
+  answers["/me"] = [json(200, ME)];
+  sidecar();
+  await saveServer({ url: "https://rides.example.org", token: TOKEN });
+  await render(<App />);
+  await flush(25);
+  await fireEvent.press(screen.getByLabelText("Open the menu"));
+  expect(screen.getByLabelText(/^Server\. No way back if you lose this phone/)).toBeTruthy();
 });

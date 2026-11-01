@@ -34,6 +34,8 @@ test("a status is read with its invitation link, its suspension and its rejectio
       suspended: null,
       rejected: null,
       supportCode: null,
+      emailConfirmed: false,
+      emailMasked: null,
     },
   );
   assert.equal(parseStatus({ state: "ready", supportCode: "a1b2c3d4" })?.supportCode, "a1b2c3d4");
@@ -179,4 +181,62 @@ test("the traffic source is the plan's, else what the server says, else unknown"
     "open",
     "a TomTom plan on a host without TomTom",
   );
+});
+
+import { confirmRecovery, removeEmail, setEmail, startRecovery, verifyEmail } from "../src/services/sidecar.ts";
+
+test("a status carries the backup email's state and its masked address", () => {
+  const s = parseStatus({ state: "ready", emailConfirmed: true, emailMasked: "j***@proton.me" })!;
+  assert.deepEqual([s.emailConfirmed, s.emailMasked], [true, "j***@proton.me"]);
+  const none = parseStatus({ state: "ready" })!;
+  assert.deepEqual([none.emailConfirmed, none.emailMasked], [false, null]);
+});
+
+test("the backup email calls are made with the account token, and each failure is told apart", async () => {
+  const seen: { url?: string; init?: RequestInit } = {};
+  const sent = await setEmail("https://s", "tok", "a@b.co", { fetchImpl: fake(reply(202, { sent: true }), seen) });
+  assert.equal(sent.ok, true);
+  assert.equal(seen.url, "https://s/v1/account/email");
+  assert.deepEqual(JSON.parse(String(seen.init!.body)), { email: "a@b.co" });
+  assert.equal((seen.init!.headers as Record<string, string>).Authorization, "AccountToken tok");
+  const why = async (r: Response, call: (f: typeof fetch) => Promise<{ ok: boolean; reason?: string }>) => {
+    const a = await call(fake(r));
+    return a.ok ? "ok" : a.reason;
+  };
+  assert.equal(
+    await why(reply(503, { error: "email_unavailable" }), (f) =>
+      setEmail("https://s", "t", "a@b.co", { fetchImpl: f }),
+    ),
+    "emailUnavailable",
+  );
+  assert.equal(await why(reply(429), (f) => setEmail("https://s", "t", "a@b.co", { fetchImpl: f })), "busy");
+  assert.equal(
+    await why(reply(422, { error: "bad_code" }), (f) => verifyEmail("https://s", "t", "123456", { fetchImpl: f })),
+    "badCode",
+  );
+  assert.equal(
+    await why(reply(410, { error: "account_moved" }), (f) => verifyEmail("https://s", "t", "123456", { fetchImpl: f })),
+    "moved",
+  );
+  assert.equal(await why(reply(200, { state: "ready" }), (f) => removeEmail("https://s", "t", { fetchImpl: f })), "ok");
+});
+
+test("a recovery starts without a token and confirms with the phone's new one; a token in use is told", async () => {
+  const seen: { url?: string; init?: RequestInit } = {};
+  await startRecovery("https://s", "a@b.co", { fetchImpl: fake(reply(202, { sent: true }), seen) });
+  assert.equal(seen.url, "https://s/v1/recovery/start");
+  assert.equal((seen.init!.headers as Record<string, string>).Authorization, undefined);
+  const ok = await confirmRecovery("https://s", "a@b.co", "123456", "11111111-1111-4111-8111-111111111111", {
+    fetchImpl: fake(reply(200, { state: "ready" }), seen),
+  });
+  assert.equal(ok.ok, true);
+  assert.deepEqual(JSON.parse(String(seen.init!.body)), {
+    email: "a@b.co",
+    code: "123456",
+    accountToken: "11111111-1111-4111-8111-111111111111",
+  });
+  const used = await confirmRecovery("https://s", "a@b.co", "123456", "t", {
+    fetchImpl: fake(reply(409, { error: "token_in_use" })),
+  });
+  assert.equal(!used.ok && used.reason, "tokenInUse");
 });

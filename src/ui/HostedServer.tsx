@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { t } from "../core/i18n/index.ts";
-import { trafficLeft, trafficSource, type Me } from "../core/hosted.ts";
+import { trafficLeft, trafficSource, type HostedStatus, type Me } from "../core/hosted.ts";
 import type { ServerSetting } from "../core/liveShare.ts";
 import { getMe, linkCode } from "../services/hostedServer.ts";
+import { BackupEmail } from "./BackupEmail.tsx";
 import { accountStatus, deleteAccount } from "../services/sidecar.ts";
 import { accountToken, forgetHosted, markHosted, readHosted, type HostedMark } from "./hostedAccount.ts";
 import { removeServer } from "./serverSetting.ts";
@@ -22,7 +23,9 @@ const mb = (bytes: number) => Math.round((bytes / 1_048_576) * 10) / 10;
  */
 export function HostedServer({ server, onMessage }: { server: ServerSetting; onMessage: (m: string) => void }) {
   const [mark, setMark] = useState<HostedMark | null | undefined>(undefined);
-  const [support, setSupport] = useState<string | null>(null);
+  const [status, setStatus] = useState<HostedStatus | null>(null);
+  const [moved, setMoved] = useState(false);
+  const support = status?.supportCode ?? null;
   const [check, setCheck] = useState<Check>({ kind: "loading" });
   const [code, setCode] = useState<{ code: string } | string | null>(null);
   const [deleting, setDeleting] = useState<"ask" | "working" | null>(null);
@@ -61,7 +64,11 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
     if (!mark || !base) return;
     let live = true;
     void accountToken().then((token) =>
-      accountStatus(base, token).then((r) => live && setSupport(r.ok ? r.value.supportCode : null)),
+      accountStatus(base, token).then((r) => {
+        if (!live) return;
+        setStatus(r.ok ? r.value : null);
+        setMoved(!r.ok && r.reason === "moved");
+      }),
     );
     return () => {
       live = false;
@@ -153,6 +160,24 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
         </>
       ) : null}
 
+      {hosted && moved ? (
+        <View style={styles.code} testID="server-moved">
+          <Text style={styles.title}>{t("server.moved.title")}</Text>
+          <Text style={styles.detail}>{t("server.moved.detail")}</Text>
+          <Pressable
+            style={styles.link}
+            onPress={async () => {
+              await removeServer();
+              await forgetHosted();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("server.moved.new.label")}
+          >
+            <Text style={styles.danger}>{t("server.moved.new")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {hosted && status && !moved ? <BackupEmail status={status} onStatus={setStatus} /> : null}
       {hosted && support ? (
         <Text style={styles.detail} selectable>
           {t("server.info.support", { code: support })}
