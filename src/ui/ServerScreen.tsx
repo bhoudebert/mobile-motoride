@@ -10,7 +10,9 @@ import { useLanguage } from "./languageSetting.ts";
 import { setInvitation, usePendingInvitation } from "./invitation.ts";
 import { removeServer, saveServer, useServer } from "./serverSetting.ts";
 import { BackButton } from "./BackButton.tsx";
+import { GetServer } from "./GetServer.tsx";
 import { ServerBrings, ServerOffer } from "./ServerFeatures.tsx";
+import { hostedServer } from "./settings.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
 
 const RESULT: Record<RelayResult, MessageKey> = {
@@ -100,6 +102,7 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
       ) : null}
 
       {saved ? <ServerBrings server={saved} /> : <ServerOffer />}
+      {!saved && hostedServer() ? <GetServer /> : null}
 
       {invitation ? (
         <View style={styles.card} testID="invitation">

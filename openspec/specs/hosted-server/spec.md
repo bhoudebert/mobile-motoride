@@ -197,3 +197,12 @@ half, and with touch targets of at least 44 pt.
 
 - **WHEN** a screen reader is on
 - **THEN** each plan reads as one element with name, price, period and renewal, and the Buy action says what it costs
+
+### Requirement: Off unless a build turns it on
+
+"Get a server" SHALL appear only in a build that sets the address of the sidecar and switches the feature on, and only for a rider with no server. Everything else about the Server screen SHALL be unchanged without it.
+
+#### Scenario: Not switched on
+
+- **WHEN** the build does not switch the feature on
+- **THEN** the Server screen shows no "Get a server"

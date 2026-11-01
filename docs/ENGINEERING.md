@@ -37,6 +37,8 @@ The roadbook is drawn on a plain paper background and needs no network. Under it
 Switching the basemap remounts the map, because a new style drops the layers the app added. A style that fails
 to load falls back to Off. `EXPO_PUBLIC_MAP_STYLE_URL` replaces the Light style. The public OSM tile servers must
 not be used by an app (OSM tile usage policy).
+`EXPO_PUBLIC_HOSTED_SERVER=1` with `EXPO_PUBLIC_SIDECAR_URL` turns on "Get a server" in the Server screen (spec
+`hosted-server`, ADR 0047): the free path only for now, off in every build that does not set both.
 
 ## Guidance
 
