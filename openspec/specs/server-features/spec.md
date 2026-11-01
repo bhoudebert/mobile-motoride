@@ -22,7 +22,7 @@ The Server screen SHALL tell, for the rider's server, what it offers, read from 
 
 ### Requirement: What a server would add
 
-With no server the Server screen SHALL say what one would add (a live ride shared by a link, slow traffic ahead on the route), that the app works fully without one, where to read how to host one (a button to the hosting guide), and that renting one is coming.
+With no server the Server screen SHALL say what one would add (a live ride shared by a link, slow traffic ahead on the route), that the app works fully without one, where to read how to host one (a button to the hosting guide), and that renting one is coming only when the build offers no "Get a server" (spec hosted-server).
 
 #### Scenario: No server
 

@@ -6,6 +6,7 @@ import { t } from "../core/i18n/index.ts";
 import { fetchCapabilities } from "../services/capabilities.ts";
 import { Icon } from "./Icon.tsx";
 import { countryName } from "./TrafficUi.tsx";
+import { hostedServer } from "./settings.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
 
 /** The hosting guide, where whoever runs a server learns what each feature needs (agentRide's self-hosting page). */
@@ -85,7 +86,7 @@ function HostLink() {
       >
         <Text style={styles.linkText}>{t("server.host")}</Text>
       </Pressable>
-      <Text style={styles.detail}>{t("server.rent")}</Text>
+      {hostedServer() ? null : <Text style={styles.detail}>{t("server.rent")}</Text>}
     </>
   );
 }
