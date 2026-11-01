@@ -230,9 +230,13 @@ test("rejoining joins a route to the line at a later point and drops what was ri
     joined.stops.map((s) => s.name),
     ["Middle", "End"].filter((n) => (n === "Middle" ? rb.stops[1]!.atM >= joinM - 1 : true)),
   );
-  assert.equal(joined.limitSegments.length, 1, "the 50 stretch was ridden");
-  assert.equal(joined.limitSegments[0]!.kmh, 90);
-  assert.ok(Math.abs(joined.limitSegments[0]!.startM - joined.approachM) < 1);
+  assert.equal(joined.limitSegments.length, 2, "the 50 stretch was ridden; the way back holds the limit it joins");
+  assert.deepEqual(
+    [joined.limitSegments[0]!.kmh, joined.limitSegments[0]!.posted, joined.limitSegments[0]!.startM],
+    [90, false, 0],
+  );
+  assert.equal(joined.limitSegments[1]!.kmh, 90);
+  assert.ok(Math.abs(joined.limitSegments[1]!.startM - joined.approachM) < 1);
   assert.equal(joined.zones.length, 1, "the camera at 500 m was passed; the one at 2500 m remains");
   assert.ok(Math.abs(joined.zones[0]!.atM - (joined.approachM + rb.zones[1]!.atM - joinM)) < 1);
   // Riding it: the rider starts on the approach, then is on the rest of the roadbook.

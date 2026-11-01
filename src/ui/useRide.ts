@@ -7,7 +7,7 @@ import { speak, stopSpeaking } from "./speech.ts";
 import { DEFAULT_VOICE, speaks, type VoiceKind, type VoiceMode } from "../core/voice.ts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Vibration } from "react-native";
-import { needsApproach, withApproach } from "../core/approach.ts";
+import { backOnRoute, needsApproach, withApproach } from "../core/approach.ts";
 import { haversineM } from "../core/geo.ts";
 import type { MotionReading } from "../core/instruments.ts";
 import { replayFixAt, type ReplayPhase } from "../core/replay.ts";
@@ -197,6 +197,12 @@ export function useRide(
   const apply = (fix: Fix) => {
     lastFix.current = fix;
     const nav = navigator.update(fix);
+    // Back on the road of the roadbook before the point the way back led to: ride the roadbook again from here.
+    if (mode === "gps" && nav.offRoute && backOnRoute(rb, ride, [fix.lat, fix.lon])) {
+      epoch.current++;
+      setRide(rb);
+      return;
+    }
     recorder.current?.add(fix, nav.remainingM, motion?.current ?? null);
     if (mode === "gps" && !replay) liveShare?.current?.add(fix);
     if (nav.warning) {

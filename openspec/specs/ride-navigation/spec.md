@@ -210,6 +210,16 @@ When the rider is off route, the app SHALL work out the point of the roadbook to
 - **WHEN** the rider takes a wrong turn and is 300 m off the line
 - **THEN** the instruction gives the distance and the side to rejoin, and, online, the route replaces it within a few seconds
 
+#### Scenario: Back on the road before the rejoin point
+
+- **WHEN** the rider, given a way back to a point 150 m further along, meets the road of the roadbook again before that point
+- **THEN** the whole roadbook is ridden again from there: the line is green with its white chevrons, the instruction and the speed limit are those of the roadbook, and nothing shows the rider as off route or on a dashed way back
+
+#### Scenario: Dashes only before the ride has begun
+
+- **WHEN** the rider is on the roadbook line
+- **THEN** it is never drawn as the dashed way to the start; the dashes belong to the approach to the start of a ride that has not begun, and to a way back that has not been reached
+
 ### Requirement: Scripted GPS in development builds
 
 A development build SHALL accept the deep link `mobilemotoride://replay/<scenario>` and, on the ride screen, start a GPS ride that takes its fixes from a short script instead of the phone's GPS, so the whole GPS path (locating, approach, instructions, off route, wrong way, skip, danger zones) can be driven on a real phone without moving. The scenarios SHALL be: `ride` (on the roadbook, riding), `approach` (parked 3 km from the start), `offroute` (on the line, then parked 250 m off it, at the first place along the roadbook where the side is clear of the line), `wrongway` (on the line, riding against it), `skip` (parked on the line, ready to skip), `startfrom` (parked 3 km from the start, going to the third route point without asking), `join` (parked 300 m beside the road between the second and third route points, where the join card is shown) and `zone` (550 m before the first danger zone). Each scenario SHALL hold its last position, so the screen settles. A scenario that the roadbook cannot play (`zone` without cameras) SHALL do nothing. A release build SHALL NOT listen for the link: the scripted GPS SHALL be unreachable outside development.

@@ -47,3 +47,12 @@ The rider SHALL be over the limit when the GPS speed exceeds the limit by more t
 
 - **WHEN** the limit is 50 and the GPS speed goes from 49 to 56 km/h
 - **THEN** the sign turns red, the phone vibrates once, and when the speed returns to 51 the sign returns to white
+
+### Requirement: A limit on the way back to the route
+
+On a route made to rejoin the roadbook or to reach a route point, the sign SHALL show the limit of the roadbook where the route joins it, marked assumed, instead of no limit, until a limit of the road the rider is on is known.
+
+#### Scenario: Riding the way back
+
+- **WHEN** the rider follows a rebuilt route towards a point of the roadbook whose limit is 90
+- **THEN** the sign shows 90 as an assumed limit
