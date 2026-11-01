@@ -7,7 +7,18 @@ primary source confirmed (see ADR 0048). Check the store rules again before each
 
 Status date: 2026-11-01. There is no store listing yet.
 
+## 0. At launch: everything is free
+
+At launch the app sells nothing: no purchase, no store product, no subscription sheet. Apple 3.1.1 and 3.1.2, Google's
+Payments and subscription policies, restore and manage do not apply until a paid plan exists (they stay specified, section 1,
+and unbuilt). What still applies now: account deletion in the app, the privacy labels and Data safety form (section 2), the
+Terms and Privacy URLs, the backend live during review, and honest wording: the plan card says "Free for now. This may change
+later." and nothing in the app, the listing or the review notes may promise that it stays free. Whether a free server counts as
+an account under Apple 5.1.1(v) and Google's policy is UNVERIFIED; the in-app deletion exists either way.
+
 ## 1. In the app (the repository's part)
+
+The rows about buying, disclosure, restore and manage are for the day a paid plan exists.
 
 | Requirement                                                                                 | Where                            | State                                                                                  |
 | ------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
@@ -19,7 +30,7 @@ Status date: 2026-11-01. There is no store listing yet.
 | Delete my server and data, in the app, with a clear warning (Apple 5.1.1(v), Google policy) | Server screen                    | Specified, not built; whether a token-only identity counts is UNVERIFIED, built anyway |
 | A web page to request deletion, naming the app or the developer (Google)                    | Privacy policy site              | Needed from the account holder                                                         |
 | The backend live and reachable during review, a demo path (Apple 2.1)                       | Sidecar + agentRide              | Account holder; a reviewer note must say how to get the free server                    |
-| Premium not purchasable while the backend refuses it                                        | Plan sheet                       | Done (shown as coming later)                                                           |
+| Premium not shown while the backend refuses it                                              | Plan sheet                       | Done (only the free plan is shown at launch)                                           |
 
 ## 2. What the app collects and sends
 
