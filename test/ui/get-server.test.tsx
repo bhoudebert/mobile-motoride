@@ -170,7 +170,7 @@ const hosted = async (mark: "new" | "yes", me: unknown = ME) => {
 test("a server the app made says what it allows and what is left", async () => {
   await hosted("yes");
   expect(screen.getByText("Traffic: 60 requests left today.")).toBeTruthy();
-  expect(screen.getByText("Library: 2 MB of 50 MB.")).toBeTruthy();
+  expect(screen.getByText("Library 2 of 50 MB")).toBeTruthy();
   expect(screen.queryByText("Your server is ready")).toBeNull();
 });
 
@@ -224,4 +224,62 @@ test("offline, nothing is deleted and the rider is told", async () => {
   await flush();
   expect(screen.getByText("Not deleted: no connection. Try again with a connection.")).toBeTruthy();
   expect(stored.has("server-setting")).toBe(true);
+});
+
+test("the server screen says who provides the server, the plan, the library, what it measures and a support code", async () => {
+  answers["/v1/account/status"] = [json(200, { state: "ready", supportCode: "a1b2c3d4" })];
+  await hosted("yes");
+  expect(screen.getByText("Free server from Adequate Function")).toBeTruthy();
+  expect(screen.getByText("Plan: Free during launch")).toBeTruthy();
+  expect(screen.getByText("Library 2 of 50 MB")).toBeTruthy();
+  expect(screen.getByText("Traffic: 60 requests left today.")).toBeTruthy();
+  expect(screen.getByText(/size of your library file on the server/)).toBeTruthy();
+  expect(screen.getByText("Support code a1b2c3d4. Quote it when you ask for help.")).toBeTruthy();
+  expect(screen.queryByText(/tenant/i)).toBeNull();
+});
+
+test("a server of the rider's own says so and gives what /me allows, with no support code and no deletion", async () => {
+  answers["/me"] = [json(200, { ...ME, hosted: false })];
+  sidecar();
+  await saveServer({ url: "https://rides.example.org", token: TOKEN });
+  await open();
+  expect(screen.getByText("Your own server")).toBeTruthy();
+  expect(screen.getByText("Library 2 of 50 MB")).toBeTruthy();
+  expect(screen.queryByText(/Support code/)).toBeNull();
+  expect(screen.queryByLabelText("Delete my server and data")).toBeNull();
+  expect(screen.queryByLabelText("Connect ChatGPT or Claude to your server")).toBeNull();
+});
+
+test("an older server that has no /me says nothing of its limits, and does not claim it cannot be reached", async () => {
+  sidecar();
+  await saveServer({ url: "https://rides.example.org", token: TOKEN });
+  await open();
+  expect(screen.getByText("Your own server")).toBeTruthy();
+  expect(screen.queryByText(/Could not reach your server/)).toBeNull();
+  expect(screen.queryByText(/Library/)).toBeNull();
+});
+
+test("the server screen says where the traffic comes from: open data, TomTom, or the host's choice", async () => {
+  await hosted("yes");
+  expect(screen.getByText("Traffic source: open data (the default).")).toBeTruthy();
+});
+
+test("a TomTom plan says TomTom, and a host's own setting says which provider when the server tells", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "tomtom", perDay: null, usedToday: 0 } });
+  expect(screen.getByText("Traffic source: TomTom.")).toBeTruthy();
+});
+
+test("traffic left to the host: its provider when the server says, else the host's choice", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "host", perDay: null, usedToday: 0, provider: "tomtom" } });
+  expect(screen.getByText("Traffic source: TomTom.")).toBeTruthy();
+});
+
+test("traffic left to the host and a server that does not say which: said as the host's choice; traffic off says no source", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "host", perDay: null, usedToday: 0 } });
+  expect(screen.getByText("Traffic source: chosen by the host of your server.")).toBeTruthy();
+});
+
+test("traffic off names no source", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "off", perDay: null, usedToday: 0 } });
+  expect(screen.queryByText(/Traffic source/)).toBeNull();
 });

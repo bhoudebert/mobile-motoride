@@ -1,25 +1,28 @@
 import { useEffect, useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { t } from "../core/i18n/index.ts";
-import { trafficLeft, type Me } from "../core/hosted.ts";
+import { trafficLeft, trafficSource, type Me } from "../core/hosted.ts";
 import type { ServerSetting } from "../core/liveShare.ts";
 import { getMe, linkCode } from "../services/hostedServer.ts";
-import { deleteAccount } from "../services/sidecar.ts";
+import { accountStatus, deleteAccount } from "../services/sidecar.ts";
 import { accountToken, forgetHosted, markHosted, readHosted, type HostedMark } from "./hostedAccount.ts";
 import { removeServer } from "./serverSetting.ts";
 import { hostedServer } from "./settings.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
 
-type Check = { kind: "loading" } | { kind: "me"; me: Me } | { kind: "invalid" } | { kind: "unreachable" };
+type Check =
+  { kind: "loading" } | { kind: "me"; me: Me } | { kind: "invalid" } | { kind: "unreachable" } | { kind: "none" };
 
 const mb = (bytes: number) => Math.round((bytes / 1_048_576) * 10) / 10;
 
 /**
- * The server the app made for the rider (spec hosted-server): what it allows, the code to connect ChatGPT or Claude,
- * and deleting it. Shown only for a server the app made.
+ * What the Server screen says about the server in use (spec server-features): who provides it, the plan, the library
+ * and the traffic, and for a server the app made (spec hosted-server) its support code, the code to connect ChatGPT or
+ * Claude and the deletion of it.
  */
 export function HostedServer({ server, onMessage }: { server: ServerSetting; onMessage: (m: string) => void }) {
-  const [mark, setMark] = useState<HostedMark | null>(null);
+  const [mark, setMark] = useState<HostedMark | null | undefined>(undefined);
+  const [support, setSupport] = useState<string | null>(null);
   const [check, setCheck] = useState<Check>({ kind: "loading" });
   const [code, setCode] = useState<{ code: string } | string | null>(null);
   const [deleting, setDeleting] = useState<"ask" | "working" | null>(null);
@@ -37,14 +40,36 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
     setCheck({ kind: "loading" });
     void getMe(server).then((r) => {
       if (!live) return;
-      setCheck(r.ok ? { kind: "me", me: r.value } : { kind: r.reason === "refused" ? "invalid" : "unreachable" });
+      setCheck(
+        r.ok
+          ? { kind: "me", me: r.value }
+          : r.reason === "refused"
+            ? { kind: "invalid" }
+            : r.reason === "unreachable"
+              ? { kind: "unreachable" }
+              : { kind: "none" },
+      );
     });
     return () => {
       live = false;
     };
   }, [server.url, server.token]);
 
-  if (!mark) return null;
+  // The support code of a server the app made comes from the sidecar's account status.
+  useEffect(() => {
+    const base = hostedServer()?.sidecarUrl;
+    if (!mark || !base) return;
+    let live = true;
+    void accountToken().then((token) =>
+      accountStatus(base, token).then((r) => live && setSupport(r.ok ? r.value.supportCode : null)),
+    );
+    return () => {
+      live = false;
+    };
+  }, [mark]);
+
+  if (mark === undefined) return null;
+  const hosted = mark !== null;
 
   const connect = async () => {
     setError(null);
@@ -72,7 +97,11 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
   const left = me ? trafficLeft(me) : null;
   return (
     <View style={styles.card} testID="hosted-server">
-      <Text style={styles.heading}>{t("server.mine.title")}</Text>
+      <Text style={styles.heading}>{t(hosted ? "server.mine.title" : "server.info.title")}</Text>
+      <Text style={styles.title}>{t(hosted ? "server.info.provider.hosted" : "server.info.provider.own")}</Text>
+      {hosted ? (
+        <Text style={styles.detail}>{t("server.info.plan", { plan: t("server.hosted.plan.free") })}</Text>
+      ) : null}
       {mark === "new" ? (
         <View accessible accessibilityLabel={`${t("server.mine.ready")}. ${t("server.mine.ready.detail")}`}>
           <Text style={styles.title}>{t("server.mine.ready")}</Text>
@@ -93,6 +122,7 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
       {check.kind === "loading" ? <Text style={styles.detail}>{t("server.mine.loading")}</Text> : null}
       {check.kind === "invalid" ? <Text style={styles.detail}>{t("server.mine.invalid")}</Text> : null}
       {check.kind === "unreachable" ? <Text style={styles.detail}>{t("server.mine.unreachable")}</Text> : null}
+      {me?.library ? <Text style={styles.detail}>{t("server.info.library.what")}</Text> : null}
       {me?.suspended ? (
         <View>
           <Text style={styles.title}>{t("server.mine.paused")}</Text>
@@ -112,6 +142,9 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
                 ? t("server.mine.traffic.on")
                 : t("server.mine.traffic.left", { count: left })}
           </Text>
+          {me.traffic.mode !== "off" ? (
+            <Text style={styles.detail}>{t(`server.info.source.${trafficSource(me) ?? "host"}`)}</Text>
+          ) : null}
           <Text style={styles.detail}>
             {me.library.limitMb === null
               ? t("server.mine.library.free", { used: mb(me.library.usedBytes) })
@@ -120,7 +153,13 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
         </>
       ) : null}
 
-      {me && !me.suspended ? (
+      {hosted && support ? (
+        <Text style={styles.detail} selectable>
+          {t("server.info.support", { code: support })}
+        </Text>
+      ) : null}
+
+      {hosted && me && !me.suspended ? (
         <Pressable
           style={styles.link}
           onPress={() => void connect()}
@@ -157,7 +196,7 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
         </Text>
       ) : null}
 
-      {deleting === null ? (
+      {!hosted ? null : deleting === null ? (
         <Pressable
           style={styles.link}
           onPress={() => setDeleting("ask")}
