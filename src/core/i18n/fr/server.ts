@@ -96,15 +96,10 @@ export const server: Translated<typeof English> = {
   "server.hosted.close": "Pas maintenant",
   "server.hosted.close.label": "Fermer les formules",
   "server.hosted.loading": "Chargement des formules…",
-  "server.hosted.plan.free": "Gratuit",
+  "server.hosted.plan.free": "Gratuit pendant le lancement",
   "server.hosted.plan.free.detail":
     "Données de circulation ouvertes et une petite bibliothèque pour vos roadbooks et sorties.",
-  "server.hosted.plan.paid": "Plus",
-  "server.hosted.plan.paid.detail":
-    "Plus de place pour votre bibliothèque. Achat dans l'appli, résiliation dans le store.",
-  "server.hosted.plan.premium": "Premium",
-  "server.hosted.plan.premium.detail": "Circulation TomTom.",
-  "server.hosted.plan.soon": "Bientôt",
+  "server.hosted.maychange": "Gratuit pour l'instant. Cela pourra changer plus tard.",
   "server.hosted.choose.free": "Obtenir un serveur gratuit",
   "server.hosted.choose.free.label": "Obtenir un serveur gratuit",
   "server.hosted.seller": "Vendu par Adequate Function. Le store gère les factures et la TVA.",
