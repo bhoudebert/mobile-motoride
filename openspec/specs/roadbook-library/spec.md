@@ -178,7 +178,7 @@ Each copy kept from a server SHALL carry the identity of the library it came fro
 
 ### Requirement: Save a roadbook as a file
 
-Every roadbook kept on the phone SHALL have, on its row beside the other icons, a share icon ("Save or share the file of <name>") that writes the roadbook as a `motoride-roadbook` file (`<name>.motoride.json`) and hands it to the system's share sheet, so the rider can keep it in the phone's files, a drive or a mail, or send it to another phone, which imports it by the rules of "Import a file". A phone that cannot share files, or a share that fails, SHALL say so in words and change nothing. The file does not carry the junction guidance (roundabout exits and lanes), which the app cannot write back exactly.
+Every roadbook kept on the phone SHALL have, on its row beside the other icons, a share icon ("Save or share the file of <name>") that writes the roadbook as a `motoride-roadbook` file (`<name>.motoride.json`) and hands it to the system's share sheet, so the rider can keep it in the phone's files, a drive or a mail, or send it to another phone, which imports it by the rules of "Import a file". Beside it a save icon ("Save the file of <name> to this phone") SHALL ask the rider for a folder of the phone (the system's folder picker, the Downloads folder for one) and write the same file there, sending it nowhere: it says "<name> saved to the folder you chose."; leaving the picker saves nothing and says nothing, and a folder that cannot be written to says the file could not be saved there. A phone that cannot share files, or a share that fails, SHALL say so in words and change nothing. The file does not carry the junction guidance (roundabout exits and lanes), which the app cannot write back exactly.
 
 #### Scenario: Save a roadbook
 
@@ -189,3 +189,13 @@ Every roadbook kept on the phone SHALL have, on its row beside the other icons, 
 
 - **WHEN** the phone cannot share files
 - **THEN** the screen says "This phone cannot share files from the app." and nothing changes
+
+#### Scenario: Save to a folder of the phone
+
+- **WHEN** the rider taps the save icon of a kept roadbook and picks the Downloads folder
+- **THEN** `<name>.motoride.json` is written there, nothing is shared, and the screen says it was saved to the folder chosen
+
+#### Scenario: Leaving the folder picker
+
+- **WHEN** the rider leaves the folder picker without choosing
+- **THEN** nothing is saved and nothing is said

@@ -22,6 +22,7 @@ export function RoadbookList({
   onImport,
   onDelete,
   onShare,
+  onSave,
   pending,
   onComplete,
   fromServer,
@@ -35,6 +36,8 @@ export function RoadbookList({
   onDelete?: (id: string) => void;
   /** Hand the roadbook, as a file, to the share sheet: to keep it in the phone's files or send it elsewhere. */
   onShare?: (id: string) => void;
+  /** Save the roadbook, as a file, in a folder of the phone the rider picks, with nothing shared. */
+  onSave?: (id: string) => void;
   /** Imported roadbooks still lacking speed limits and cameras, and the way to try again. */
   pending?: ReadonlySet<string>;
   onComplete?: (id: string) => void;
@@ -196,6 +199,16 @@ export function RoadbookList({
                           <Icon name="cloud-upload-outline" />
                         </Pressable>
                       )
+                    ) : null}
+                    {onSave ? (
+                      <Pressable
+                        style={styles.serverAction}
+                        onPress={() => onSave(id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("home.list.save", { name: rb.roadbook.name })}
+                      >
+                        <Icon name="download-outline" />
+                      </Pressable>
                     ) : null}
                     {onShare ? (
                       <Pressable

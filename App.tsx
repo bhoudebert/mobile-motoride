@@ -237,6 +237,7 @@ export default function App() {
             onImport={() => void library.pick()}
             onDelete={(id) => void library.remove(id)}
             onShare={(id) => void library.share(id)}
+            onSave={(id) => void library.saveToPhone(id)}
             fromServer={fromServerIds}
             pending={pendingIds}
             onComplete={(id) => void library.retry(id)}
