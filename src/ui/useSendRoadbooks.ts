@@ -14,6 +14,10 @@ export interface SendState {
   result: { sent: number; total: number; stopped: PushProblem | null } | null;
   send: () => void;
   dismiss: () => void;
+  /** The state of the roadbooks sent one at a time, by id: being sent, or why it was not taken. */
+  rows: Readonly<Record<string, "sending" | PushProblem>>;
+  /** Send one roadbook, from its own row. */
+  sendOne: (id: string) => void;
 }
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -35,6 +39,7 @@ export function useSendRoadbooks(
   const [sending, setSending] = useState<SendState["sending"]>(null);
   const [result, setResult] = useState<SendState["result"]>(null);
   const running = useRef(false);
+  const [rows, setRows] = useState<SendState["rows"]>({});
   const count = candidates.length;
 
   // The room left is told before anything is sent.
@@ -80,5 +85,31 @@ export function useSendRoadbooks(
     })();
   }, [server, candidates, link, onDone]);
 
-  return { quota, sending, result, send, dismiss: () => setResult(null) };
+  // One roadbook from its own row: the same push, and its result shows on that row.
+  const sendOne = useCallback(
+    (id: string) => {
+      const item = candidates.find((c) => c.roadbook.id === id);
+      if (!server || !item || running.current) return;
+      running.current = true;
+      setRows((r) => ({ ...r, [id]: "sending" }));
+      void (async () => {
+        const key = await libraryKeyOf(server);
+        let answer = await pushRoadbook(server, serializeRoadbookFile(item.roadbook));
+        if (!answer.ok && answer.reason === "busy") {
+          await wait(Math.min(answer.retryAfterS ?? 10, MAX_WAIT_S) * 1000);
+          answer = await pushRoadbook(server, serializeRoadbookFile(item.roadbook));
+        }
+        if (answer.ok) await link(id, answer.id, answer.stamp, key);
+        setRows((r) => {
+          const { [id]: _gone, ...rest } = r;
+          return answer.ok ? rest : { ...rest, [id]: answer.reason };
+        });
+        running.current = false;
+        onDone();
+      })();
+    },
+    [server, candidates, link, onDone],
+  );
+
+  return { quota, sending, result, send, dismiss: () => setResult(null), rows, sendOne };
 }

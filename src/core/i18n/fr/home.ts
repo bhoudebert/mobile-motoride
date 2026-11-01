@@ -214,4 +214,6 @@ export const home: Translated<typeof English> = {
   "home.send.problem.unreachable": "Impossible de joindre votre serveur. Les roadbooks sont toujours sur ce téléphone.",
   "home.send.problem.failed":
     "Votre serveur ne l'a pas pris. Les roadbooks sont toujours sur ce téléphone : réessayez plus tard.",
+  "home.send.one": "Envoyer {name} vers votre serveur",
+  "home.send.sendingOne": "Envoi de {name} vers votre serveur…",
 };
