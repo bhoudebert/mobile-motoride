@@ -106,7 +106,7 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
 
       {saved ? <ServerBrings server={saved} /> : <ServerOffer />}
       {!saved && hostedServer() ? <GetServer /> : null}
-      {saved && hostedServer() ? <HostedServer server={saved} onMessage={setMessage} /> : null}
+      {saved ? <HostedServer server={saved} onMessage={setMessage} /> : null}
 
       {invitation ? notice : null}
       {invitation ? (

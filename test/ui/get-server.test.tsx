@@ -170,7 +170,7 @@ const hosted = async (mark: "new" | "yes", me: unknown = ME) => {
 test("a server the app made says what it allows and what is left", async () => {
   await hosted("yes");
   expect(screen.getByText("Traffic: 60 requests left today.")).toBeTruthy();
-  expect(screen.getByText("Library: 2 MB of 50 MB.")).toBeTruthy();
+  expect(screen.getByText("Library 2 of 50 MB")).toBeTruthy();
   expect(screen.queryByText("Your server is ready")).toBeNull();
 });
 
@@ -224,4 +224,37 @@ test("offline, nothing is deleted and the rider is told", async () => {
   await flush();
   expect(screen.getByText("Not deleted: no connection. Try again with a connection.")).toBeTruthy();
   expect(stored.has("server-setting")).toBe(true);
+});
+
+test("the server screen says who provides the server, the plan, the library, what it measures and a support code", async () => {
+  answers["/v1/account/status"] = [json(200, { state: "ready", supportCode: "a1b2c3d4" })];
+  await hosted("yes");
+  expect(screen.getByText("Free server from Adequate Function")).toBeTruthy();
+  expect(screen.getByText("Plan: Free during launch")).toBeTruthy();
+  expect(screen.getByText("Library 2 of 50 MB")).toBeTruthy();
+  expect(screen.getByText("Traffic: 60 requests left today.")).toBeTruthy();
+  expect(screen.getByText(/size of your library file on the server/)).toBeTruthy();
+  expect(screen.getByText("Support code a1b2c3d4. Quote it when you ask for help.")).toBeTruthy();
+  expect(screen.queryByText(/tenant/i)).toBeNull();
+});
+
+test("a server of the rider's own says so and gives what /me allows, with no support code and no deletion", async () => {
+  answers["/me"] = [json(200, { ...ME, hosted: false })];
+  sidecar();
+  await saveServer({ url: "https://rides.example.org", token: TOKEN });
+  await open();
+  expect(screen.getByText("Your own server")).toBeTruthy();
+  expect(screen.getByText("Library 2 of 50 MB")).toBeTruthy();
+  expect(screen.queryByText(/Support code/)).toBeNull();
+  expect(screen.queryByLabelText("Delete my server and data")).toBeNull();
+  expect(screen.queryByLabelText("Connect ChatGPT or Claude to your server")).toBeNull();
+});
+
+test("an older server that has no /me says nothing of its limits, and does not claim it cannot be reached", async () => {
+  sidecar();
+  await saveServer({ url: "https://rides.example.org", token: TOKEN });
+  await open();
+  expect(screen.getByText("Your own server")).toBeTruthy();
+  expect(screen.queryByText(/Could not reach your server/)).toBeNull();
+  expect(screen.queryByText(/Library/)).toBeNull();
 });
