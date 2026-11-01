@@ -19,7 +19,13 @@ ever losing a payment. The requirements and scenarios are in `openspec/specs/hos
 - **Steps are idempotent** (sidecar calls repeat safely), so resuming never pays or creates twice.
 - **Two ways in on the Server screen, one way back out in each state:** Restore, Manage, Delete are always reachable and never styled as warnings except Delete.
 - **Placeholders from configuration.** Plan names, inclusions, product ids and the legal URLs live in one config file, never in screens.
-- The sidecar's contract (plans' wording, purchase submit, status, restore, delete) and `GET /me` are built against mocks until frozen.
+- The app calls the sidecar's `GET /v1/plans`, `POST /v1/purchases`, `GET /v1/account/status` (`Authorization: AccountToken <token>`),
+  `POST /v1/restore`, `POST /v1/invitations` and `DELETE /v1/account` (sidecar PR #6 `docs/sidecar.openapi.json`), and the
+  server's `GET /me`; mocks until both are frozen.
+- Plans: Free, a paid plan (about 25 EUR a year, a temporary discount, price from the store), and Premium (TomTom traffic), shown
+  as coming later and not purchasable while the backend refuses it. Retention: a free server is wiped after 12 months without
+  activity, a paid one 12 months after the subscription ends; there is no backup yet, and the copy says so. Family Sharing is off.
+- The app's acknowledgement tolerates "already acknowledged", since the sidecar may acknowledge Google purchases itself.
 
 ## State machine
 
