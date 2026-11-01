@@ -174,4 +174,9 @@ test("the traffic source is the plan's, else what the server says, else unknown"
   assert.equal(trafficSource(me({ mode: "host", provider: "tomtom" })), "tomtom");
   assert.equal(trafficSource(me({ mode: "host" })), null);
   assert.equal(trafficSource(me({ mode: "host", provider: "other" })), null);
+  assert.equal(
+    trafficSource(me({ mode: "tomtom", provider: "open" })),
+    "open",
+    "a TomTom plan on a host without TomTom",
+  );
 });

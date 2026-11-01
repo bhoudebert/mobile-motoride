@@ -151,8 +151,8 @@ export function parseLinkCode(body: unknown): { code: string; expiresAt: string 
 }
 
 /**
- * Where the traffic comes from: the plan's own (`open` or `tomtom`), else the provider the server says it uses when the plan
- * leaves it to the host (`host`), else unknown (null) for a server that does not say.
+ * Where the traffic comes from: the provider the server says answers this rider (it resolves a host's own setting, and a
+ * TomTom plan on a host that has none), else the plan's own (`open` or `tomtom`), else unknown (null).
  */
 export const trafficSource = (me: Me): "open" | "tomtom" | null =>
-  me.traffic.mode === "open" || me.traffic.mode === "tomtom" ? me.traffic.mode : me.traffic.provider;
+  me.traffic.provider ?? (me.traffic.mode === "open" || me.traffic.mode === "tomtom" ? me.traffic.mode : null);
