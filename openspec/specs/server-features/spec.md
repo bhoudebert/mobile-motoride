@@ -37,3 +37,19 @@ The traffic card SHALL say in which countries the server's traffic works when th
 
 - **WHEN** the server says its traffic covers France and the rider opens the traffic card
 - **THEN** it says "Traffic works in France for now. More countries on request." and credits Bison Futé
+
+### Requirement: What the Server screen says about the server
+
+For the server set, the Server screen SHALL show its address (the token masked, as today), who provides it ("Free server from Adequate Function" when the app created it, "Your own server" otherwise), the plan when the app created it ("Free during launch"), what the library holds and its limit read from the server's `GET /me` ("Library 3.2 of 20 MB", or "Library 3.2 MB" with no limit), whether traffic is on, off or has requests left today, and when the server is paused, why and until when. When the app created the server it SHALL also show a short support code the sidecar returns for it (`supportCode`, optional until the sidecar sends it), to quote when asking for help; it SHALL NOT show the server's internal rider or tenant identifier or any token. What it cannot read it SHALL leave out, not guess.
+
+The library figure SHALL be explained in words: it is the size of the rider's library file on the server, which holds the roadbooks, the rides sent, notes, ratings and caches, and it is checked when a ride is sent or a roadbook is pushed.
+
+#### Scenario: A server made by the app
+
+- **WHEN** the app created the server and `GET /me` says 3.2 MB used of 20
+- **THEN** the screen shows the address, "Free server from Adequate Function", "Free during launch", "Library 3.2 of 20 MB", the support code, and the line saying what the library measures
+
+#### Scenario: The rider's own server
+
+- **WHEN** the server was set from an address and a token and `GET /me` has no hosted plan
+- **THEN** the screen shows the address, "Your own server" and what `GET /me` allows, and no support code

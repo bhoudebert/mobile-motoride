@@ -141,3 +141,27 @@ Each roadbook of the list SHALL have the shape of its route drawn faintly behind
 
 - **WHEN** the list of roadbooks is shown
 - **THEN** each tile carries the drawn shape of its own line
+
+### Requirement: Changing server keeps what is on the phone
+
+Each copy kept from a server SHALL carry the identity of the library it came from: a hash of the server's address and of the opaque rider reference the server's `GET /me` gives as `riderRef` (the server's address alone while it gives none), never the token. A server roadbook SHALL be matched to a kept copy by the number it was fetched under only when the copy's identity is the current server's, so two servers' roadbook 7 are never mistaken for one another. When the rider removes the server, or sets another whose identity differs, every copy from the old one SHALL become a roadbook of the phone only: the file is kept, and its number, stamp and server link are dropped, so it shows as "Imported from a file" and nothing is lost or overwritten. A copy kept before identities existed SHALL take the identity of the server in use the first time the list is asked of it. The list SHALL offer, when a server is set and the phone keeps roadbooks that came from no server, "Send to your server": the count to be sent and the library room left (from `GET /me`) SHALL be shown before anything is sent, a roadbook SHALL be sent with the server's push (`PUT` of the roadbook file, which the server numbers itself and keys on origin and name, so a second send replaces and never duplicates), and a refused push SHALL be told by its answer: 413 with the code `library_full` stops the sending and says that the library on the server is full and what to do (see "Library full" in spec hosted-server); another 413 says the file is too large (over 5 MiB); 409 says the server keeps at most 100 sent roadbooks and one must be deleted first; 429 waits as the server asks (`Retry-After`, 10 pushes a minute) and goes on; 401 says the access is no longer valid; 400 says the file is not a roadbook. The push is `PUT /roadbooks` on the server, with the phone's own token (a chat connection's token is not accepted), the roadbook file as the body (the same origin the app keeps with it, so a second push replaces), and answers `{id, replaced, stamp}`; the library limit SHALL be read from the server, never written in the app.
+
+#### Scenario: Switching to another server
+
+- **WHEN** the rider has a roadbook fetched as number 7 from server A and sets server B, whose roadbook 7 is another one
+- **THEN** the copy becomes "Imported from a file", keeps its file, and B's roadbook 7 is listed as "On your server" for download, overwriting nothing
+
+#### Scenario: The same server again
+
+- **WHEN** the rider removes server A and sets it back (same address, same rider reference)
+- **THEN** the roadbooks kept as local copies stay local copies, and nothing is matched by number to the server's list until they are downloaded again
+
+#### Scenario: Send to the new server
+
+- **WHEN** the rider has 5 local roadbooks, the new server has room for them and the rider taps "Send to your server"
+- **THEN** the sheet says "5 roadbooks, library 3.2 of 20 MB", sends them one by one, and each is then listed by the server and not duplicated if sent again
+
+#### Scenario: Library full while sending
+
+- **WHEN** the server answers 413 `library_full` to the third roadbook
+- **THEN** the sending stops, two were sent, and the screen says the library is full and what to do
