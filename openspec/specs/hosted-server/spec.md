@@ -224,3 +224,12 @@ half, and with touch targets of at least 44 pt.
 
 - **WHEN** a build switches the feature off
 - **THEN** the Server screen shows no "Get a server"
+
+### Requirement: Library full
+
+When the server refuses a ride or a roadbook because the library is full (413 `library_full`), the app SHALL say plainly, in the rider's language, that the library on the server is full, that it holds roadbooks, rides sent, notes and caches, and what to do: delete rides from the server in My rides, or remove roadbooks, then send again. Nothing SHALL be deleted by itself, the file refused SHALL stay on the phone, and the ride or roadbook SHALL be offered again afterwards.
+
+#### Scenario: Ride refused
+
+- **WHEN** the rider sends a ride and the server answers 413 `library_full`
+- **THEN** the ride stays "Only on this phone", and the screen says "Your library on the server is full. Delete rides from the server in My rides, then send it again."
