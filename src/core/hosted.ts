@@ -12,6 +12,8 @@ export interface Plan {
   /** The store products of a paid plan. */
   products: { apple?: string; google?: string };
   entitlements: { traffic?: string; trafficPerDay?: number; libraryMb?: number; requestsPerMinute?: number };
+  /** A launch offer the sidecar describes: the regular price text, shown struck through, never written by the app. */
+  launchOffer: { regularPrice: string | null; note: string | null } | null;
 }
 
 export type AccountState = "none" | "pending" | "ready" | "suspended" | "ended";
@@ -52,10 +54,17 @@ export function parsePlans(body: unknown): Plan[] {
     if (!isObject(p) || typeof p.id !== "string" || typeof p.kind !== "string" || !KINDS.includes(p.kind)) continue;
     const products = isObject(p.products) ? p.products : {};
     const e = isObject(p.entitlements) ? p.entitlements : {};
+    const offer = isObject(p.launchOffer) ? p.launchOffer : null;
     plans.push({
       id: p.id,
       kind: p.kind as PlanKind,
       available: p.available === true,
+      launchOffer: offer
+        ? {
+            regularPrice: typeof offer.regularPrice === "string" ? offer.regularPrice : null,
+            note: typeof offer.note === "string" ? offer.note : null,
+          }
+        : null,
       products: {
         ...(typeof products.apple === "string" ? { apple: products.apple } : {}),
         ...(typeof products.google === "string" ? { google: products.google } : {}),

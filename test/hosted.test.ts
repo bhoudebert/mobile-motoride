@@ -141,3 +141,14 @@ test("the server is asked with the phone's token; a 401 is told from a pause and
   const busy = await linkCode(server, fake(reply(429)));
   assert.equal(!busy.ok && busy.reason, "busy");
 });
+
+test("a launch offer the sidecar describes is kept, and a plan without one has none", () => {
+  const plans = parsePlans({
+    plans: [
+      { id: "free", kind: "free", available: true, entitlements: {}, launchOffer: { regularPrice: "25 EUR / year" } },
+      { id: "x", kind: "free", available: true, entitlements: {} },
+    ],
+  });
+  assert.deepEqual(plans[0]!.launchOffer, { regularPrice: "25 EUR / year", note: null });
+  assert.equal(plans[1]!.launchOffer, null);
+});

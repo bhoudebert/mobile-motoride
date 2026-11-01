@@ -6,6 +6,10 @@ Let a rider who has no server get one from the app, with the fewest steps and no
 (restore, manage, delete) one calm tap away. The decision and the screens are in ADR 0047. Plan names and prices are not decided:
 they come from configuration and from the store, never from the screens' code.
 
+At launch everything is free: there is no purchase, no store product and no paid plan on sale. The requirements about the store
+sheet, restore, manage, subscribed on another device and a lapsed subscription are kept for the day a paid plan exists
+(ADR 0048 and its spike) and are not built; the rest apply now.
+
 ## Requirements
 
 ### Requirement: Two paths on the Server screen
@@ -26,17 +30,17 @@ server set it SHALL show its state instead (status, what it includes, Manage sub
 
 ### Requirement: Plan sheet
 
-"Get a server" SHALL open a sheet with the plans of the offer: Free (open traffic data), a paid plan, and Premium (TomTom traffic), which is shown as coming later and cannot be chosen while the server refuses it. For each plan it SHALL show the name, what it includes and does not include in plain words, and for the paid plan the price and the billing period as the store returns them for the rider's region, that the subscription renews automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. Names, descriptions and product ids SHALL come from configuration and the store, never from the screens' code (the paid price is a temporary discount: it is the store's to say). The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not to buy SHALL be as visible as the choice to buy. It SHALL say who sells it (Adequate Function) and that the store handles invoices and tax.
+"Get a server" SHALL open a sheet that, at launch, shows one card: Free during launch, with what it includes in plain words, the regular price the sidecar names (its `launchOffer`) struck through when there is one, and no purchase action. It SHALL say that it is free for now and that this may change later, and SHALL NOT promise that it stays free. It SHALL say who provides it (Adequate Function). Plan names, prices and offers SHALL come from the sidecar and the store, never from the screens' code, and a plan that is not on offer (a paid plan, Premium) SHALL NOT be shown. When a paid plan is on sale the sheet SHALL also show, for it, the price and period as the store returns them, that the subscription renews automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not to take a server SHALL be as visible as the choice to take one.
 
 #### Scenario: Plans shown
 
-- **WHEN** the rider opens "Get a server" and the store answers
-- **THEN** each plan shows its name, inclusions, exclusions, localized price and period, the auto-renew and cancel wording, and links to Terms and Privacy
+- **WHEN** the rider opens "Get a server" and the sidecar answers with the free plan and a launch offer of "25 EUR / year"
+- **THEN** one card reads "Free during launch" with "25 EUR / year" struck through, "Free for now. This may change later." and a "Get a free server" action, and no price is written in the app
 
-#### Scenario: Premium not yet
+#### Scenario: Plans that are not on offer
 
-- **WHEN** the plan sheet lists Premium while the server refuses TomTom traffic
-- **THEN** Premium is shown as coming later, with no buy action and no price
+- **WHEN** the sidecar lists a paid plan and Premium that are not available
+- **THEN** neither is shown
 
 #### Scenario: Store unavailable
 
@@ -212,11 +216,11 @@ half, and with touch targets of at least 44 pt.
 - **WHEN** a screen reader is on
 - **THEN** each plan reads as one element with name, price, period and renewal, and the Buy action says what it costs
 
-### Requirement: Off unless a build turns it on
+### Requirement: On by default, switchable off
 
-"Get a server" SHALL appear only in a build that sets the address of the sidecar and switches the feature on, and only for a rider with no server. Everything else about the Server screen SHALL be unchanged without it.
+"Get a server" SHALL appear for a rider with no server, at the address of the project's sidecar, unless a build switches it off or points it at another sidecar. Everything else about the Server screen SHALL be unchanged without it.
 
-#### Scenario: Not switched on
+#### Scenario: Switched off
 
-- **WHEN** the build does not switch the feature on
+- **WHEN** a build switches the feature off
 - **THEN** the Server screen shows no "Get a server"

@@ -20,7 +20,13 @@ const json = (status: number, body: unknown) => ({
 });
 const PLANS = {
   plans: [
-    { id: "free", kind: "free", available: true, entitlements: { traffic: "open" } },
+    {
+      id: "free",
+      kind: "free",
+      available: true,
+      entitlements: { traffic: "open" },
+      launchOffer: { regularPrice: "25 EUR / year", note: "Launch offer" },
+    },
     { id: "plus", kind: "paid", available: false, entitlements: {} },
     { id: "premium", kind: "premium", available: false, entitlements: {} },
   ],
@@ -46,7 +52,6 @@ beforeEach(async () => {
   calls.length = 0;
   for (const k of Object.keys(answers)) delete answers[k];
   setLanguage("en");
-  process.env.EXPO_PUBLIC_HOSTED_SERVER = "1";
   process.env.EXPO_PUBLIC_SIDECAR_URL = SIDECAR;
   answers["/v1/plans"] = [json(200, PLANS)];
 });
@@ -68,19 +73,23 @@ const settle = async (ms = 0) => {
   await flush();
 };
 
-test("without the build switch there is no way to get a server", async () => {
-  delete process.env.EXPO_PUBLIC_HOSTED_SERVER;
+test("a build can switch it off, and without a build setting it is on at the project's sidecar", async () => {
+  process.env.EXPO_PUBLIC_HOSTED_SERVER = "0";
   await open();
   expect(screen.queryByText("Get a server")).toBeNull();
 });
 
-test("the plans: Free can be chosen, Plus and Premium are coming later", async () => {
+test("the plans: one card, free during launch, the regular price struck through, no purchase", async () => {
   sidecar();
   await open();
   await fireEvent.press(screen.getByLabelText("See the plans for a server"));
   await flush();
+  expect(screen.getByText("Free during launch")).toBeTruthy();
+  expect(screen.getByText("25 EUR / year")).toBeTruthy();
+  expect(screen.getByText("Free for now. This may change later.")).toBeTruthy();
   expect(screen.getByLabelText("Get a free server")).toBeTruthy();
-  expect(screen.getAllByText("Coming later")).toHaveLength(2);
+  expect(screen.queryByText("Plus")).toBeNull();
+  expect(screen.queryByText("Premium")).toBeNull();
   expect(screen.getByText(/Sold by Adequate Function/)).toBeTruthy();
 });
 
