@@ -60,6 +60,20 @@ block the rest of the app.
 - **WHEN** the store reports the purchase as pending
 - **THEN** the screen says "Waiting for the store to confirm your payment", that it can be closed, and that setup continues by itself when the store confirms
 
+### Requirement: The free server
+
+Choosing Free SHALL open no store sheet and ask for no payment: the app asks the sidecar for a free server with the account token alone, and continues with the same setup step, success and next step as a paid server. Asking again SHALL give the same server. Upgrading from Free to the paid plan SHALL keep the same server and library, and SHALL be offered from the Server screen as a calm choice, never as a nag. The plans, and whether each can be chosen, SHALL come from the sidecar's list of plans.
+
+#### Scenario: Free server
+
+- **WHEN** the rider chooses Free
+- **THEN** no store sheet opens, "Setting up your server" runs, and the phone is enrolled on a free server
+
+#### Scenario: Upgrade keeps the library
+
+- **WHEN** a rider with a free server buys the paid plan
+- **THEN** the same server and library are kept, with more allowed, and nothing is copied or lost
+
 ### Requirement: Setting up the server
 
 After a confirmed purchase the app SHALL show one "Setting up your server" step with real progress (payment confirmed, creating the
