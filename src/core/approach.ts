@@ -1,10 +1,25 @@
 import { haversineM } from "./geo.ts";
 import { prepareRoadbook } from "./roadbook.ts";
 import { cumulativeDistances, pointAt, snapToLine } from "./track.ts";
+import { limitAt } from "./limits.ts";
 import type { LatLon, PreparedRoadbook } from "./types.ts";
 
 /** Farther than this from the line, the rider is taken to the start first (spec ride-navigation). */
 export const APPROACH_MIN_M = 150;
+/** On the road of the roadbook, within this distance of its line, the rider is back on the route. */
+export const BACK_ON_ROUTE_M = 50;
+
+/**
+ * A rider who left the route, was given a way back to a point further along, and met the road again before that
+ * point is on the route (spec ride-navigation, "Back to the route"): the whole roadbook is ridden again from there,
+ * rather than the rebuilt line that no longer holds the road under them. Not for a skipped point: that was dropped
+ * on purpose, and not for the approach to the start.
+ */
+export function backOnRoute(rb: PreparedRoadbook, ride: PreparedRoadbook, pos: LatLon): boolean {
+  if (ride === rb || ride.approachM <= 0 || ride.approachTarget !== "route" || ride.approachName) return false;
+  return distanceToLineM(rb, pos) <= BACK_ON_ROUTE_M;
+}
+
 /** Back to the route: the point to rejoin is this far along the line from the nearest one. */
 export const REJOIN_AHEAD_M = 150;
 
@@ -63,9 +78,15 @@ export function withApproach(
     ...prepared,
     // What was on the roadbook keeps its place, moved along by the approach; what was ridden is gone.
     stops: rb.stops.filter((s) => s.atM >= join - 1).map((s) => ({ ...s, atM: shift(s.atM) })),
-    limitSegments: rb.limitSegments
-      .filter((l) => l.endM > join)
-      .map((l) => ({ ...l, startM: shift(l.startM), endM: shift(l.endM) })),
+    limitSegments: [
+      // The way to the route has no limit of its own: the one where it joins the roadbook holds, shown as assumed.
+      ...(approachM > 0 && join > 0 && limitAt(rb, join).kmh !== null
+        ? [{ startM: 0, endM: approachM, kmh: limitAt(rb, join).kmh!, posted: false }]
+        : []),
+      ...rb.limitSegments
+        .filter((l) => l.endM > join)
+        .map((l) => ({ ...l, startM: shift(l.startM), endM: shift(l.endM) })),
+    ],
     countrySegments: rb.countrySegments
       .filter((c) => c.endM > join)
       .map((c) => ({ ...c, startM: shift(c.startM), endM: shift(c.endM) })),
