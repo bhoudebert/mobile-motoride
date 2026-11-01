@@ -131,3 +131,48 @@ test("without a server a roadbook has no send icon", async () => {
   await fireEvent.press(screen.getByLabelText("Roadbooks"));
   expect(screen.queryByLabelText(/to your server$/)).toBeNull();
 });
+
+// The roadbooks of the phone only, and the same ones on the server under other numbers: one card each, no second list.
+import { serializeRoadbookFile } from "../../src/core/roadbookFile.ts";
+import { fixtureRoadbooks } from "../fixtures/roadbooks.ts";
+
+const listOf = () => ({
+  roadbooks: fixtureRoadbooks.map((rb, i) => ({
+    id: 40 + i,
+    name: rb.name,
+    distanceKm: 10,
+    ridingMinutes: 10,
+    stamp: `srv-${i}`,
+    state: "current",
+    ready: true,
+  })),
+});
+
+test("roadbooks kept from a server that is gone, and listed by the new server, are one card each, not two lists", async () => {
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url.endsWith("/me")) return json(200, ME);
+    if (url.endsWith("/roadbooks")) return json(200, listOf());
+    return json(200, {});
+  });
+  await openList();
+  for (const rb of fixtureRoadbooks) expect(screen.getAllByText(rb.name)).toHaveLength(1);
+  expect(screen.queryByText("On your server")).toBeNull();
+  expect(screen.queryByText(/only on this phone/)).toBeNull();
+  expect(screen.queryByTestId("send-to-server")).toBeNull();
+});
+
+test("downloading one of them replaces the phone's copy in place and links it to the server's number", async () => {
+  const rb = fixtureRoadbooks[0]!;
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url.endsWith("/me")) return json(200, ME);
+    if (url.endsWith("/roadbooks")) return json(200, listOf());
+    if (url.endsWith("/roadbook/40"))
+      return { ...json(200, {}), text: async () => serializeRoadbookFile(rb), headers: { get: () => '"srv-0"' } };
+    return json(200, {});
+  });
+  await openList();
+  await fireEvent.press(screen.getByLabelText(new RegExp(`${rb.name}.*(Update|Newer|server)`, "i")));
+  await flush(25);
+  expect(kept()).toHaveLength(4);
+  expect(kept().filter((k) => k.serverId === 40)).toHaveLength(1);
+});

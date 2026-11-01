@@ -8,14 +8,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 import { t } from "../core/i18n/index.ts";
 import { ImportError, importUrlOf, isFileLink, isImportLink, parseImport, placeImport } from "../core/library.ts";
-import type { ImportedRoadbook } from "../core/library.ts";
+import type { ImportedRoadbook, Placement } from "../core/library.ts";
 import type { Roadbook } from "../core/types.ts";
 import { deleteImported, listImported, saveImported, writeRoadbookFile } from "./libraryStore.ts";
 import { download, pickFile, readOpened, type PickedText } from "./importSources.ts";
 import { needsCompletion } from "../core/enrich.ts";
 import { EnrichError, enrichRoadbook } from "../services/enrich.ts";
 import { fetchServerRoadbook } from "../services/serverRoadbooks.ts";
-import type { ServerRoadbook } from "../core/serverRoadbooks.ts";
+import { keptFor, type ServerRoadbook } from "../core/serverRoadbooks.ts";
 import type { ServerSetting } from "../core/liveShare.ts";
 
 /** Ask the services for what a GPX lacks; the roadbook as it was, and what to tell the rider, when they cannot give it. */
@@ -74,7 +74,9 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       const picked = await get();
       if (!picked) return setNotice(null);
       const imported = parseImport(picked.text, picked.name);
-      const place = placeImport(imported, await listImported());
+      const place: Placement = picked.replaceId
+        ? { kind: "replace", id: picked.replaceId }
+        : placeImport(imported, await listImported());
       if (place.kind === "older") {
         // Never downgrade silently: the newer copy stays, and is the one that opens.
         setNotice({ kind: "info", text: t("home.import.older", { name: place.kept.roadbook.name }) });
@@ -130,6 +132,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
           return "slow";
         }
         setNotice({ kind: "busy" });
+        const same = keptFor(listed, itemsRef.current);
         const got = await fetchServerRoadbook(server, listed.id);
         if (!got.ok && got.reason === "slow") {
           setNotice({ kind: "info", text: t("home.server.preparing", { name: listed.name }) });
@@ -143,6 +146,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
             stamp: got.stamp ?? listed.stamp,
             serverId: listed.id,
             serverKey: await libraryKeyOf(server),
+            ...(same ? { replaceId: same.roadbook.id } : {}),
           };
         }, open);
         return "done";
