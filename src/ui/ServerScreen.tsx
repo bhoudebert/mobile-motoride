@@ -11,6 +11,7 @@ import { setInvitation, usePendingInvitation } from "./invitation.ts";
 import { removeServer, saveServer, useServer } from "./serverSetting.ts";
 import { BackButton } from "./BackButton.tsx";
 import { GetServer } from "./GetServer.tsx";
+import { HostedServer } from "./HostedServer.tsx";
 import { ServerBrings, ServerOffer } from "./ServerFeatures.tsx";
 import { hostedServer } from "./settings.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
@@ -103,6 +104,7 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
 
       {saved ? <ServerBrings server={saved} /> : <ServerOffer />}
       {!saved && hostedServer() ? <GetServer /> : null}
+      {saved && hostedServer() ? <HostedServer server={saved} onMessage={setMessage} /> : null}
 
       {invitation ? (
         <View style={styles.card} testID="invitation">

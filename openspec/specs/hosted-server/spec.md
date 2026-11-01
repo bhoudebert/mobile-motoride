@@ -85,8 +85,7 @@ the phone was offline or the sidecar was slow.
 ### Requirement: Success and next step
 
 When the server is ready the app SHALL be enrolled with the invitation the sidecar returned, with nothing scanned or typed, and SHALL
-offer two choices: "Connect ChatGPT or Claude" and "Done". "Connect" SHALL call the server for a one-time code, show it large with
-a copy button, say it lasts 10 minutes and works once, and list the steps of the guide.
+offer two choices: "Connect ChatGPT or Claude" and "Done". "Connect" SHALL call the server for a one-time code, show it large, selectable to copy and with a Share action, say it lasts 10 minutes and works once, and list the steps of the guide.
 
 #### Scenario: Done
 
@@ -96,7 +95,7 @@ a copy button, say it lasts 10 minutes and works once, and list the steps of the
 #### Scenario: Connect a chat
 
 - **WHEN** the rider taps "Connect ChatGPT or Claude"
-- **THEN** the phone asks the server for a code and shows it as XXXX-XXXX with Copy, "valid 10 minutes, works once" and the steps; a new code can be asked once it has expired
+- **THEN** the phone asks the server for a code and shows it as XXXX-XXXX, selectable, with Share, "valid 10 minutes, works once" and the steps; a new code can be asked once it has expired
 
 ### Requirement: What the account allows
 
