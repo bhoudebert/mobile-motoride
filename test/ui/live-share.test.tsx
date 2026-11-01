@@ -431,6 +431,12 @@ test("the Server screen saves an address and a token in the secure store, tests 
   await fireEvent.press(screen.getByLabelText("Test the server"));
   await flush();
   expect(screen.getByText("It works: the server accepted the token.")).toBeTruthy();
+  // It is told just above the block with the Test button, not at the top of the screen.
+  const tree = JSON.stringify(screen.toJSON());
+  expect(tree.indexOf("It works: the server accepted the token.")).toBeLessThan(tree.indexOf("Your server"));
+  expect(tree.indexOf("It works: the server accepted the token.")).toBeGreaterThan(
+    tree.indexOf("What this server brings"),
+  );
   expect(relay("PUT")).toHaveLength(1);
   expect(relay("DELETE")[0]!.url).toMatch(/\?mode=stop$/);
   answer = () => ({ status: 401 });

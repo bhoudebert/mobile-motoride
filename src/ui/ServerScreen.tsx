@@ -90,22 +90,25 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
     setMessage(t(RESULT[result]));
   };
 
+  // What was just done or went wrong is told right above the block it concerns: the invitation, the server with its Test
+  // button, or else the address and token fields.
+  const notice = message ? (
+    <Text style={styles.message} accessibilityRole="alert">
+      {message}
+    </Text>
+  ) : null;
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <BackButton onPress={onBack} label={t("server.back.label")} style={styles.back} />
       <Text style={styles.title}>{t("server.title")}</Text>
       <Text style={styles.help}>{t("server.help")}</Text>
 
-      {message ? (
-        <Text style={styles.message} accessibilityRole="alert">
-          {message}
-        </Text>
-      ) : null}
-
       {saved ? <ServerBrings server={saved} /> : <ServerOffer />}
       {!saved && hostedServer() ? <GetServer /> : null}
       {saved && hostedServer() ? <HostedServer server={saved} onMessage={setMessage} /> : null}
 
+      {invitation ? notice : null}
       {invitation ? (
         <View style={styles.card} testID="invitation">
           <Text style={styles.label}>{t("server.invitation")}</Text>
@@ -148,6 +151,7 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
         </View>
       ) : null}
 
+      {saved && !invitation ? notice : null}
       {saved ? (
         <View style={styles.card}>
           <Text style={styles.label}>{t("server.yours")}</Text>
@@ -178,6 +182,7 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
         </View>
       ) : null}
 
+      {!saved && !invitation ? notice : null}
       <Text style={styles.label}>{saved ? t("server.change") : t("server.address")}</Text>
       <TextInput
         style={styles.input}
