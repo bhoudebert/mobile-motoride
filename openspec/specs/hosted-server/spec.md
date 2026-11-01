@@ -30,12 +30,12 @@ server set it SHALL show its state instead (status, what it includes, Manage sub
 
 ### Requirement: Plan sheet
 
-"Get a server" SHALL open a sheet that, at launch, shows one card: Free during launch, with what it includes in plain words, the regular price the sidecar names (its `launchOffer`) struck through when there is one, and no purchase action. It SHALL say that it is free for now and that this may change later, and SHALL NOT promise that it stays free. It SHALL say who provides it (Adequate Function). Plan names, prices and offers SHALL come from the sidecar and the store, never from the screens' code, and a plan that is not on offer (a paid plan, Premium) SHALL NOT be shown. When a paid plan is on sale the sheet SHALL also show, for it, the price and period as the store returns them, that the subscription renews automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not to take a server SHALL be as visible as the choice to take one.
+"Get a server" SHALL open a sheet that, at launch, shows one card: Free during launch, with what it includes in plain words, the regular yearly price the sidecar names (its `launchOffer`: a number of euros, formatted by the app for the rider's locale) struck through, with the sidecar's own wording beside it, when there is one and nothing when there is not, and no purchase action. It SHALL say that it is free for now and that this may change later, and SHALL NOT promise that it stays free. It SHALL say who provides it (Adequate Function). Plan names, prices and offers SHALL come from the sidecar and the store, never from the screens' code, and a plan that is not on offer (a paid plan, Premium) SHALL NOT be shown. When a paid plan is on sale the sheet SHALL also show, for it, the price and period as the store returns them, that the subscription renews automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not to take a server SHALL be as visible as the choice to take one.
 
 #### Scenario: Plans shown
 
-- **WHEN** the rider opens "Get a server" and the sidecar answers with the free plan and a launch offer of "25 EUR / year"
-- **THEN** one card reads "Free during launch" with "25 EUR / year" struck through, "Free for now. This may change later." and a "Get a free server" action, and no price is written in the app
+- **WHEN** the rider opens "Get a server" and the sidecar answers with the free plan and a launch offer of 25 euros and the text "Free during launch, normally 25 EUR per year"
+- **THEN** one card reads "Free during launch" with "€25" struck through and the sidecar's text, "Free for now. This may change later." and a "Get a free server" action, and no price is written in the app
 
 #### Scenario: Plans that are not on offer
 

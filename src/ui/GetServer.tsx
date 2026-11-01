@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { t, type MessageKey } from "../core/i18n/index.ts";
+import { formatNumber, t, type MessageKey } from "../core/i18n/index.ts";
 import type { Plan } from "../core/hosted.ts";
 import type { SidecarFailure } from "../services/sidecar.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
@@ -14,6 +14,8 @@ const FAILURE: Record<SidecarFailure["reason"], MessageKey> = {
   failed: "server.hosted.err.failed",
 };
 
+const price = (eur: number) => formatNumber(eur, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
 /** The offer at launch: one card, Free, with the regular price the sidecar names struck through; no purchase (spec hosted-server). */
 function PlanCard({ plan, onFree }: { plan: Plan; onFree: () => void }) {
   const offer = plan.launchOffer;
@@ -21,11 +23,11 @@ function PlanCard({ plan, onFree }: { plan: Plan; onFree: () => void }) {
     <View
       style={styles.plan}
       accessible
-      accessibilityLabel={`${t("server.hosted.plan.free")}. ${offer?.regularPrice ? `${offer.regularPrice}. ` : ""}${t("server.hosted.plan.free.detail")} ${t("server.hosted.maychange")}`}
+      accessibilityLabel={`${t("server.hosted.plan.free")}. ${offer ? `${price(offer.regularPriceEur)}. ${offer.text}. ` : ""}${t("server.hosted.plan.free.detail")} ${t("server.hosted.maychange")}`}
     >
       <Text style={styles.planName}>{t("server.hosted.plan.free")}</Text>
-      {offer?.regularPrice ? <Text style={styles.struck}>{offer.regularPrice}</Text> : null}
-      {offer?.note ? <Text style={styles.detail}>{offer.note}</Text> : null}
+      {offer ? <Text style={styles.struck}>{price(offer.regularPriceEur)}</Text> : null}
+      {offer ? <Text style={styles.detail}>{offer.text}</Text> : null}
       <Text style={styles.detail}>{t("server.hosted.plan.free.detail")}</Text>
       <Text style={styles.detail}>{t("server.hosted.maychange")}</Text>
       {plan.available ? (

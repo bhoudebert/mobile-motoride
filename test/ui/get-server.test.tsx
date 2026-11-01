@@ -25,7 +25,7 @@ const PLANS = {
       kind: "free",
       available: true,
       entitlements: { traffic: "open" },
-      launchOffer: { regularPrice: "25 EUR / year", note: "Launch offer" },
+      launchOffer: { regularPriceEur: 25, text: "Free during launch, normally 25 EUR per year" },
     },
     { id: "plus", kind: "paid", available: false, entitlements: {} },
     { id: "premium", kind: "premium", available: false, entitlements: {} },
@@ -85,7 +85,8 @@ test("the plans: one card, free during launch, the regular price struck through,
   await fireEvent.press(screen.getByLabelText("See the plans for a server"));
   await flush();
   expect(screen.getByText("Free during launch")).toBeTruthy();
-  expect(screen.getByText("25 EUR / year")).toBeTruthy();
+  expect(screen.getByText(/^€25$/)).toBeTruthy();
+  expect(screen.getByText("Free during launch, normally 25 EUR per year")).toBeTruthy();
   expect(screen.getByText("Free for now. This may change later.")).toBeTruthy();
   expect(screen.getByLabelText("Get a free server")).toBeTruthy();
   expect(screen.queryByText("Plus")).toBeNull();
