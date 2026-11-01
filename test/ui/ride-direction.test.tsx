@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import * as Speech from "expo-speech";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
 import { routeToStart } from "../../src/services/valhalla.ts";
+import { traceLimit } from "../../src/services/liveLimit.ts";
 import * as location from "./location.mock.ts";
 import { resetMapMock } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
@@ -247,4 +248,20 @@ test("a second request also waits for the rider to move 50 m since the last one"
   await push(moved, 40, 41_000, 0);
   await flush();
   expect(route).toHaveBeenCalledTimes(2);
+});
+
+test("off the roadbook the sign shows the limit of the road under the rider, found live", async () => {
+  const rb = limitedRoadbook({ cameras: false });
+  const here = at(rb, 1000);
+  const away = north(here);
+  route.mockImplementation(() => new Promise(() => {}));
+  (traceLimit as jest.Mock).mockResolvedValue({ kmh: 70, posted: true, carried: false, next: null });
+  await start(rb, here);
+  await push(here, 40, 1000, 90);
+  for (const t of [2000, 3000, 4000]) await push(away, 40, t, 0);
+  const further: LatLon = [away[0] + 0.0006, away[1]];
+  for (const t of [13_000, 14_000]) await push(further, 40, t, 0);
+  await flush();
+  await push(further, 40, 15_000, 0);
+  expect(screen.getByText("70")).toBeTruthy();
 });

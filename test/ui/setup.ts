@@ -19,6 +19,7 @@ jest.mock("expo-splash-screen", () => ({
 }));
 jest.mock("expo-font", () => ({ useFonts: () => [true, null], isLoaded: () => true, loadAsync: async () => {} }));
 jest.mock("../../src/services/valhalla.ts", () => ({ routeToStart: jest.fn() }));
+jest.mock("../../src/services/liveLimit.ts", () => ({ traceLimit: jest.fn(() => Promise.resolve(null)) }));
 jest.mock("expo-file-system", () => require("./filesystem.mock.ts"));
 jest.mock("expo-document-picker", () => require("./picker.mock.ts"));
 // The services that complete a GPX are asked in the tests that import one; the real ones would need the network.
