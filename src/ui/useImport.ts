@@ -1,4 +1,7 @@
+import { Directory } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { slugify } from "../core/gpx.ts";
+import { serializeRoadbookFile } from "../core/roadbookFile.ts";
 import { detachedRoadbook, type LibraryId } from "../core/serverIdentity.ts";
 import { libraryKeyOf } from "./libraryIdentity.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -212,6 +215,24 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     }
   }, []);
 
+  /**
+   * The roadbook as a file in a folder of the phone's own choosing (the Downloads folder, say), with nothing sent anywhere.
+   * Leaving the folder picker is not an error.
+   */
+  const saveToPhone = useCallback(async (id: string) => {
+    const current = itemsRef.current.find((i) => i.roadbook.id === id);
+    if (!current) return;
+    try {
+      const dir = await Directory.pickDirectoryAsync();
+      const name = `${slugify(current.roadbook.name) || "roadbook"}.motoride.json`;
+      dir.createFile(name, "application/json").write(serializeRoadbookFile(current.roadbook));
+      setNotice({ kind: "info", text: t("home.list.savedToPhone", { name: current.roadbook.name }) });
+    } catch (e) {
+      if (!/cancel/i.test(String((e as Error)?.message ?? "")))
+        setNotice({ kind: "error", text: t("home.list.saveFailed") });
+    }
+  }, []);
+
   /** A roadbook that was sent to the server is now the server's under its number: kept with it, as if it had been downloaded. */
   const link = useCallback(async (id: string, serverId: number, stamp: string | null, serverKey: string) => {
     const current = itemsRef.current.find((i) => i.roadbook.id === id);
@@ -251,5 +272,6 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     detach,
     link,
     share,
+    saveToPhone,
   };
 }

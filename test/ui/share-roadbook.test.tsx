@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import App from "../../App.tsx";
-import { files, resetFiles } from "./filesystem.mock.ts";
+import { files, picked, resetFiles } from "./filesystem.mock.ts";
 import { flush } from "./flush.ts";
 import { keepFixtures } from "./helpers.ts";
 import { shareAsync, state as sharing } from "./sharing.mock.ts";
@@ -47,4 +47,27 @@ test("a phone that cannot share says so, and a cancelled share says it could not
   await fireEvent.press(screen.getByLabelText("Save or share the file of Pays des Collines loop"));
   await flush();
   expect(screen.getByText("The file could not be shared.")).toBeTruthy();
+});
+
+test("a roadbook is saved into a folder the rider picks, as a file that imports again, with nothing shared", async () => {
+  await openList();
+  await fireEvent.press(screen.getByLabelText("Save the file of Pays des Collines loop to this phone"));
+  await flush();
+  const name = [...files.keys()].find((k) => k.startsWith("file:///phone/Download/"))!;
+  expect(name).toMatch(/pays-des-collines-loop.*\.motoride\.json$/);
+  const doc = JSON.parse(files.get(name)!);
+  expect(doc.format).toBe("motoride-roadbook");
+  expect(doc.name).toBe("Pays des Collines loop");
+  expect(shareAsync).not.toHaveBeenCalled();
+  expect(screen.getByText("Pays des Collines loop saved to the folder you chose.")).toBeTruthy();
+});
+
+test("leaving the folder picker saves nothing and says nothing", async () => {
+  picked.cancel = true;
+  await openList();
+  await fireEvent.press(screen.getByLabelText("Save the file of Pays des Collines loop to this phone"));
+  await flush();
+  expect([...files.keys()].some((k) => k.startsWith("file:///phone/"))).toBe(false);
+  expect(screen.queryByText(/saved to the folder/)).toBeNull();
+  expect(screen.queryByText(/could not be saved/)).toBeNull();
 });

@@ -218,4 +218,7 @@ export const home: Translated<typeof English> = {
   "home.send.sendingOne": "Envoi de {name} vers votre serveur…",
   "home.list.share": "Enregistrer ou partager le fichier de {name}",
   "home.list.shareTitle": "Roadbook {name}",
+  "home.list.save": "Enregistrer le fichier de {name} sur ce téléphone",
+  "home.list.savedToPhone": "{name} enregistré dans le dossier choisi.",
+  "home.list.saveFailed": "Le fichier n'a pas pu être enregistré là.",
 };

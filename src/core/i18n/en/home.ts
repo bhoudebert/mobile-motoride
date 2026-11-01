@@ -202,4 +202,7 @@ export const home = {
   "home.send.sendingOne": "Sending {name} to your server…",
   "home.list.share": "Save or share the file of {name}",
   "home.list.shareTitle": "Roadbook {name}",
+  "home.list.save": "Save the file of {name} to this phone",
+  "home.list.savedToPhone": "{name} saved to the folder you chose.",
+  "home.list.saveFailed": "The file could not be saved there.",
 } as const;
