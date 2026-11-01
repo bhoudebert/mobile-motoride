@@ -3,7 +3,7 @@ import { type Plan, type SetupStep, SETUP_SLOW_MS, STATUS_EVERY_MS } from "../co
 import { parseInviteLink } from "../core/liveShare.ts";
 import { joinServer } from "../services/enrol.ts";
 import { accountStatus, createFreeAccount, listPlans, reinvite, type SidecarFailure } from "../services/sidecar.ts";
-import { accountToken, clearJournal, readJournal, writeJournal } from "./hostedAccount.ts";
+import { accountToken, clearJournal, markHosted, readJournal, writeJournal } from "./hostedAccount.ts";
 import { saveServer } from "./serverSetting.ts";
 import { hostedServer } from "./settings.ts";
 
@@ -64,6 +64,7 @@ export function useGetServer(): {
       if (!invitation) return fail("failed", "connecting");
       const joined = await joinServer(invitation, "");
       if (!joined.ok) return fail(joined.reason === "unreachable" ? "unreachable" : "failed", "connecting");
+      await markHosted("new");
       await saveServer({ url: invitation.url, token: joined.token });
       await clearJournal();
       show({ kind: "closed" });

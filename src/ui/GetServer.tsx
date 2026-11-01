@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { t, type MessageKey } from "../core/i18n/index.ts";
+import { formatNumber, t, type MessageKey } from "../core/i18n/index.ts";
 import type { Plan } from "../core/hosted.ts";
 import type { SidecarFailure } from "../services/sidecar.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
@@ -14,25 +14,23 @@ const FAILURE: Record<SidecarFailure["reason"], MessageKey> = {
   failed: "server.hosted.err.failed",
 };
 
-const KIND_TEXT = {
-  free: ["server.hosted.plan.free", "server.hosted.plan.free.detail"],
-  paid: ["server.hosted.plan.paid", "server.hosted.plan.paid.detail"],
-  premium: ["server.hosted.plan.premium", "server.hosted.plan.premium.detail"],
-} as const;
+const price = (eur: number) => formatNumber(eur, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
+/** The offer at launch: one card, Free, with the regular price the sidecar names struck through; no purchase (spec hosted-server). */
 function PlanCard({ plan, onFree }: { plan: Plan; onFree: () => void }) {
-  const [name, detail] = KIND_TEXT[plan.kind];
-  // Only Free can be chosen for now: the paid plan waits for the store, Premium for the backend.
-  const choosable = plan.kind === "free" && plan.available;
+  const offer = plan.launchOffer;
   return (
     <View
       style={styles.plan}
       accessible
-      accessibilityLabel={`${t(name)}. ${t(detail)}${choosable ? "" : ` ${t("server.hosted.plan.soon")}`}`}
+      accessibilityLabel={`${t("server.hosted.plan.free")}. ${offer ? `${price(offer.regularPriceEur)}. ${offer.text}. ` : ""}${t("server.hosted.plan.free.detail")} ${t("server.hosted.maychange")}`}
     >
-      <Text style={styles.planName}>{t(name)}</Text>
-      <Text style={styles.detail}>{t(detail)}</Text>
-      {choosable ? (
+      <Text style={styles.planName}>{t("server.hosted.plan.free")}</Text>
+      {offer ? <Text style={styles.struck}>{price(offer.regularPriceEur)}</Text> : null}
+      {offer ? <Text style={styles.detail}>{offer.text}</Text> : null}
+      <Text style={styles.detail}>{t("server.hosted.plan.free.detail")}</Text>
+      <Text style={styles.detail}>{t("server.hosted.maychange")}</Text>
+      {plan.available ? (
         <Pressable
           style={styles.action}
           onPress={onFree}
@@ -42,7 +40,7 @@ function PlanCard({ plan, onFree }: { plan: Plan; onFree: () => void }) {
           <Text style={styles.actionText}>{t("server.hosted.choose.free")}</Text>
         </Pressable>
       ) : (
-        <Text style={styles.soon}>{t("server.hosted.plan.soon")}</Text>
+        <Text style={styles.detail}>{t("server.hosted.err.unavailable")}</Text>
       )}
     </View>
   );
@@ -76,7 +74,7 @@ export function GetServer() {
             {t(FAILURE[view.failure])}
           </Text>
         ) : view.plans ? (
-          view.plans.map((p) => <PlanCard key={p.id} plan={p} onFree={getFree} />)
+          view.plans.filter((p) => p.kind === "free").map((p) => <PlanCard key={p.id} plan={p} onFree={getFree} />)
         ) : (
           <Text style={styles.detail}>{t("server.hosted.loading")}</Text>
         )}
@@ -140,7 +138,7 @@ const styles = themed(() =>
     plan: { borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: 10, gap: 4 },
     planName: { color: colors.ink, fontFamily: fonts.bold, fontSize: 16 },
     detail: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20 },
-    soon: { color: colors.ink2, fontFamily: fonts.mono, fontSize: 12 },
+    struck: { color: colors.ink2, fontFamily: fonts.mono, fontSize: 14, textDecorationLine: "line-through" },
     step: { color: colors.ink, fontFamily: fonts.sans, fontSize: 16, minHeight: 28 },
     action: {
       minHeight: 48,

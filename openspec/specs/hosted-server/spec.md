@@ -6,6 +6,10 @@ Let a rider who has no server get one from the app, with the fewest steps and no
 (restore, manage, delete) one calm tap away. The decision and the screens are in ADR 0047. Plan names and prices are not decided:
 they come from configuration and from the store, never from the screens' code.
 
+At launch everything is free: there is no purchase, no store product and no paid plan on sale. The requirements about the store
+sheet, restore, manage, subscribed on another device and a lapsed subscription are kept for the day a paid plan exists
+(ADR 0048 and its spike) and are not built; the rest apply now.
+
 ## Requirements
 
 ### Requirement: Two paths on the Server screen
@@ -26,16 +30,17 @@ server set it SHALL show its state instead (status, what it includes, Manage sub
 
 ### Requirement: Plan sheet
 
-"Get a server" SHALL open a sheet with at most two plans. For each plan it SHALL show the name, what it includes and does not include
-in plain words, the price and the billing period as the store returns them for the rider's region, that the subscription renews
-automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. Names, descriptions and product ids
-SHALL come from configuration. The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not
-to buy SHALL be as visible as the choice to buy.
+"Get a server" SHALL open a sheet that, at launch, shows one card: Free during launch, with what it includes in plain words, the regular yearly price the sidecar names (its `launchOffer`: a number of euros, formatted by the app for the rider's locale) struck through, with the sidecar's own wording beside it, when there is one and nothing when there is not, and no purchase action. It SHALL say that it is free for now and that this may change later, and SHALL NOT promise that it stays free. It SHALL say who provides it (Adequate Function). Plan names, prices and offers SHALL come from the sidecar and the store, never from the screens' code, and a plan that is not on offer (a paid plan, Premium) SHALL NOT be shown. When a paid plan is on sale the sheet SHALL also show, for it, the price and period as the store returns them, that the subscription renews automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not to take a server SHALL be as visible as the choice to take one.
 
 #### Scenario: Plans shown
 
-- **WHEN** the rider opens "Get a server" and the store answers
-- **THEN** each plan shows its name, inclusions, exclusions, localized price and period, the auto-renew and cancel wording, and links to Terms and Privacy
+- **WHEN** the rider opens "Get a server" and the sidecar answers with the free plan and a launch offer of 25 euros and the text "Free during launch, normally 25 EUR per year"
+- **THEN** one card reads "Free during launch" with "€25" struck through and the sidecar's text, "Free for now. This may change later." and a "Get a free server" action, and no price is written in the app
+
+#### Scenario: Plans that are not on offer
+
+- **WHEN** the sidecar lists a paid plan and Premium that are not available
+- **THEN** neither is shown
 
 #### Scenario: Store unavailable
 
@@ -59,11 +64,25 @@ block the rest of the app.
 - **WHEN** the store reports the purchase as pending
 - **THEN** the screen says "Waiting for the store to confirm your payment", that it can be closed, and that setup continues by itself when the store confirms
 
+### Requirement: The free server
+
+Choosing Free SHALL open no store sheet and ask for no payment: the app asks the sidecar for a free server with the account token alone, and continues with the same setup step, success and next step as a paid server. Asking again SHALL give the same server. Upgrading from Free to the paid plan SHALL keep the same server and library, and SHALL be offered from the Server screen as a calm choice, never as a nag. The plans, and whether each can be chosen, SHALL come from the sidecar's list of plans.
+
+#### Scenario: Free server
+
+- **WHEN** the rider chooses Free
+- **THEN** no store sheet opens, "Setting up your server" runs, and the phone is enrolled on a free server
+
+#### Scenario: Upgrade keeps the library
+
+- **WHEN** a rider with a free server buys the paid plan
+- **THEN** the same server and library are kept, with more allowed, and nothing is copied or lost
+
 ### Requirement: Setting up the server
 
 After a confirmed purchase the app SHALL show one "Setting up your server" step with real progress (payment confirmed, creating the
 server, connecting this phone), no longer than needed. The app SHALL write a durable record of the purchase before it asks the
-sidecar anything, SHALL tell the store the purchase is finished only after the server is created and the phone is enrolled, and
+sidecar anything, SHALL tell the store the purchase is finished only after the server is created and the phone is enrolled (an acknowledgement already made by the sidecar is not an error), and
 SHALL resume from the record whenever the app starts or returns to the foreground. A purchase SHALL never be lost because the app was closed,
 the phone was offline or the sidecar was slow.
 
@@ -85,8 +104,7 @@ the phone was offline or the sidecar was slow.
 ### Requirement: Success and next step
 
 When the server is ready the app SHALL be enrolled with the invitation the sidecar returned, with nothing scanned or typed, and SHALL
-offer two choices: "Connect ChatGPT or Claude" and "Done". "Connect" SHALL call the server for a one-time code, show it large with
-a copy button, say it lasts 10 minutes and works once, and list the steps of the guide.
+offer two choices: "Connect ChatGPT or Claude" and "Done". "Connect" SHALL call the server for a one-time code, show it large, selectable to copy and with a Share action, say it lasts 10 minutes and works once, and list the steps of the guide.
 
 #### Scenario: Done
 
@@ -96,7 +114,7 @@ a copy button, say it lasts 10 minutes and works once, and list the steps of the
 #### Scenario: Connect a chat
 
 - **WHEN** the rider taps "Connect ChatGPT or Claude"
-- **THEN** the phone asks the server for a code and shows it as XXXX-XXXX with Copy, "valid 10 minutes, works once" and the steps; a new code can be asked once it has expired
+- **THEN** the phone asks the server for a code and shows it as XXXX-XXXX, selectable, with Share, "valid 10 minutes, works once" and the steps; a new code can be asked once it has expired
 
 ### Requirement: What the account allows
 
@@ -152,7 +170,7 @@ offer a second purchase, SHALL say it found a subscription, and SHALL offer to c
 ### Requirement: Lapsed subscription
 
 When the subscription has lapsed, the app SHALL say so in plain words, say what is kept (the library and rides stay on the server for
-the grace period the server states, with its end date), say that the phone's own rides and roadbooks are untouched and the app keeps
+the retention period, with its end date: a paid server is wiped 12 months after the subscription ends or is cancelled, a free one after 12 months without activity), say that the phone's own rides and roadbooks are untouched and the app keeps
 working without the server, and offer Resubscribe and Restore purchases. It SHALL NOT show the lapse as an error or nag on the ride screen.
 
 #### Scenario: Lapsed
@@ -198,11 +216,11 @@ half, and with touch targets of at least 44 pt.
 - **WHEN** a screen reader is on
 - **THEN** each plan reads as one element with name, price, period and renewal, and the Buy action says what it costs
 
-### Requirement: Off unless a build turns it on
+### Requirement: On by default, switchable off
 
-"Get a server" SHALL appear only in a build that sets the address of the sidecar and switches the feature on, and only for a rider with no server. Everything else about the Server screen SHALL be unchanged without it.
+"Get a server" SHALL appear for a rider with no server, at the address of the project's sidecar, unless a build switches it off or points it at another sidecar. Everything else about the Server screen SHALL be unchanged without it.
 
-#### Scenario: Not switched on
+#### Scenario: Switched off
 
-- **WHEN** the build does not switch the feature on
+- **WHEN** a build switches the feature off
 - **THEN** the Server screen shows no "Get a server"
