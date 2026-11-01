@@ -9,6 +9,7 @@ import type { ImportedRoadbook } from "../core/library.ts";
 import { BackButton } from "./BackButton.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 import type { ServerProblem } from "../services/serverRoadbooks.ts";
+import type { SendState } from "./useSendRoadbooks.ts";
 import type { ServerList } from "./useServerRoadbooks.ts";
 import { RouteThumb } from "./RouteThumb.tsx";
 import { colors, fonts, radii, themed } from "./theme.ts";
@@ -49,6 +50,8 @@ export function RoadbookList({
     asking: number | null;
     problem: ServerProblem | null;
     onRetry: () => void;
+    /** "Send to your server": the roadbooks only on the phone, and the sending (spec roadbook-library). */
+    send?: { count: number; state: SendState; onRides?: () => void };
   };
   /** Back to the home screen, with the phone's Back button too. */
   onBack?: () => void;
@@ -103,6 +106,7 @@ export function RoadbookList({
           server ? (
             <>
               <ServerNotes list={server.list} onRetry={server.onRetry} />
+              {server.send ? <SendToServer {...server.send} /> : null}
               {server.problem ? (
                 <Text style={styles.serverNote} accessibilityRole="alert">
                   {t(`home.server.problem.${server.problem}`)}
@@ -350,6 +354,17 @@ function StateLine({ entry, held = false }: { entry: ServerRoadbook; held?: bool
 
 const styles = themed(() =>
   StyleSheet.create({
+    sendCard: {
+      backgroundColor: colors.card,
+      borderRadius: radii.card,
+      borderWidth: 1,
+      borderColor: colors.rule,
+      padding: 16,
+      gap: 6,
+      marginBottom: 12,
+    },
+    sendLink: { minHeight: 48, justifyContent: "center", alignSelf: "flex-start" },
+    sendLinkText: { color: colors.accent, fontFamily: fonts.bold, fontSize: 15 },
     screen: { flex: 1, backgroundColor: colors.paper, paddingTop: TOP_INSET + 8 },
     title: { color: colors.accent, fontFamily: fonts.bold, fontSize: 30, paddingHorizontal: 16, paddingBottom: 4 },
     subtitle: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 14, paddingHorizontal: 16, paddingBottom: 12 },
@@ -414,3 +429,71 @@ const styles = themed(() =>
     desc: { color: colors.ink2, fontFamily: fonts.sans, fontSize: 13 },
   }),
 );
+
+const mb = (bytes: number) => Math.round((bytes / 1_048_576) * 10) / 10;
+
+/** The roadbooks that are only on the phone, with the room left on the server, and the way to send them (spec roadbook-library). */
+function SendToServer({ count, state, onRides }: { count: number; state: SendState; onRides?: () => void }) {
+  const { quota, sending, result } = state;
+  const room = quota
+    ? quota.limitMb === null
+      ? t("home.send.room.free", { used: mb(quota.usedBytes) })
+      : t("home.send.room", { used: mb(quota.usedBytes), limit: quota.limitMb })
+    : null;
+  const problem = (() => {
+    if (!result?.stopped) return null;
+    if (result.stopped === "libraryFull")
+      return quota && quota.limitMb !== null
+        ? t("home.send.problem.libraryFull", { used: mb(quota.usedBytes), limit: quota.limitMb })
+        : t("home.send.problem.libraryFullPlain");
+    return t(`home.send.problem.${result.stopped}`);
+  })();
+  if (!sending && !result && count === 0) return null;
+  return (
+    <View style={styles.sendCard} testID="send-to-server">
+      <Text style={styles.tag}>{t("home.send.title")}</Text>
+      {sending ? (
+        <Text style={styles.meta}>{t("home.send.sending", sending)}</Text>
+      ) : (
+        <>
+          {result ? (
+            <Text style={styles.name} accessibilityRole="alert">
+              {result.stopped
+                ? t("home.send.partial", { sent: result.sent, total: result.total })
+                : t("home.send.done", { count: result.sent })}
+            </Text>
+          ) : null}
+          {problem ? (
+            <Text style={styles.serverNote} accessibilityRole="alert">
+              {problem}
+            </Text>
+          ) : null}
+          {count > 0 ? (
+            <>
+              <Text style={styles.meta}>{t("home.send.count", { count })}</Text>
+              {room ? <Text style={styles.meta}>{room}</Text> : null}
+              <Pressable
+                style={styles.import}
+                onPress={state.send}
+                accessibilityRole="button"
+                accessibilityLabel={t("home.send.button.label")}
+              >
+                <Text style={styles.importText}>{t("home.send.button")}</Text>
+              </Pressable>
+            </>
+          ) : null}
+          {result?.stopped === "libraryFull" && onRides ? (
+            <Pressable
+              style={styles.sendLink}
+              onPress={onRides}
+              accessibilityRole="button"
+              accessibilityLabel={t("home.send.rides")}
+            >
+              <Text style={styles.sendLinkText}>{t("home.send.rides")}</Text>
+            </Pressable>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+}

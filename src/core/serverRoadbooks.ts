@@ -122,3 +122,15 @@ export function stampOfEtag(etag: string | null | undefined): string | null {
   const s = (etag ?? "").trim().replace(/^W\//, "").replace(/^"|"$/g, "");
   return s || null;
 }
+
+/**
+ * The kept roadbooks that are only on the phone and that a server in use does not list: what "Send to your server" offers.
+ * Nothing is offered while the server's list is not known.
+ */
+export function onlyOnPhone(
+  kept: readonly ImportedRoadbook[],
+  listed: readonly ServerRoadbook[] | null,
+): ImportedRoadbook[] {
+  if (!listed) return [];
+  return kept.filter((k) => k.serverId === undefined && listed.every((e) => keptFor(e, kept, listed) !== k));
+}

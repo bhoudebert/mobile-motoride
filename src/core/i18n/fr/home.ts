@@ -189,4 +189,29 @@ export const home: Translated<typeof English> = {
   "home.theme.light": "Clair",
   "home.theme.dark": "Sombre",
   "home.rides.reviewRide": "Revoir {name}",
+  "home.send.title": "Envoyer vers votre serveur",
+  "home.send.count_one": "{count} roadbook n'est que sur ce téléphone.",
+  "home.send.count_other": "{count} roadbooks ne sont que sur ce téléphone.",
+  "home.send.room": "Bibliothèque {used} sur {limit} Mo sur votre serveur.",
+  "home.send.room.free": "Bibliothèque {used} Mo sur votre serveur.",
+  "home.send.button": "Envoyer",
+  "home.send.button.label": "Envoyer vers votre serveur les roadbooks qui ne sont que sur ce téléphone",
+  "home.send.sending": "Envoi {done} sur {total}…",
+  "home.send.done_one": "{count} roadbook envoyé vers votre serveur.",
+  "home.send.done_other": "{count} roadbooks envoyés vers votre serveur.",
+  "home.send.partial": "{sent} sur {total} envoyés.",
+  "home.send.rides": "Ouvrir Mes sorties",
+  "home.send.problem.libraryFull":
+    "La bibliothèque de votre serveur est pleine ({used} sur {limit} Mo). Vos sorties sont toujours sur ce téléphone ; supprimez-en d'anciennes du serveur pour faire de la place.",
+  "home.send.problem.libraryFullPlain":
+    "La bibliothèque de votre serveur est pleine. Vos sorties sont toujours sur ce téléphone ; supprimez-en d'anciennes du serveur pour faire de la place.",
+  "home.send.problem.tooLarge": "Un roadbook est trop gros pour votre serveur (plus de 5 Mo).",
+  "home.send.problem.full": "Votre serveur garde au plus 100 roadbooks envoyés : supprimez-en un d'abord.",
+  "home.send.problem.busy": "Trop d'envois. Réessayez dans une minute.",
+  "home.send.problem.unauthorized":
+    "Votre serveur a refusé ce téléphone. Rejoignez-le à nouveau depuis l'écran Serveur.",
+  "home.send.problem.invalid": "Votre serveur n'a pas accepté ce fichier de roadbook.",
+  "home.send.problem.unreachable": "Impossible de joindre votre serveur. Les roadbooks sont toujours sur ce téléphone.",
+  "home.send.problem.failed":
+    "Votre serveur ne l'a pas pris. Les roadbooks sont toujours sur ce téléphone : réessayez plus tard.",
 };

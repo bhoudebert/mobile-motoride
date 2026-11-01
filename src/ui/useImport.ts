@@ -196,6 +196,20 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     setItems((list) => list.filter((i) => i.roadbook.id !== id));
   }, []);
 
+  /** A roadbook that was sent to the server is now the server's under its number: kept with it, as if it had been downloaded. */
+  const link = useCallback(async (id: string, serverId: number, stamp: string | null, serverKey: string) => {
+    const current = itemsRef.current.find((i) => i.roadbook.id === id);
+    if (!current) return;
+    const entry: ImportedRoadbook = {
+      ...current,
+      serverId,
+      serverKey,
+      ...(stamp ? { serverStamp: stamp } : {}),
+    };
+    await saveImported(entry);
+    setItems((list) => list.map((i) => (i.roadbook.id === id ? entry : i)));
+  }, []);
+
   /** The copies kept from a server that is not the one in use become roadbooks of the phone only (ADR 0049). */
   const detach = useCallback(async (current: LibraryId | null) => {
     const changed: ImportedRoadbook[] = [];
@@ -209,5 +223,5 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       setItems((list) => list.map((i) => changed.find((c) => c.roadbook.id === i.roadbook.id) ?? i));
   }, []);
 
-  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry, fromServer, fetching, detach };
+  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry, fromServer, fetching, detach, link };
 }

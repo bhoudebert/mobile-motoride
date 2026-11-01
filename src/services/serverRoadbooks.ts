@@ -98,3 +98,61 @@ export async function refreshServerRoadbook(
     };
   }
 }
+
+/** What a server answers a pushed roadbook, each refusal told apart (agentRide `PUT /roadbooks`). */
+export type PushProblem =
+  "unauthorized" | "invalid" | "tooLarge" | "libraryFull" | "full" | "busy" | "unreachable" | "failed";
+export type PushAnswer =
+  | { ok: true; id: number; replaced: boolean; stamp: string | null }
+  | { ok: false; reason: PushProblem; retryAfterS?: number };
+
+/** The most the server takes in one roadbook file. */
+export const MAX_PUSH_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Send a roadbook file to the rider's server (`PUT /roadbooks`, with the phone's own token): the server numbers it itself
+ * and keys it on its origin and name, so sending it again replaces it. The answer is `{id, replaced, stamp}`.
+ */
+export async function pushRoadbook(
+  server: ServerSetting,
+  file: string,
+  { fetchImpl = fetch, timeoutMs = 60_000 }: ServerRoadbookOptions = {},
+): Promise<PushAnswer> {
+  if (new TextEncoder().encode(file).length > MAX_PUSH_BYTES) return { ok: false, reason: "tooLarge" };
+  try {
+    const res = await fetchImpl(`${server.url}/roadbooks`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${server.token}`, "Content-Type": "application/json" },
+      body: file,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (res.ok) {
+      const body = (await res.json().catch(() => null)) as { id?: unknown; replaced?: unknown; stamp?: unknown } | null;
+      return typeof body?.id === "number"
+        ? {
+            ok: true,
+            id: body.id,
+            replaced: body.replaced === true,
+            stamp: typeof body.stamp === "string" ? body.stamp : null,
+          }
+        : { ok: false, reason: "failed" };
+    }
+    if (res.status === 401 || res.status === 403) return { ok: false, reason: "unauthorized" };
+    if (res.status === 400) return { ok: false, reason: "invalid" };
+    if (res.status === 409) return { ok: false, reason: "full" };
+    if (res.status === 429) {
+      const wait = Number(res.headers?.get?.("Retry-After"));
+      return { ok: false, reason: "busy", ...(Number.isFinite(wait) && wait > 0 ? { retryAfterS: wait } : {}) };
+    }
+    if (res.status === 413) {
+      const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+      return { ok: false, reason: body?.error === "library_full" ? "libraryFull" : "tooLarge" };
+    }
+    return { ok: false, reason: "failed" };
+  } catch (e) {
+    return {
+      ok: false,
+      reason: e instanceof TypeError || (e as Error)?.name === "TimeoutError" ? "unreachable" : "failed",
+    };
+  }
+}
