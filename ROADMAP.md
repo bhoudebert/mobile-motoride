@@ -4,12 +4,10 @@ Done work is removed from this list; what was learnt is added.
 
 ## Next
 
-- **Ship to the stores** ([`docs/SHIPPING.md`](docs/SHIPPING.md)): the Android files are built and signed on each release
-  (ADR 0030; waiting for the upload key's secrets and a first run on a real phone). Still missing: the iOS app on a real iPhone
-  (CI signs it and uploads it to TestFlight once the four Apple secrets are set, ADR 0042; never run on a phone), a privacy policy, the store declarations, and the upload to Play.
+- **Ship to the stores** ([`docs/SHIPPING.md`](docs/SHIPPING.md)): each release builds the Android files (signed `.aab` and `.apk`,
+  ADR 0030) and a signed iOS build that goes to TestFlight (ADR 0042); both run on real phones. Still missing: the listings
+  (Play, App Store), a privacy policy and the store declarations.
 
-- **Run on a real phone.** Nothing here has been ridden yet; v1 was built and
-  tested on a PC (core tests only).
 - **Offline basemap, for long rides.** A map saved around a roadbook covers a day loop (ADR 0023); a ride too long for
   4,000 tiles, or a route to a place, still needs a regional PMTiles extract or a self-hosted tile server (ADR 0007).
 - **Remember the basemap choice** between sessions (it resets to Light).
@@ -17,8 +15,6 @@ Done work is removed from this list; what was learnt is added.
   roads and hairpin stacks.
 - **More languages.** English and French are in (ADR 0032); a third is one more table of messages. Roadbook texts stay in the
   language agentRide wrote them in; roadbooks in several languages are agentRide's job.
-- **Rides on a server.** The review reads the GPX a ride is saved as, so a rider who owns or rents a server (ADR 0028) can have
-  the same file kept there and the same figures computed on it; nothing in the review has to change for that.
 - **Follower mode and alerts that notify.** Today a crash only marks a live ride for whoever has its page open (ADR 0039). Next: Android follower polling with
   local notifications (free, no push), a push gateway for iOS, or a server that texts or emails the contact.
 - **Crash alerts that need no live share.** Detection raises an alert, and only a ride shared live tells anyone automatically; a server that holds the
@@ -43,15 +39,11 @@ Done work is removed from this list; what was learnt is added.
   not say their countries get no camera warning: agentRide writes them for new exports.
 - **The share target (ACTION_SEND)** so a route app's Share button reaches the app, and our own Valhalla and Overpass
   when many riders complete GPX files (the public ones are slow on a busy day, ADR 0026).
-- **The server, the rest of it** (ADR 0028): the setting, **live sharing** (ADR 0029) and the **roadbooks of the rider's
-  library, listed with download and refresh in the app**, are built; still to come are a recorded ride sent back for review, an in-app scanner
-  for the invitation's QR code (the phone's camera opens it today), alerts to followers (no news for 10 minutes, a long stop) and a self-hosted copy of the map library on the
-  follower's page.
-- **`rides push`** in agentRide: send a roadbook to a phone with the import link (adb or the local network).
+- **The server, the rest of it** (ADR 0028): the setting, **live sharing** (ADR 0029), the **roadbooks of the rider's library**
+  (listed, downloaded and updated in the app) and the **rides** (sent to the server, listed with the phone's, saved to a phone,
+  removed from the server) are built. Still to come: an in-app scanner for the invitation's QR code (the phone's camera opens it
+  today), alerts to followers (no news for 10 minutes, a long stop) and a self-hosted copy of the map library on the follower's page.
 - **Limits and roundabouts for a destination route.** A route to a place has turns and corner warnings but no speed
   limits or junction guidance (they come from agentRide's tracing): trace it in the app or in the backend (ADR 0022).
 - **Recent places and a saved destination route**, and a search biased to where the rider is.
-- **Accounts and sync** of roadbooks and ridden history (ADR 0004).
-- **Crash detection** from accelerometer and gyro, with emergency contact.
-- **Import** a GPX file from the phone; **share** a ride.
-- **iOS.**
+- **Accounts, and sync of the settings.** Roadbooks and rides already live on the rider's server; the settings (language, look, gauges, voice, fuel range) stay on each phone (ADR 0004).
