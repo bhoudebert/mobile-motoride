@@ -26,16 +26,17 @@ server set it SHALL show its state instead (status, what it includes, Manage sub
 
 ### Requirement: Plan sheet
 
-"Get a server" SHALL open a sheet with at most two plans. For each plan it SHALL show the name, what it includes and does not include
-in plain words, the price and the billing period as the store returns them for the rider's region, that the subscription renews
-automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. Names, descriptions and product ids
-SHALL come from configuration. The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not
-to buy SHALL be as visible as the choice to buy.
+"Get a server" SHALL open a sheet with the plans of the offer: Free (open traffic data), a paid plan, and Premium (TomTom traffic), which is shown as coming later and cannot be chosen while the server refuses it. For each plan it SHALL show the name, what it includes and does not include in plain words, and for the paid plan the price and the billing period as the store returns them for the rider's region, that the subscription renews automatically until cancelled, how to cancel it, and links to the Terms and the Privacy policy. Names, descriptions and product ids SHALL come from configuration and the store, never from the screens' code (the paid price is a temporary discount: it is the store's to say). The sheet SHALL show no countdown, no pre-selected upsell and no pressure wording, and the choice not to buy SHALL be as visible as the choice to buy. It SHALL say who sells it (Adequate Function) and that the store handles invoices and tax.
 
 #### Scenario: Plans shown
 
 - **WHEN** the rider opens "Get a server" and the store answers
 - **THEN** each plan shows its name, inclusions, exclusions, localized price and period, the auto-renew and cancel wording, and links to Terms and Privacy
+
+#### Scenario: Premium not yet
+
+- **WHEN** the plan sheet lists Premium while the server refuses TomTom traffic
+- **THEN** Premium is shown as coming later, with no buy action and no price
 
 #### Scenario: Store unavailable
 
@@ -63,7 +64,7 @@ block the rest of the app.
 
 After a confirmed purchase the app SHALL show one "Setting up your server" step with real progress (payment confirmed, creating the
 server, connecting this phone), no longer than needed. The app SHALL write a durable record of the purchase before it asks the
-sidecar anything, SHALL tell the store the purchase is finished only after the server is created and the phone is enrolled, and
+sidecar anything, SHALL tell the store the purchase is finished only after the server is created and the phone is enrolled (an acknowledgement already made by the sidecar is not an error), and
 SHALL resume from the record whenever the app starts or returns to the foreground. A purchase SHALL never be lost because the app was closed,
 the phone was offline or the sidecar was slow.
 
@@ -152,7 +153,7 @@ offer a second purchase, SHALL say it found a subscription, and SHALL offer to c
 ### Requirement: Lapsed subscription
 
 When the subscription has lapsed, the app SHALL say so in plain words, say what is kept (the library and rides stay on the server for
-the grace period the server states, with its end date), say that the phone's own rides and roadbooks are untouched and the app keeps
+the retention period, with its end date: a paid server is wiped 12 months after the subscription ends or is cancelled, a free one after 12 months without activity), say that the phone's own rides and roadbooks are untouched and the app keeps
 working without the server, and offer Resubscribe and Restore purchases. It SHALL NOT show the lapse as an error or nag on the ride screen.
 
 #### Scenario: Lapsed
