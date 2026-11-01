@@ -56,7 +56,6 @@ export const server = {
   "server.test": "Test",
   "server.remove.label": "Remove the server",
   "server.remove": "Remove",
-  "server.change": "Change it",
   "server.address": "Address",
   "server.address.label": "Server address",
   "server.tokenField": "Token",
@@ -117,8 +116,8 @@ export const server = {
   "server.mine.traffic.left_other": "Traffic: {count} requests left today.",
   "server.mine.traffic.on": "Traffic: on.",
   "server.mine.traffic.off": "Traffic: off on your plan.",
-  "server.mine.library": "Library: {used} MB of {limit} MB.",
-  "server.mine.library.free": "Library: {used} MB.",
+  "server.mine.library": "Library {used} of {limit} MB",
+  "server.mine.library.free": "Library {used} MB",
   "server.mine.paused": "Your server is paused",
   "server.mine.paused.until":
     "Your library stays on the server until {date}. Nothing is backed up there. Your rides and roadbooks on this phone are untouched, and the app keeps working without the server.",
@@ -148,4 +147,14 @@ export const server = {
   "server.delete.offline": "Not deleted: no connection. Try again with a connection.",
   "server.delete.failed": "Not deleted. Try again.",
   "server.delete.done": "Your server is deleted.",
+  "server.info.title": "About your server",
+  "server.info.provider.hosted": "Free server from Adequate Function",
+  "server.info.provider.own": "Your own server",
+  "server.info.plan": "Plan: {plan}",
+  "server.info.library.what":
+    "The library is the size of your library file on the server: roadbooks, rides sent, notes, ratings and caches. It is checked when a ride is sent or a roadbook is pushed.",
+  "server.info.support": "Support code {code}. Quote it when you ask for help.",
+  "server.info.source.open": "Traffic source: open data (the default).",
+  "server.info.source.tomtom": "Traffic source: TomTom.",
+  "server.info.source.host": "Traffic source: chosen by the host of your server.",
 } as const;

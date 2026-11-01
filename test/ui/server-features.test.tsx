@@ -98,3 +98,18 @@ test("a build with the hosted server switched off still says that renting one is
   delete process.env.EXPO_PUBLIC_HOSTED_SERVER;
   expect(screen.getByText("Renting one: coming soon.")).toBeTruthy();
 });
+
+test("with a server set there is no address and token to fill in; removing it brings them back", async () => {
+  await saveServer(SERVER);
+  health({ ok: true, traffic: true, trafficCountries: ["FR"] });
+  await render(<ServerScreen onBack={() => {}} />);
+  await flush();
+  expect(screen.queryByLabelText("Server address")).toBeNull();
+  expect(screen.queryByLabelText("Server token")).toBeNull();
+  expect(screen.queryByLabelText("Save the server")).toBeNull();
+  expect(screen.queryByText("Change it")).toBeNull();
+  await fireEvent.press(screen.getByLabelText("Remove the server"));
+  await flush();
+  expect(screen.getByLabelText("Server address")).toBeTruthy();
+  expect(screen.getByLabelText("Save the server")).toBeTruthy();
+});
