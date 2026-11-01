@@ -236,6 +236,7 @@ export default function App() {
             imported={importedIds}
             onImport={() => void library.pick()}
             onDelete={(id) => void library.remove(id)}
+            onShare={(id) => void library.share(id)}
             fromServer={fromServerIds}
             pending={pendingIds}
             onComplete={(id) => void library.retry(id)}

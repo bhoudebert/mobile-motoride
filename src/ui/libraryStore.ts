@@ -1,4 +1,7 @@
 import { Directory, File, Paths } from "expo-file-system";
+import { serializeRoadbookFile } from "../core/roadbookFile.ts";
+import { slugify } from "../core/gpx.ts";
+import type { Roadbook } from "../core/types.ts";
 import { parseStored, serializeStored, type ImportedRoadbook } from "../core/library.ts";
 
 const folder = () => new Directory(Paths.document, "library");
@@ -41,4 +44,17 @@ export async function deleteImported(id: string): Promise<void> {
 /** The text of a file the system hands over by address: a shared or "opened with" file, or one the picker chose. */
 export async function readFileText(uri: string): Promise<string> {
   return new File(uri).text();
+}
+
+/**
+ * A roadbook written as a `motoride-roadbook` file in the cache, ready for the share sheet (Save to Files, a drive, a mail):
+ * the file another phone, or this one later, can import. Returns its address.
+ */
+export function writeRoadbookFile(roadbook: Roadbook): string {
+  const dir = new Directory(Paths.cache, "roadbook-files");
+  if (!dir.exists) dir.create({ intermediates: true });
+  const file = new File(dir, `${slugify(roadbook.name) || "roadbook"}.motoride.json`);
+  if (!file.exists) file.create();
+  file.write(serializeRoadbookFile(roadbook));
+  return file.uri;
 }

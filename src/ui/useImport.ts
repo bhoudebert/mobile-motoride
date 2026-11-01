@@ -1,3 +1,4 @@
+import * as Sharing from "expo-sharing";
 import { detachedRoadbook, type LibraryId } from "../core/serverIdentity.ts";
 import { libraryKeyOf } from "./libraryIdentity.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -6,7 +7,7 @@ import { t } from "../core/i18n/index.ts";
 import { ImportError, importUrlOf, isFileLink, isImportLink, parseImport, placeImport } from "../core/library.ts";
 import type { ImportedRoadbook } from "../core/library.ts";
 import type { Roadbook } from "../core/types.ts";
-import { deleteImported, listImported, saveImported } from "./libraryStore.ts";
+import { deleteImported, listImported, saveImported, writeRoadbookFile } from "./libraryStore.ts";
 import { download, pickFile, readOpened, type PickedText } from "./importSources.ts";
 import { needsCompletion } from "../core/enrich.ts";
 import { EnrichError, enrichRoadbook } from "../services/enrich.ts";
@@ -196,6 +197,21 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     setItems((list) => list.filter((i) => i.roadbook.id !== id));
   }, []);
 
+  /** The roadbook as a file, handed to the share sheet so that it can be saved to the phone's files or sent elsewhere. */
+  const share = useCallback(async (id: string) => {
+    const current = itemsRef.current.find((i) => i.roadbook.id === id);
+    if (!current) return;
+    try {
+      if (!(await Sharing.isAvailableAsync())) return setNotice({ kind: "error", text: t("home.rides.cannotShare") });
+      await Sharing.shareAsync(writeRoadbookFile(current.roadbook), {
+        mimeType: "application/json",
+        dialogTitle: t("home.list.shareTitle", { name: current.roadbook.name }),
+      });
+    } catch {
+      setNotice({ kind: "error", text: t("home.rides.shareFailed") });
+    }
+  }, []);
+
   /** A roadbook that was sent to the server is now the server's under its number: kept with it, as if it had been downloaded. */
   const link = useCallback(async (id: string, serverId: number, stamp: string | null, serverKey: string) => {
     const current = itemsRef.current.find((i) => i.roadbook.id === id);
@@ -223,5 +239,17 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       setItems((list) => list.map((i) => changed.find((c) => c.roadbook.id === i.roadbook.id) ?? i));
   }, []);
 
-  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry, fromServer, fetching, detach, link };
+  return {
+    items,
+    notice,
+    dismiss: () => setNotice(null),
+    pick,
+    remove,
+    retry,
+    fromServer,
+    fetching,
+    detach,
+    link,
+    share,
+  };
 }
