@@ -24,6 +24,8 @@ export interface HostedStatus {
   invitationLink: string | null;
   suspended: { reason: string; until: string | null } | null;
   rejected: string | null;
+  /** A short code to quote when asking for help; null until the sidecar gives one. */
+  supportCode: string | null;
 }
 
 const STATES: readonly string[] = ["none", "pending", "ready", "suspended", "ended"];
@@ -43,6 +45,7 @@ export function parseStatus(body: unknown): HostedStatus | null {
         ? { reason: sus.reason, until: typeof sus.until === "string" ? sus.until : null }
         : null,
     rejected: typeof body.rejected === "string" ? body.rejected : null,
+    supportCode: typeof body.supportCode === "string" && body.supportCode ? body.supportCode : null,
   };
 }
 
@@ -101,6 +104,8 @@ export const SETUP_SLOW_MS = 20_000;
 /** What the rider's server says they may use and have used (agentRide's `GET /me`). */
 export interface Me {
   hosted: boolean;
+  /** An opaque reference to the rider, the same on every phone of theirs; null from a server that does not give one. */
+  riderRef: string | null;
   /** Paused: the subscription lapsed or billing is being retried; the library is kept until `until` when it is known. */
   suspended: { reason: string; until: string | null } | null;
   traffic: { mode: string; perDay: number | null; usedToday: number };
@@ -115,6 +120,7 @@ export function parseMe(body: unknown): Me | null {
   if (typeof traffic.mode !== "string") return null;
   return {
     hosted: body.hosted === true,
+    riderRef: typeof body.riderRef === "string" && body.riderRef ? body.riderRef : null,
     suspended:
       isObject(sus) && typeof sus.reason === "string"
         ? { reason: sus.reason, until: typeof sus.until === "string" ? sus.until : null }

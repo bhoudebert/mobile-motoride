@@ -19,7 +19,7 @@ ordinary: a rider can delete a free server and get a new one, or move to their o
 - A copy is matched to a server entry by number only when identities are equal.
 - On Remove, or when another server with another identity is set, copies from the old one become **local-only**: file kept,
   number, stamp, server link, "sent" mark dropped. Rides the same way ("Only on this phone"). Nothing is deleted or overwritten.
-  Copies kept before identities existed take the identity of the server in use the first time the list is asked of it.
+  Copies kept before identities existed belong to no server: they are detached at once, and a download from the server in use replaces them by origin and name and stamps them (each shows one refresh icon until then). Nothing is done before the stored server setting has been read.
 - Moving to the new server is the rider's choice: "Send to your server" uses the server's push (the app has no client for it yet, and builds one; the server numbers the
   roadbook and keys on origin and name, so sending twice replaces) after showing the count and the room left, and stops on
   `library_full` (413).

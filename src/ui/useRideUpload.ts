@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { ServerSetting } from "../core/liveShare.ts";
 import type { RideMeta } from "../core/recording.ts";
 import { uploadRide, type UploadProblem } from "../services/rideUpload.ts";
+import { libraryKeyOf } from "./libraryIdentity.ts";
 import { markUploaded, readRideGpx } from "./ridesStore.ts";
 
 export type UploadResult = { ok: true; meta: RideMeta | null } | { ok: false; reason: UploadProblem };
@@ -21,7 +22,7 @@ export function useRideUpload(server: ServerSetting | null) {
         if (!gpx) return { ok: false, reason: "failed" };
         const answer = await uploadRide(server, id, gpx);
         if (!answer.ok) return answer;
-        return { ok: true, meta: await markUploaded(id, answer.id, Date.now()) };
+        return { ok: true, meta: await markUploaded(id, answer.id, Date.now(), await libraryKeyOf(server)) };
       } finally {
         setUploading(null);
       }

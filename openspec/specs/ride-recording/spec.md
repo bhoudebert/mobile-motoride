@@ -115,7 +115,7 @@ The roadbook is what the app rode on: a ride that has no agentRide origin (a roa
 
 ### Requirement: Changing server keeps the rides on the phone
 
-A ride sent to a server SHALL carry, like a roadbook (spec roadbook-library, "Changing server keeps what is on the phone"), the identity of the library it was sent to. When the rider removes the server or sets another with a different identity, rides marked as on the old server SHALL become rides of the phone only: the recording is kept, its server link and "sent" mark are dropped, and it reads "Only on this phone" and can be sent to the new server. Rides listed by the new server SHALL be listed beside them as "Only on your server", never merged with a phone ride of the other server by id.
+A ride sent to a server SHALL carry, like a roadbook (spec roadbook-library, "Changing server keeps what is on the phone"), the identity of the library it was sent to. When the rider removes the server or sets another with a different identity, rides marked as on the old server SHALL become rides of the phone only: the recording is kept, its server link and "sent" mark are dropped, and it reads "Only on this phone" and can be sent to the new server. Rides sent before identities existed SHALL be taken as sent to no server in the same way. Rides listed by the new server SHALL be listed beside them as "Only on your server", never merged with a phone ride of the other server by id.
 
 #### Scenario: Switching server
 

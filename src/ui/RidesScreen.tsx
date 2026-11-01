@@ -11,6 +11,7 @@ import { fetchServerRide, removeServerRide } from "../services/serverRides.ts";
 import type { ServerProblem } from "../services/serverRoadbooks.ts";
 import { deleteRide, gpxUri, listRides, saveDownloaded } from "./ridesStore.ts";
 import { useServerRides } from "./useServerRides.ts";
+import { libraryKeyOf } from "./libraryIdentity.ts";
 import { useRideUpload } from "./useRideUpload.ts";
 import { BackButton } from "./BackButton.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
@@ -110,7 +111,7 @@ export function RidesScreen({
         setProblem(said(got.reason));
         return null;
       }
-      const meta = await saveDownloaded(row.id, got.gpx, row.server.uploadedAt);
+      const meta = await saveDownloaded(row.id, got.gpx, row.server.uploadedAt, await libraryKeyOf(server));
       if (!meta) {
         setProblem(t("home.rides.problem.unreadable"));
         return null;

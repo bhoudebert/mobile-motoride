@@ -107,6 +107,8 @@ export interface ImportedRoadbook {
   serverStamp?: string;
   /** The number the server listed it under; its stamp is only compared with an entry of that number. */
   serverId?: number;
+  /** The library that stamp and number belong to (spec roadbook-library): see `serverIdentity.ts`. */
+  serverKey?: string;
 }
 
 export const serializeStored = (entry: ImportedRoadbook): string => JSON.stringify({ v: 1, ...entry });
@@ -128,6 +130,9 @@ export function parseStored(text: string): ImportedRoadbook | null {
       ...((raw as { completion?: unknown }).completion === "pending" ? { completion: "pending" as const } : {}),
       ...(typeof (raw as { serverId?: unknown }).serverId === "number"
         ? { serverId: (raw as { serverId: number }).serverId }
+        : {}),
+      ...(typeof (raw as { serverKey?: unknown }).serverKey === "string"
+        ? { serverKey: (raw as { serverKey: string }).serverKey }
         : {}),
       ...(typeof (raw as { serverStamp?: unknown }).serverStamp === "string"
         ? { serverStamp: (raw as { serverStamp: string }).serverStamp }

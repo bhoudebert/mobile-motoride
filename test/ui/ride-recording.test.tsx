@@ -12,6 +12,7 @@ import { at, endRide, revealButtons, skippableRoadbook } from "./helpers.ts";
 import { parseGpx } from "../../src/core/gpx.ts";
 import { rideToGpx, serializeMeta, type RideMeta, type TrackPoint } from "../../src/core/recording.ts";
 import type { PreparedRoadbook } from "../../src/core/types.ts";
+import { keyOf, libraryId } from "../../src/core/serverIdentity.ts";
 import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
 import { stored } from "./securestore.mock.ts";
 
@@ -471,6 +472,8 @@ test("a track whose summary is missing is still listed, with its summary rebuilt
 const SERVER = { url: "https://rides.example.org", token: "mrt_" + "A".repeat(43) };
 const fetchMock = globalThis.fetch as unknown as jest.Mock;
 const withServer = async () => saveServer(SERVER);
+/** The mark of a ride sent to SERVER: a ride sent before libraries had an identity belongs to no server (ADR 0049). */
+const SENT = { serverKey: keyOf(libraryId(SERVER.url, null)) };
 const calls = (method: string) => fetchMock.mock.calls.filter(([, init]) => init?.method === method);
 /** The server takes a ride (201), or answers `status`. */
 const serverTakes = (status = 201) =>
@@ -582,7 +585,7 @@ test("My rides says which rides are only on the phone, sends one on request, and
   saved("New", 2);
   files.set(
     `${folder}${old.id}.json`,
-    serializeMeta({ ...old, uploadedAt: Date.UTC(2026, 9, 3, 12), serverRideId: old.id }),
+    serializeMeta({ ...old, uploadedAt: Date.UTC(2026, 9, 3, 12), serverRideId: old.id, ...SENT }),
   );
   dirs.add("file:///document/rides");
   await openRides();
@@ -616,7 +619,7 @@ test("deleting a ride that was never sent is warned as a loss, one that was sent
     files.set(`${folder}${meta.id}.gpx`, "<gpx/>");
     files.set(`${folder}${meta.id}.json`, serializeMeta(meta));
   };
-  mk("Sent", 1, { uploadedAt: Date.UTC(2026, 9, 3), serverRideId: "x" });
+  mk("Sent", 1, { uploadedAt: Date.UTC(2026, 9, 3), serverRideId: "x", ...SENT });
   mk("Alone", 2);
   dirs.add("file:///document/rides");
   await openRides();
@@ -673,7 +676,7 @@ test("the actions of a ride are icons with a name for a screen reader, the delet
     files.set(`${folder}${meta.id}.gpx`, "<gpx/>");
     files.set(`${folder}${meta.id}.json`, serializeMeta(meta));
   };
-  mk("Sent", 1, { uploadedAt: Date.UTC(2026, 9, 3), serverRideId: "x" });
+  mk("Sent", 1, { uploadedAt: Date.UTC(2026, 9, 3), serverRideId: "x", ...SENT });
   mk("Alone", 2);
   dirs.add("file:///document/rides");
   await openRides();
@@ -856,7 +859,7 @@ test("removing a ride from the server is its own question and its own call, and 
 
 test("when the server answers, a ride the phone thinks was sent but it does not keep is on the phone only again", async () => {
   await withServer();
-  const sent = rideOf("Sent", 3, { uploadedAt: Date.UTC(2026, 9, 31), serverRideId: "x" });
+  const sent = rideOf("Sent", 3, { uploadedAt: Date.UTC(2026, 9, 31), serverRideId: "x", ...SENT });
   onPhone(sent);
   serverKeeps([]);
   await openRides();
