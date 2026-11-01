@@ -100,13 +100,18 @@ a copy button, say it lasts 10 minutes and works once, and list the steps of the
 
 ### Requirement: What the account allows
 
-The app SHALL read what the rider may use from the server (traffic mode, what is left of the day's traffic, the library size) and
+The app SHALL read what the rider may use from the server's `GET /me` (traffic mode off, open, tomtom or host, the daily allowance and what was used today, the library limit and what is used, and whether the rider is paused with its reason and end date) and
 SHALL show or hide a feature accordingly, saying why when it is hidden (for example "Traffic: 12 requests left today").
 
 #### Scenario: Traffic limit reached
 
 - **WHEN** the server says no traffic requests are left today
 - **THEN** the traffic card says so and when it comes back, and the route keeps showing without traffic colour
+
+#### Scenario: Paused or invalid token
+
+- **WHEN** `GET /me` answers with `suspended` set, or answers 401
+- **THEN** the first shows "Your server is paused" (the lapsed path), the second says the phone's access is no longer valid and offers Restore purchases and the two paths
 
 ### Requirement: Restore purchases
 
