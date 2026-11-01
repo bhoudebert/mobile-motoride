@@ -1,4 +1,5 @@
-import { haversineM } from "./geo.ts";
+import { bearingDeg, haversineM } from "./geo.ts";
+import { angleDiff } from "./heading.ts";
 import { snapToLine } from "./track.ts";
 import type { LatLon, PreparedRoadbook, PreparedStop } from "./types.ts";
 
@@ -75,4 +76,41 @@ export function joinOptions(rb: PreparedRoadbook, pos: LatLon): JoinOptions | nu
     distanceM: haversineM(pos, [s.lat, s.lon]),
   });
   return { nearest: choice(points[i]!), first: choice(points[0]!), skipped: points.slice(0, i).map((s) => s.name) };
+}
+
+/** How many route points ahead of the next one an off-route rider may be found nearer to. */
+export const AUTO_SKIP_REACH = 3;
+/** The rider must be this much nearer the point than to the next one, so a rider between two is not moved. */
+export const AUTO_SKIP_MARGIN_M = 100;
+/** The rider's heading must be within this of the direction of the point. */
+export const AUTO_SKIP_HEADING_DEG = 70;
+
+/**
+ * An off-route rider who is nearer a route point further on than the next one, and heading towards it, has chosen
+ * their own way: the next point (and any before the nearer one) is dropped and the route goes to the nearer one
+ * (spec live-corrections, "Skipping by itself"). Null when the rider is not nearer another point, or not heading to it.
+ */
+export function planAutoSkip(
+  ride: PreparedRoadbook,
+  progressM: number,
+  pos: LatLon,
+  headingDeg: number | null,
+): SkipPlan | null {
+  const ahead = ride.stops.filter(isWaypoint).filter((s) => s.atM > progressM);
+  const next = ahead[0];
+  if (!next) return null;
+  const dNext = haversineM(pos, [next.lat, next.lon]);
+  let best: { stop: PreparedStop; d: number } | null = null;
+  for (const s of ahead.slice(1, 1 + AUTO_SKIP_REACH)) {
+    const d = haversineM(pos, [s.lat, s.lon]);
+    if (d + AUTO_SKIP_MARGIN_M >= dNext || (best && d >= best.d)) continue;
+    if (headingDeg !== null && angleDiff(headingDeg, bearingDeg(pos, [s.lat, s.lon])) > AUTO_SKIP_HEADING_DEG) continue;
+    best = { stop: s, d };
+  }
+  if (!best) return null;
+  return {
+    skipped: next,
+    target: best.stop,
+    joinM: ride.joinM + Math.max(0, best.stop.atM - ride.approachM),
+  };
 }
