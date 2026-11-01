@@ -24,14 +24,16 @@ a free server.
   address is known, so an address cannot be probed.
 - The store purchase remains the way back for a paid plan (ADR 0048); the email is the way back for a free server, and also
   helps a paid one whose purchase is pending or whose store account changed.
-- The contract is the sidecar's to write (a call to set an address and confirm it, one to start a recovery and confirm it); the
-  app builds against its OpenAPI. Not built until that exists.
+- The contract is the sidecar's (sidecar ADR 0007, `docs/sidecar.openapi.json`): `POST /v1/account/email` and `/verify`,
+  `DELETE /v1/account/email`, `POST /v1/recovery/start` (always the same answer) and `/confirm` (binds the new token, keeps the
+  library; the old token then answers `account_moved`); `emailConfirmed` and `emailMasked` on the status. One address is one rider.
+  The app is built against it once the sidecar has built it and the rider has approved the design.
 
 ## Consequences
 
 The rider is warned honestly and can always get back in. The app and the sidecar now handle an email address: the privacy policy,
 the Apple App Privacy labels and Google's Data safety form must list it (collected, linked to the user, used for account recovery,
-deleted with the account), and Delete my server and data must delete it. A mail account that is lost is a way into the server, so
+deleted with the account), and Delete my server and data must delete it. A mailbox that is not the rider's own is a way into the server (recovery is a takeover by whoever controls it), which the screen says, so
 the recovery mails are short, carry no link, and a recovery tells the old phones (the server's connections) that it happened.
 
 ## Alternatives considered

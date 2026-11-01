@@ -236,7 +236,7 @@ When the server refuses a ride or a roadbook because the library is full (413 `l
 
 ### Requirement: A backup email, so the server can be got back
 
-For a server the app made, the Server screen SHALL offer "Add a backup email" and, while no address is confirmed, SHALL show a warning mark with the line "No way back if you lose this phone. Add a backup email.", on the Server screen and beside its entry in the menu. The rider enters an address; the app sends it to the sidecar only; the sidecar mails a six-digit code; the rider types it and the screen says the address is confirmed, showing it masked ("j***@proton.me") with ways to change or remove it. Adding an email SHALL NEVER be required and SHALL be skippable at the first setup without being hidden afterwards. The address SHALL NOT be sent to the rider's server or to any third party, and "Delete my server and data" SHALL delete it.
+For a server the app made, the Server screen SHALL offer "Add a backup email" and, while no address is confirmed, SHALL show a warning mark with the line "No way back if you lose this phone. Add a backup email.", on the Server screen and beside its entry in the menu. The rider enters an address; the app sends it to the sidecar only; the sidecar mails a six-digit code; the rider types it and the screen says the address is confirmed, showing it masked ("j***@proton.me") with ways to change or remove it. The screen SHALL say that the address protects the library: whoever controls that mailbox can take the server over, so it should be the rider's own. A code that is wrong, expired or burnt (10 minutes, 5 tries) SHALL be said in words with a way to ask again, too many mails asked (3 an hour) SHALL say to wait, and a sidecar that cannot send mail (`email_unavailable`) SHALL say the backup is not available now and keep the warning. One address belongs to one rider: confirming it on another moves it, which the screen says before the code is asked. Adding an email SHALL NEVER be required and SHALL be skippable at the first setup without being hidden afterwards. The address SHALL NOT be sent to the rider's server or to any third party, and "Delete my server and data" SHALL delete it.
 
 #### Scenario: No backup yet
 
@@ -250,7 +250,7 @@ For a server the app made, the Server screen SHALL offer "Add a backup email" an
 
 ### Requirement: Recover the server by email
 
-"Get a server" SHALL offer "I already have a server: recover it by email". The rider enters the address, then the code mailed to it; the app SHALL say the same thing whether or not the address is known ("If this address is known, a code was sent"), and on a good code SHALL join the same server and library with this phone's own new token, and say what was found. A wrong or expired code SHALL be said in words with a way to ask again. The old phone's access SHALL be offered to be cut off.
+"Get a server" SHALL offer "I already have a server: recover it by email". The rider enters the address, then the code mailed to it; the app SHALL say the same thing whether or not the address is known ("If this address is known, a code was sent"), and on a good code SHALL join the same server and library with this phone's own new token, and say what was found. A wrong or expired code SHALL be said in words with a way to ask again. The old phone's access SHALL be offered to be cut off. A phone whose token was replaced by a recovery (the sidecar answers `account_moved`) SHALL say that this server was recovered on another phone, and offer the same recovery or a new server, never a bare error.
 
 #### Scenario: A new phone
 
@@ -261,3 +261,13 @@ For a server the app made, the Server screen SHALL offer "Add a backup email" an
 
 - **WHEN** the rider enters an address the sidecar does not know
 - **THEN** the screen says "If this address is known, a code was sent" exactly as for a known one, and no code arrives
+
+#### Scenario: Recovered on another phone
+
+- **WHEN** the rider recovers the server on a new phone, and the old phone then asks the sidecar for its status
+- **THEN** the sidecar answers `account_moved` and the old phone says the server was recovered on another phone and offers to recover it or to get a new one
+
+#### Scenario: Too many mails
+
+- **WHEN** the rider asks for a fourth code within the hour
+- **THEN** the screen says to wait before asking again
