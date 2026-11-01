@@ -34,7 +34,8 @@ test("with no server the screen says what one would add, that the app works with
   expect(screen.getByText("What a server adds")).toBeTruthy();
   expect(screen.getByText(/See slow traffic ahead on your route \(France today/)).toBeTruthy();
   expect(screen.getByText(/Without a server the app works fully/)).toBeTruthy();
-  expect(screen.getByText("Renting one: coming soon.")).toBeTruthy();
+  expect(screen.queryByText("Renting one: coming soon.")).toBeNull();
+  expect(screen.getByText("Get a server")).toBeTruthy();
   await fireEvent.press(screen.getByLabelText("Open the guide to host your own server"));
   expect(Linking.openURL).toHaveBeenCalledWith(HOSTING_GUIDE);
   expect(HOSTING_GUIDE).toBe("https://bhoudebert.github.io/agent-motoride/guide/self-hosting");
@@ -88,4 +89,12 @@ test("in French the screen is in French", async () => {
       "Circulation sur votre parcours. Activée. Fonctionne en France pour l'instant ; d'autres pays sur demande.",
     ),
   ).toBeTruthy();
+});
+
+test("a build with the hosted server switched off still says that renting one is coming", async () => {
+  process.env.EXPO_PUBLIC_HOSTED_SERVER = "0";
+  await render(<ServerScreen onBack={() => {}} />);
+  await flush();
+  delete process.env.EXPO_PUBLIC_HOSTED_SERVER;
+  expect(screen.getByText("Renting one: coming soon.")).toBeTruthy();
 });
