@@ -74,7 +74,8 @@ export type ServerAction = "download" | "refresh" | "current" | "outdated" | "re
  * (agentRide, same number AND same name, as `placeImport` does) among the copies that were not fetched from a number, else,
  * when the whole `listed` answer is given, a copy of the same name whose server number is no longer listed: the server
  * renumbered the roadbook (a library moved, a roadbook pushed and then taken into the library), so the copy is that
- * roadbook under its new number and the next download replaces it in place (spec roadbook-library).
+ * roadbook under its new number and the next download replaces it in place, else a roadbook of the phone only (no server
+ * number: kept from a server that is gone, or from a file) of the same name (spec roadbook-library).
  */
 export function keptFor(
   entry: ServerRoadbook,
@@ -87,16 +88,25 @@ export function keptFor(
     const o = k.roadbook.origin;
     return k.serverId === undefined && o?.app === "agentRide" && o.roadbook === entry.id && o.name === entry.name;
   });
-  if (byOrigin || !listed) return byOrigin;
-  const ids = new Set(listed.map((e) => e.id));
-  return kept.find(
-    (k) =>
-      k.serverId !== undefined &&
-      !ids.has(k.serverId) &&
-      k.roadbook.origin?.app === "agentRide" &&
-      k.roadbook.origin.name === entry.name,
-  );
+  if (byOrigin) return byOrigin;
+  if (listed) {
+    const ids = new Set(listed.map((e) => e.id));
+    const renumbered = kept.find(
+      (k) =>
+        k.serverId !== undefined &&
+        !ids.has(k.serverId) &&
+        k.roadbook.origin?.app === "agentRide" &&
+        k.roadbook.origin.name === entry.name,
+    );
+    if (renumbered) return renumbered;
+  }
+  // A roadbook of the phone only (kept from a server that is gone, or from a file) with the very name of this one: it is
+  // that roadbook, whatever number or origin it carries. Only the first server roadbook of a name claims it.
+  if (listed && listed.find((e) => sameName(e.name, entry.name)) !== entry) return undefined;
+  return kept.find((k) => k.serverId === undefined && sameName(k.roadbook.name, entry.name));
 }
+
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 /**
  * Compares stamps, never `generatedAt`, which changes on every download. A roadbook being remade offers nothing until it
@@ -124,13 +134,14 @@ export function stampOfEtag(etag: string | null | undefined): string | null {
 }
 
 /**
- * The kept roadbooks that are only on the phone and that a server in use does not list: what "Send to your server" offers.
- * Nothing is offered while the server's list is not known.
+ * The kept roadbooks that are not linked to the server in use (no server number): what "Send to your server" offers, whether
+ * the server lists one of the same name (the send then replaces it) or not. Nothing is offered while the server's list is
+ * not known.
  */
 export function onlyOnPhone(
   kept: readonly ImportedRoadbook[],
   listed: readonly ServerRoadbook[] | null,
 ): ImportedRoadbook[] {
   if (!listed) return [];
-  return kept.filter((k) => k.serverId === undefined && listed.every((e) => keptFor(e, kept, listed) !== k));
+  return kept.filter((k) => k.serverId === undefined);
 }

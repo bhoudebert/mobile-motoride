@@ -13,6 +13,8 @@ export interface PickedText {
   serverId?: number;
   /** The library of that server (spec roadbook-library, ADR 0049). */
   serverKey?: string;
+  /** The kept roadbook this file replaces whatever its origin, when the rider asked for it from a server roadbook that matches it. */
+  replaceId?: string;
 }
 
 /** Ask the rider for a file; null when they leave the picker without one. */

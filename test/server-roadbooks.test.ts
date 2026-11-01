@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { ImportedRoadbook } from "../src/core/library.ts";
 import {
   keptFor,
+  onlyOnPhone,
   parseServerList,
   serverAction,
   stampOfEtag,
@@ -49,8 +50,13 @@ test("the list of a server is read, and what is not a roadbook is left out", () 
 
 test("download when no kept roadbook has the origin, refresh when the stamp differs, current when it is the same", () => {
   assert.equal(serverAction(entry, []), "download");
-  assert.equal(serverAction(entry, [keptWith({}, null)]), "download");
-  assert.equal(serverAction(entry, [keptWith({}, { app: "agentRide", roadbook: 7, name: "Other" })]), "download");
+  // A roadbook of the phone only with the very name is that roadbook, with its origin or without (spec roadbook-library).
+  assert.equal(serverAction(entry, [keptWith({}, null)]), "refresh");
+  assert.equal(serverAction(entry, [keptWith({}, { app: "agentRide", roadbook: 9, name: "Loop" })]), "refresh");
+  assert.equal(
+    serverAction(entry, [{ ...keptWith({}, null), roadbook: { ...keptWith({}, null).roadbook, name: "Another" } }]),
+    "download",
+  );
   assert.equal(serverAction(entry, [keptWith({ serverStamp: "aaa" })]), "refresh");
   assert.equal(serverAction(entry, [keptWith()]), "refresh");
   assert.equal(serverAction(entry, [keptWith({ serverStamp: "bbb" })]), "current");
@@ -238,4 +244,35 @@ test("a roadbook is ready unless the server says it is not, and the server's 202
     ok: false,
     reason: "slow",
   });
+});
+
+test("a roadbook of the phone only with the name of a server roadbook is that roadbook, even under another number", () => {
+  const detached = keptWith({}, { app: "agentRide", roadbook: 2, name: "Loop" });
+  const list = [{ ...entry, id: 40 }];
+  assert.equal(keptFor(list[0]!, [detached], list), detached);
+  assert.equal(
+    serverAction(list[0]!, [detached], list),
+    "refresh",
+    "its stamp is not the server's: the download replaces it",
+  );
+  assert.deepEqual(
+    onlyOnPhone([detached], list),
+    [detached],
+    "and it is still offered to send, which replaces the server's",
+  );
+});
+
+test("a linked copy is not taken by name, and only the first server roadbook of a name claims a phone copy", () => {
+  const linked = keptWith({ serverId: 5, serverStamp: "bbb" });
+  const both = [
+    { ...entry, id: 40 },
+    { ...entry, id: 5 },
+  ];
+  assert.equal(keptFor(both[1]!, [linked], both), linked, "by its number 5 for entry 5");
+  assert.equal(keptFor(both[0]!, [linked], both), undefined, "a copy linked to another number is not taken by name");
+  const local = keptWith({}, null);
+  const twin = { ...entry, id: 41 };
+  const list = [{ ...entry, id: 40 }, twin];
+  assert.equal(keptFor(list[0]!, [local], list), local);
+  assert.equal(keptFor(twin, [local], list), undefined, "the second one of the same name is its own card");
 });

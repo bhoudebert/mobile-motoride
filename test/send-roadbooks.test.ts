@@ -100,7 +100,7 @@ const entry = (id: number, name: string): ServerRoadbook => ({
   ready: true,
 });
 
-test("what is offered is only what the phone alone has: not what is linked or listed by the server", () => {
+test("what is offered is what holds no server number: not what is linked, even when the server lists the name", () => {
   const local = kept("local");
   const linked = kept("linked", { serverId: 3, serverStamp: "s" });
   const listedByOrigin = kept("by-origin", {
@@ -114,7 +114,7 @@ test("what is offered is only what the phone alone has: not what is linked or li
   const list = [entry(9, "Loop"), entry(3, "linked")];
   assert.deepEqual(
     onlyOnPhone([local, linked, listedByOrigin], list).map((k) => k.roadbook.id),
-    ["local"],
+    ["local", "by-origin"],
   );
   assert.deepEqual(onlyOnPhone([local], null), [], "nothing is offered while the list is not known");
 });
