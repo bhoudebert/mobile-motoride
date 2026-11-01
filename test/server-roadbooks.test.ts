@@ -255,7 +255,11 @@ test("a roadbook of the phone only with the name of a server roadbook is that ro
     "refresh",
     "its stamp is not the server's: the download replaces it",
   );
-  assert.deepEqual(onlyOnPhone([detached], list), [], "so it is not offered to send");
+  assert.deepEqual(
+    onlyOnPhone([detached], list),
+    [detached],
+    "and it is still offered to send, which replaces the server's",
+  );
 });
 
 test("a linked copy is not taken by name, and only the first server roadbook of a name claims a phone copy", () => {

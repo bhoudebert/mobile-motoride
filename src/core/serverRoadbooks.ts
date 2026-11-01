@@ -134,13 +134,14 @@ export function stampOfEtag(etag: string | null | undefined): string | null {
 }
 
 /**
- * The kept roadbooks that are only on the phone and that a server in use does not list: what "Send to your server" offers.
- * Nothing is offered while the server's list is not known.
+ * The kept roadbooks that are not linked to the server in use (no server number): what "Send to your server" offers, whether
+ * the server lists one of the same name (the send then replaces it) or not. Nothing is offered while the server's list is
+ * not known.
  */
 export function onlyOnPhone(
   kept: readonly ImportedRoadbook[],
   listed: readonly ServerRoadbook[] | null,
 ): ImportedRoadbook[] {
   if (!listed) return [];
-  return kept.filter((k) => k.serverId === undefined && listed.every((e) => keptFor(e, kept, listed) !== k));
+  return kept.filter((k) => k.serverId === undefined);
 }
