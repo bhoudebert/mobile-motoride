@@ -1,0 +1,92 @@
+import type { RandomBytes } from "./liveShare.ts";
+
+/** What the sidecar says about the rider's hosted server, and the steps of getting one (spec hosted-server). */
+
+export type PlanKind = "free" | "paid" | "premium";
+
+export interface Plan {
+  id: string;
+  kind: PlanKind;
+  /** The rider can choose it now; a plan that is not (Premium) is shown as coming later. */
+  available: boolean;
+  /** The store products of a paid plan. */
+  products: { apple?: string; google?: string };
+  entitlements: { traffic?: string; trafficPerDay?: number; libraryMb?: number; requestsPerMinute?: number };
+}
+
+export type AccountState = "none" | "pending" | "ready" | "suspended" | "ended";
+
+export interface HostedStatus {
+  state: AccountState;
+  /** The link of the invitation to join the server, when the sidecar gave one. */
+  invitationLink: string | null;
+  suspended: { reason: string; until: string | null } | null;
+  rejected: string | null;
+}
+
+const STATES: readonly string[] = ["none", "pending", "ready", "suspended", "ended"];
+const KINDS: readonly string[] = ["free", "paid", "premium"];
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+
+/** The answer of any sidecar call that gives an account status; null when it is not one. */
+export function parseStatus(body: unknown): HostedStatus | null {
+  if (!isObject(body) || typeof body.state !== "string" || !STATES.includes(body.state)) return null;
+  const inv = body.invitation;
+  const sus = body.suspended;
+  return {
+    state: body.state as AccountState,
+    invitationLink: isObject(inv) && typeof inv.link === "string" ? inv.link : null,
+    suspended:
+      isObject(sus) && typeof sus.reason === "string"
+        ? { reason: sus.reason, until: typeof sus.until === "string" ? sus.until : null }
+        : null,
+    rejected: typeof body.rejected === "string" ? body.rejected : null,
+  };
+}
+
+/** The plans the sidecar lists, in its order; entries that are not plans are left out. */
+export function parsePlans(body: unknown): Plan[] {
+  if (!isObject(body) || !Array.isArray(body.plans)) return [];
+  const plans: Plan[] = [];
+  for (const p of body.plans) {
+    if (!isObject(p) || typeof p.id !== "string" || typeof p.kind !== "string" || !KINDS.includes(p.kind)) continue;
+    const products = isObject(p.products) ? p.products : {};
+    const e = isObject(p.entitlements) ? p.entitlements : {};
+    plans.push({
+      id: p.id,
+      kind: p.kind as PlanKind,
+      available: p.available === true,
+      products: {
+        ...(typeof products.apple === "string" ? { apple: products.apple } : {}),
+        ...(typeof products.google === "string" ? { google: products.google } : {}),
+      },
+      entitlements: {
+        ...(typeof e.traffic === "string" ? { traffic: e.traffic } : {}),
+        ...(typeof e.trafficPerDay === "number" ? { trafficPerDay: e.trafficPerDay } : {}),
+        ...(typeof e.libraryMb === "number" ? { libraryMb: e.libraryMb } : {}),
+        ...(typeof e.requestsPerMinute === "number" ? { requestsPerMinute: e.requestsPerMinute } : {}),
+      },
+    });
+  }
+  return plans;
+}
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+export const isAccountToken = (s: string): boolean => UUID_V4.test(s);
+
+/** A random version 4 UUID: the account token the store carries with a purchase (ADR 0047). */
+export function newAccountToken(random: RandomBytes): string {
+  const b = random(16).slice();
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+/** The steps shown while a server is set up, in order. */
+export const SETUP_STEPS = ["creating", "connecting"] as const;
+export type SetupStep = (typeof SETUP_STEPS)[number];
+
+/** After the first ask, the status is polled this often, for this long, before the screen says it takes longer. */
+export const STATUS_EVERY_MS = 2_000;
+export const SETUP_SLOW_MS = 20_000;
