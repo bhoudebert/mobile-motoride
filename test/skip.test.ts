@@ -4,7 +4,7 @@ import { withApproach } from "../src/core/approach.ts";
 import { createNavigator } from "../src/core/navigator.ts";
 import { parseRoadbookFile } from "../src/core/roadbookFile.ts";
 import { prepareRoadbook } from "../src/core/roadbook.ts";
-import { joinOptions, planSkip, startChoices } from "../src/core/skip.ts";
+import { joinOptions, planAutoSkip, planSkip, startChoices } from "../src/core/skip.ts";
 import { pointAt } from "../src/core/track.ts";
 import { drawLine, fixAt } from "./helpers/path.ts";
 import { roadbookFile } from "./helpers/polyline.ts";
@@ -201,4 +201,33 @@ test("service stops are neither offered nor counted as skipped", () => {
 
 test("no route points, no join", () => {
   assert.equal(joinOptions(prepareRoadbook(parseRoadbookFile(roadbookFile(line))), [50, 3]), null);
+});
+
+// Auto skip: the road is 4 km east; "2. Cassel" is at 2 km, "3. Bailleul" at 3 km (see STOPS above).
+test("an off-route rider nearer 3 than 2 and heading to it skips 2 by itself", () => {
+  const r = rb();
+  const near3: LatLon = [at(r, 2800)[0] + 0.002, at(r, 2800)[1]];
+  const plan = planAutoSkip(r, 1200, near3, 90);
+  assert.equal(plan?.skipped.name, "2. Cassel");
+  assert.equal(plan?.target.name, "3. Bailleul");
+  assert.ok(Math.abs(plan!.joinM - 3000) < 10);
+});
+
+test("no auto skip when 2 is still nearer, when between them, or when heading away", () => {
+  const r = rb();
+  assert.equal(planAutoSkip(r, 1200, at(r, 1800), 90), null, "2 is nearer");
+  assert.equal(planAutoSkip(r, 1200, at(r, 2500), 90), null, "between 2 and 3, within the margin");
+  const near3: LatLon = [at(r, 2900)[0], at(r, 2900)[1]];
+  assert.equal(planAutoSkip(r, 1200, near3, 270), null, "heading away from 3");
+  assert.equal(planAutoSkip(r, 3500, at(r, 3600), 90), null, "nothing ahead to go to");
+});
+
+test("no heading yet (standing) does not block the skip", () => {
+  const r = rb();
+  assert.ok(planAutoSkip(r, 1200, at(r, 2900), null));
+});
+
+test("the farthest-near point wins: nearer 4 than 2 or 3 drops both", () => {
+  const r = rb();
+  assert.equal(planAutoSkip(r, 1200, at(r, 3950), 90)?.target.name, "Finish");
 });

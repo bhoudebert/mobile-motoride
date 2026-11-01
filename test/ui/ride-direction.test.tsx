@@ -184,7 +184,7 @@ test("a camera facing away from the rider is silent", async () => {
   expect(Speech.speak).not.toHaveBeenCalled();
 });
 
-test("a second request waits for 30 seconds, then goes out", async () => {
+test("a second request waits for 30 seconds, unless the rider is 150 m from the last one", async () => {
   const rb = limitedRoadbook({ cameras: false });
   const here = at(rb, 1000);
   const away = north(here);
@@ -195,15 +195,35 @@ test("a second request waits for 30 seconds, then goes out", async () => {
   await flush();
   expect(route).toHaveBeenCalledTimes(1);
   await push(away, 40, 5000, 0);
-  // The rider leaves the way back as well, far from both lines.
+  // The rider leaves the way back as well, 330 m from where the last request was made: asked again at once.
   const lost: LatLon = [away[0] + 0.003, away[1]];
   for (const t of [6000, 7000, 8000, 9000]) await push(lost, 40, t, 0);
   await flush();
-  expect(route).toHaveBeenCalledTimes(1);
-  await push(lost, 40, 20_000, 0);
+  expect(route).toHaveBeenCalledTimes(2);
+  for (const t of [20_000, 21_000, 22_000]) await push(lost, 40, t, 0);
+  await flush();
+  expect(route).toHaveBeenCalledTimes(2);
+  const moved: LatLon = [lost[0], lost[1] + 0.0008]; // about 55 m east
+  for (const t of [40_000, 41_000, 42_000]) await push(moved, 40, t, 0);
+  await flush();
+  expect(route).toHaveBeenCalledTimes(3);
+});
+
+test("a way back that was not found is asked for again after 5 seconds", async () => {
+  const rb = limitedRoadbook({ cameras: false });
+  const here = at(rb, 1000);
+  const away = north(here);
+  route.mockResolvedValue(null);
+  await start(rb, here);
+  await push(here, 40, 1000, 90);
+  for (const t of [2000, 3000, 4000]) await push(away, 40, t, 0);
   await flush();
   expect(route).toHaveBeenCalledTimes(1);
-  await push(lost, 40, 36_000, 0);
+  const moved: LatLon = [away[0], away[1] + 0.0008];
+  await push(moved, 40, 6000, 0);
+  await flush();
+  expect(route).toHaveBeenCalledTimes(1);
+  await push(moved, 40, 10_000, 0);
   await flush();
   expect(route).toHaveBeenCalledTimes(2);
 });

@@ -13,6 +13,7 @@ import type { MotionReading } from "../core/instruments.ts";
 import { replayFixAt, type ReplayPhase } from "../core/replay.ts";
 import {
   joinOptions,
+  planAutoSkip,
   planSkip,
   START_HERE_M,
   type JoinOptions,
@@ -20,6 +21,7 @@ import {
   type StartChoice,
 } from "../core/skip.ts";
 import { pointAt } from "../core/track.ts";
+import { travelHeading } from "../core/heading.ts";
 import { createNavigator, type CornerWarning, type NavState, type ZoneWarning } from "../core/navigator.ts";
 import { DEMO_SPEED_MPS, demoStartM, simulatedFix } from "../core/simulate.ts";
 import type { Fix, LatLon, PreparedRoadbook } from "../core/types.ts";
@@ -102,6 +104,13 @@ const ZONE_PASSED_M = 30;
 /** Back to the route: ask for a road route at most this often, and only after moving this far (ADR 0012). */
 const REROUTE_EVERY_MS = 30_000;
 const REROUTE_MIN_MOVE_M = 50;
+/** After a way back that was not found, ask again sooner: 5 s, then 10 s, then every 15 s (spec ride-navigation). */
+const REROUTE_RETRY_MS = 5_000;
+const REROUTE_RETRY_MAX_MS = 15_000;
+/** A rider who has moved this far since the last request is asked for again, whatever the delay. */
+const REROUTE_FAR_M = 150;
+/** After a skip by itself, none for this long, so a rider between two points is not moved back and forth. */
+const AUTO_SKIP_PAUSE_MS = 20_000;
 
 const timeout = <T>(ms: number): Promise<T | null> => new Promise((resolve) => setTimeout(() => resolve(null), ms));
 
@@ -167,7 +176,8 @@ export function useRide(
   const shownZone = useRef<ZoneWarning | null>(null);
   const wasOver = useRef(false);
   const lastVibration = useRef<number | null>(null);
-  const lastReroute = useRef<{ time: number; pos: LatLon } | null>(null);
+  const lastReroute = useRef<{ time: number; pos: LatLon; failures: number } | null>(null);
+  const lastAutoSkip = useRef<number | null>(null);
   const rerouting = useRef(false);
   const skipping = useRef(false);
   const lastFix = useRef<Fix | null>(null);
@@ -202,6 +212,18 @@ export function useRide(
       epoch.current++;
       setRide(rb);
       return;
+    }
+    // Off the plan and nearer a later route point, heading to it: the rider chose their way, drop the points between.
+    if (mode === "gps" && nav.offRoute && !skipping.current && !replay) {
+      const sinceAuto = lastAutoSkip.current === null ? Infinity : fix.time - lastAutoSkip.current;
+      const auto =
+        sinceAuto >= AUTO_SKIP_PAUSE_MS
+          ? planAutoSkip(ride, nav.progressM, [fix.lat, fix.lon], travelHeading(fix.headingDeg, fix.speedMps))
+          : null;
+      if (auto) {
+        lastAutoSkip.current = fix.time;
+        skipTo(auto);
+      }
     }
     recorder.current?.add(fix, nav.remainingM, motion?.current ?? null);
     if (mode === "gps" && !replay) liveShare?.current?.add(fix);
@@ -239,15 +261,25 @@ export function useRide(
       finished: false,
     });
     if (mode === "gps" && nav.offRoute && nav.rejoin) maybeRejoin(fix, nav.rejoin.atM);
+    // A straight line to the route stands in for a way that was not found: ask for the way again, sooner and sooner.
+    else if (mode === "gps" && ride.approachDirect && ride.approachTarget === "route")
+      maybeRejoin(fix, ride.approachM, ride.approachName);
   };
 
   /** Off route: one road route back to the line, now and then; the direction guidance covers the rest (ADR 0012). */
-  const maybeRejoin = (fix: Fix, rejoinAtM: number) => {
+  const maybeRejoin = (fix: Fix, rejoinAtM: number, name?: string) => {
     const here: LatLon = [fix.lat, fix.lon];
     const last = lastReroute.current;
     if (rerouting.current) return;
-    if (last && (fix.time - last.time < REROUTE_EVERY_MS || haversineM(last.pos, here) < REROUTE_MIN_MOVE_M)) return;
-    lastReroute.current = { time: fix.time, pos: here };
+    if (last) {
+      const moved = haversineM(last.pos, here);
+      const wait =
+        last.failures === 0 ? REROUTE_EVERY_MS : Math.min(REROUTE_RETRY_MS * last.failures, REROUTE_RETRY_MAX_MS);
+      const far = moved >= REROUTE_FAR_M && fix.time - last.time >= REROUTE_RETRY_MS;
+      if (!far && (fix.time - last.time < wait || (last.failures === 0 && moved < REROUTE_MIN_MOVE_M))) return;
+    }
+    const failures = last?.failures ?? 0;
+    lastReroute.current = { time: fix.time, pos: here, failures };
     rerouting.current = true;
     const epochAt = epoch.current;
     // The target is on the whole roadbook, whatever the current approach put in front of it.
@@ -256,7 +288,12 @@ export function useRide(
     void routeToStart(here, target).then((route) => {
       rerouting.current = false;
       if (runId.current !== currentRun || epoch.current !== epochAt) return;
-      setRide(route ? withApproach(rb, route, false, joinM, "route") : withApproach(rb, [here], true, joinM, "route"));
+      if (lastReroute.current) lastReroute.current.failures = route ? 0 : failures + 1;
+      setRide(
+        route
+          ? withApproach(rb, route, false, joinM, "route", name)
+          : withApproach(rb, [here], true, joinM, "route", name),
+      );
     });
   };
 
@@ -265,8 +302,12 @@ export function useRide(
 
   /** Skip the next route point: a route from here to the one after it, ridden with the rest of the roadbook. */
   const confirm = () => {
+    if (plan) skipTo(plan);
+  };
+
+  const skipTo = (plan: SkipPlan) => {
     const fix = lastFix.current;
-    if (!plan || !fix || skipping.current) return;
+    if (!fix || skipping.current) return;
     skipping.current = true;
     setBusy(true);
     const epochAt = ++epoch.current;
