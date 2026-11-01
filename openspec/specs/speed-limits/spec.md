@@ -56,3 +56,22 @@ On a route made to rejoin the roadbook or to reach a route point, the sign SHALL
 
 - **WHEN** the rider follows a rebuilt route towards a point of the roadbook whose limit is 90
 - **THEN** the sign shows 90 as an assumed limit
+
+### Requirement: The limit of the road the rider is on, found live
+
+When the rider is off the roadbook, or on a way to it whose limit is only assumed, the sign SHALL show the limit of the road under them, asked of the public map matching service from a trail of their last positions (at most every 8 seconds and 80 m, never while a request is pending), as a posted limit when the road has one and as the legal default of the country, marked assumed, when it does not. A limit older than 90 seconds SHALL no longer be shown. Without a connection or an answer the sign SHALL keep what it had (the assumed limit of the roadbook where the way joins it), and SHALL say nothing more. On the roadbook the limits of the roadbook SHALL be the only ones used.
+
+#### Scenario: Riding another road
+
+- **WHEN** the rider is off route on a road posted 70 and the service answers
+- **THEN** the sign shows 70, and goes red when the rider is more than 2 km/h over it
+
+#### Scenario: Back on the roadbook
+
+- **WHEN** the rider is back on the roadbook
+- **THEN** the sign shows the limit of the roadbook again, and no request is made
+
+#### Scenario: No answer
+
+- **WHEN** the service does not answer
+- **THEN** the sign keeps the assumed limit it had, with no message

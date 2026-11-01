@@ -22,6 +22,9 @@ import {
 } from "../core/skip.ts";
 import { pointAt } from "../core/track.ts";
 import { travelHeading } from "../core/heading.ts";
+import { dueForLimit, LIVE_LIMIT_FRESH_MS, newLiveLimitState } from "../core/liveLimit.ts";
+import { isOver, type SpeedLimit } from "../core/limits.ts";
+import { traceLimit } from "../services/liveLimit.ts";
 import { createNavigator, type CornerWarning, type NavState, type ZoneWarning } from "../core/navigator.ts";
 import { DEMO_SPEED_MPS, demoStartM, simulatedFix } from "../core/simulate.ts";
 import type { Fix, LatLon, PreparedRoadbook } from "../core/types.ts";
@@ -178,6 +181,9 @@ export function useRide(
   const lastVibration = useRef<number | null>(null);
   const lastReroute = useRef<{ time: number; pos: LatLon; failures: number } | null>(null);
   const lastAutoSkip = useRef<number | null>(null);
+  const liveState = useRef(newLiveLimitState());
+  const liveLimit = useRef<{ limit: SpeedLimit; time: number } | null>(null);
+  const liveAsking = useRef(false);
   const rerouting = useRef(false);
   const skipping = useRef(false);
   const lastFix = useRef<Fix | null>(null);
@@ -206,7 +212,25 @@ export function useRide(
 
   const apply = (fix: Fix) => {
     lastFix.current = fix;
-    const nav = navigator.update(fix);
+    let nav = navigator.update(fix);
+    // Off the roadbook, or on a way to it whose limit is only assumed: the limit of the road under the rider, live.
+    if (mode === "gps" && !replay && (nav.offRoute || (nav.phase === "approach" && !nav.speedLimit.posted))) {
+      const trail = liveAsking.current ? null : dueForLimit(liveState.current, [fix.lat, fix.lon], fix.time);
+      if (trail) {
+        liveAsking.current = true;
+        void traceLimit(trail).then((limit) => {
+          liveAsking.current = false;
+          if (limit) liveLimit.current = { limit, time: fix.time };
+        });
+      }
+      const live = liveLimit.current;
+      if (live && fix.time - live.time <= LIVE_LIMIT_FRESH_MS) {
+        nav = { ...nav, speedLimit: live.limit, over: isOver(fix.speedMps, live.limit.kmh) };
+      }
+    } else if (liveLimit.current) {
+      liveLimit.current = null;
+      liveState.current = newLiveLimitState();
+    }
     // Back on the road of the roadbook before the point the way back led to: ride the roadbook again from here.
     if (mode === "gps" && nav.offRoute && backOnRoute(rb, ride, [fix.lat, fix.lon])) {
       epoch.current++;
