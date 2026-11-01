@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { setLanguage } from "../../src/core/i18n/index.ts";
 import { ServerScreen } from "../../src/ui/ServerScreen.tsx";
-import { resetServerSetting } from "../../src/ui/serverSetting.ts";
+import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
 import { flush } from "./flush.ts";
 import { stored } from "./securestore.mock.ts";
 
@@ -20,7 +20,13 @@ const json = (status: number, body: unknown) => ({
 });
 const PLANS = {
   plans: [
-    { id: "free", kind: "free", available: true, entitlements: { traffic: "open" } },
+    {
+      id: "free",
+      kind: "free",
+      available: true,
+      entitlements: { traffic: "open" },
+      launchOffer: { regularPriceEur: 25, text: "Free during launch, normally 25 EUR per year" },
+    },
     { id: "plus", kind: "paid", available: false, entitlements: {} },
     { id: "premium", kind: "premium", available: false, entitlements: {} },
   ],
@@ -46,7 +52,6 @@ beforeEach(async () => {
   calls.length = 0;
   for (const k of Object.keys(answers)) delete answers[k];
   setLanguage("en");
-  process.env.EXPO_PUBLIC_HOSTED_SERVER = "1";
   process.env.EXPO_PUBLIC_SIDECAR_URL = SIDECAR;
   answers["/v1/plans"] = [json(200, PLANS)];
 });
@@ -68,19 +73,24 @@ const settle = async (ms = 0) => {
   await flush();
 };
 
-test("without the build switch there is no way to get a server", async () => {
-  delete process.env.EXPO_PUBLIC_HOSTED_SERVER;
+test("a build can switch it off, and without a build setting it is on at the project's sidecar", async () => {
+  process.env.EXPO_PUBLIC_HOSTED_SERVER = "0";
   await open();
   expect(screen.queryByText("Get a server")).toBeNull();
 });
 
-test("the plans: Free can be chosen, Plus and Premium are coming later", async () => {
+test("the plans: one card, free during launch, the regular price struck through, no purchase", async () => {
   sidecar();
   await open();
   await fireEvent.press(screen.getByLabelText("See the plans for a server"));
   await flush();
+  expect(screen.getByText("Free during launch")).toBeTruthy();
+  expect(screen.getByText(/^€25$/)).toBeTruthy();
+  expect(screen.getByText("Free during launch, normally 25 EUR per year")).toBeTruthy();
+  expect(screen.getByText("Free for now. This may change later.")).toBeTruthy();
   expect(screen.getByLabelText("Get a free server")).toBeTruthy();
-  expect(screen.getAllByText("Coming later")).toHaveLength(2);
+  expect(screen.queryByText("Plus")).toBeNull();
+  expect(screen.queryByText("Premium")).toBeNull();
   expect(screen.getByText(/Sold by Adequate Function/)).toBeTruthy();
 });
 
@@ -139,4 +149,79 @@ test("in French", async () => {
   sidecar();
   await open();
   expect(screen.getByText("Voir les formules")).toBeTruthy();
+});
+
+// The server the app made: what it allows, the code for ChatGPT or Claude, and deleting it.
+const ME = {
+  hosted: true,
+  traffic: { mode: "open", perDay: 100, usedToday: 40 },
+  library: { limitMb: 50, usedBytes: 2_097_152 },
+  requestsPerMinute: 60,
+};
+const hosted = async (mark: "new" | "yes", me: unknown = ME) => {
+  stored.set("hosted-server", mark);
+  stored.set("hosted-account-token", "11111111-1111-4111-8111-111111111111");
+  answers["/me"] = [json(200, me)];
+  sidecar();
+  await saveServer({ url: "https://rides.example.org", token: TOKEN });
+  await open();
+};
+
+test("a server the app made says what it allows and what is left", async () => {
+  await hosted("yes");
+  expect(screen.getByText("Traffic: 60 requests left today.")).toBeTruthy();
+  expect(screen.getByText("Library: 2 MB of 50 MB.")).toBeTruthy();
+  expect(screen.queryByText("Your server is ready")).toBeNull();
+});
+
+test("the first time, it says the server is ready, and Done puts the message away", async () => {
+  await hosted("new");
+  expect(screen.getByText("Your server is ready")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Done, close this message"));
+  await flush();
+  expect(screen.queryByText("Your server is ready")).toBeNull();
+  expect(stored.get("hosted-server")).toBe("yes");
+});
+
+test("a paused server says what is kept and until when, and offers no connection to a chat", async () => {
+  await hosted("yes", { ...ME, suspended: { reason: "lapsed", until: "2027-11-01T00:00:00Z" } });
+  expect(screen.getByText("Your server is paused")).toBeTruthy();
+  expect(screen.getByText(/stays on the server until 2027-11-01/)).toBeTruthy();
+  expect(screen.queryByLabelText("Connect ChatGPT or Claude to your server")).toBeNull();
+});
+
+test("a code to connect ChatGPT or Claude is shown big, with its lifetime", async () => {
+  answers["/oauth/link-code"] = [json(200, { code: "K7QM-4X2P", expiresAt: "2026-11-01T10:10:00Z" })];
+  await hosted("yes");
+  await fireEvent.press(screen.getByLabelText("Connect ChatGPT or Claude to your server"));
+  await flush();
+  expect(screen.getByText("K7QM-4X2P")).toBeTruthy();
+  expect(screen.getByText(/Valid for 10 minutes, works once/)).toBeTruthy();
+});
+
+test("deleting the server asks first, warns, and then clears it and the token", async () => {
+  answers["/v1/account"] = [json(200, { state: "ended" })];
+  await hosted("yes");
+  await fireEvent.press(screen.getByLabelText("Delete my server and data"));
+  expect(screen.getByText(/erased for good, with no way back/)).toBeTruthy();
+  expect(calls).not.toContain("/v1/account");
+  await fireEvent.press(screen.getByLabelText("Delete my server and data for good"));
+  await flush();
+  expect(calls).toContain("/v1/account");
+  expect(stored.has("server-setting")).toBe(false);
+  expect(stored.has("hosted-account-token")).toBe(false);
+  expect(screen.getByText("Your server is deleted.")).toBeTruthy();
+});
+
+test("offline, nothing is deleted and the rider is told", async () => {
+  await hosted("yes");
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url.endsWith("/v1/account")) throw new TypeError("down");
+    return json(200, ME);
+  });
+  await fireEvent.press(screen.getByLabelText("Delete my server and data"));
+  await fireEvent.press(screen.getByLabelText("Delete my server and data for good"));
+  await flush();
+  expect(screen.getByText("Not deleted: no connection. Try again with a connection.")).toBeTruthy();
+  expect(stored.has("server-setting")).toBe(true);
 });

@@ -32,3 +32,21 @@ export const writeJournal = (j: Journal): Promise<void> =>
   SecureStore.setItemAsync(JOURNAL_KEY, JSON.stringify(j)).catch(() => {});
 
 export const clearJournal = (): Promise<void> => SecureStore.deleteItemAsync(JOURNAL_KEY).catch(() => {});
+
+const HOSTED_KEY = "hosted-server";
+
+/** Whether the server on the phone was made by the app: "new" until the rider has seen that it is ready, then "yes". */
+export type HostedMark = "new" | "yes";
+export const markHosted = (m: HostedMark): Promise<void> => SecureStore.setItemAsync(HOSTED_KEY, m).catch(() => {});
+export const readHosted = async (): Promise<HostedMark | null> => {
+  const v = await SecureStore.getItemAsync(HOSTED_KEY).catch(() => null);
+  return v === "new" || v === "yes" ? v : null;
+};
+/** After the server is deleted: forget it all, the token too, so a later server starts from nothing. */
+export async function forgetHosted(): Promise<void> {
+  await Promise.all([
+    SecureStore.deleteItemAsync(HOSTED_KEY),
+    SecureStore.deleteItemAsync(TOKEN_KEY),
+    SecureStore.deleteItemAsync(JOURNAL_KEY),
+  ]).catch(() => {});
+}
