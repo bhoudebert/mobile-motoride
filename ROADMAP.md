@@ -8,6 +8,8 @@ Done work is removed from this list; what was learnt is added.
   ADR 0030) and a signed iOS build that goes to TestFlight (ADR 0042); both run on real phones. Still missing: the listings
   (Play, App Store), a privacy policy and the store declarations.
 
+- **Rent a server from the app** (ADR 0047, 0048; spec `hosted-server`): designed, not built. First a spike of the purchase library on a
+  CI-built dev client, then the screens against mocks of `GET /me` and the sidecar's API.
 - **Offline basemap, for long rides.** A map saved around a roadbook covers a day loop (ADR 0023); a ride too long for
   4,000 tiles, or a route to a place, still needs a regional PMTiles extract or a self-hosted tile server (ADR 0007).
 - **Remember the basemap choice** between sessions (it resets to Light).
