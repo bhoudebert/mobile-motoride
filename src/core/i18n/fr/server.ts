@@ -63,7 +63,6 @@ export const server: Translated<typeof English> = {
   "server.test": "Tester",
   "server.remove.label": "Supprimer le serveur",
   "server.remove": "Supprimer",
-  "server.change": "Le changer",
   "server.address": "Adresse",
   "server.address.label": "Adresse du serveur",
   "server.tokenField": "Jeton",

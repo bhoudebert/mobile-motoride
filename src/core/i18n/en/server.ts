@@ -56,7 +56,6 @@ export const server = {
   "server.test": "Test",
   "server.remove.label": "Remove the server",
   "server.remove": "Remove",
-  "server.change": "Change it",
   "server.address": "Address",
   "server.address.label": "Server address",
   "server.tokenField": "Token",

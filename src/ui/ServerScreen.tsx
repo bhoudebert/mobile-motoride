@@ -183,38 +183,42 @@ export function ServerScreen({ onBack }: { onBack: () => void }) {
       ) : null}
 
       {!saved && !invitation ? notice : null}
-      <Text style={styles.label}>{saved ? t("server.change") : t("server.address")}</Text>
-      <TextInput
-        style={styles.input}
-        value={url}
-        onChangeText={setUrl}
-        placeholder="https://rides.example.org"
-        placeholderTextColor={colors.ink2}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-        accessibilityLabel={t("server.address.label")}
-      />
-      <Text style={styles.label}>{t("server.tokenField")}</Text>
-      <TextInput
-        style={styles.input}
-        value={token}
-        onChangeText={setToken}
-        placeholder="mrt_…"
-        placeholderTextColor={colors.ink2}
-        autoCapitalize="none"
-        autoCorrect={false}
-        secureTextEntry
-        accessibilityLabel={t("server.token.label")}
-      />
-      <Pressable
-        style={styles.save}
-        onPress={save}
-        accessibilityRole="button"
-        accessibilityLabel={t("server.save.label")}
-      >
-        <Text style={styles.saveText}>{t("server.save")}</Text>
-      </Pressable>
+      {!saved ? (
+        <>
+          <Text style={styles.label}>{t("server.address")}</Text>
+          <TextInput
+            style={styles.input}
+            value={url}
+            onChangeText={setUrl}
+            placeholder="https://rides.example.org"
+            placeholderTextColor={colors.ink2}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            accessibilityLabel={t("server.address.label")}
+          />
+          <Text style={styles.label}>{t("server.tokenField")}</Text>
+          <TextInput
+            style={styles.input}
+            value={token}
+            onChangeText={setToken}
+            placeholder="mrt_…"
+            placeholderTextColor={colors.ink2}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            accessibilityLabel={t("server.token.label")}
+          />
+          <Pressable
+            style={styles.save}
+            onPress={save}
+            accessibilityRole="button"
+            accessibilityLabel={t("server.save.label")}
+          >
+            <Text style={styles.saveText}>{t("server.save")}</Text>
+          </Pressable>
+        </>
+      ) : null}
     </ScrollView>
   );
 }
