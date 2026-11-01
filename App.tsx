@@ -23,7 +23,9 @@ import { ImportNoticeBar } from "./src/ui/ImportNoticeBar.tsx";
 import { RoadbookList } from "./src/ui/RoadbookList.tsx";
 import { SwipeBack } from "./src/ui/SwipeBack.tsx";
 import { useImport, type ImportNotice } from "./src/ui/useImport.ts";
-import { useServer } from "./src/ui/serverSetting.ts";
+import { useServer, useServerSettled } from "./src/ui/serverSetting.ts";
+import { useLibraryId } from "./src/ui/libraryIdentity.ts";
+import { detachRides } from "./src/ui/ridesStore.ts";
 import { useRideUpload } from "./src/ui/useRideUpload.ts";
 import type { RideMeta } from "./src/core/recording.ts";
 import { serverAction, type ServerRoadbook } from "./src/core/serverRoadbooks.ts";
@@ -119,6 +121,16 @@ export default function App() {
   const serverNow = useRef(server);
   serverNow.current = server;
   const rideUpload = useRideUpload(server);
+  // Copies kept from a server that is not the one in use (none set, another set, or kept before libraries had an identity)
+  // become roadbooks and rides of the phone only: nothing is lost, nothing is matched across servers (ADR 0049).
+  const libraryId = useLibraryId(server);
+  const detach = library.detach;
+  const serverSettled = useServerSettled();
+  useEffect(() => {
+    if (!serverSettled) return;
+    void detach(libraryId);
+    void detachRides(libraryId);
+  }, [serverSettled, libraryId?.address, libraryId?.rider, detach]);
   // A roadbook the rider asked to update comes down by itself once the server has its new file.
   const serverRoadbooks = useServerRoadbooks(
     server,

@@ -11,6 +11,8 @@ export interface PickedText {
   stamp?: string;
   /** The number the server lists it under. */
   serverId?: number;
+  /** The library of that server (spec roadbook-library, ADR 0049). */
+  serverKey?: string;
 }
 
 /** Ask the rider for a file; null when they leave the picker without one. */

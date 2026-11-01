@@ -33,8 +33,10 @@ test("a status is read with its invitation link, its suspension and its rejectio
       invitationLink: "mobilemotoride://x",
       suspended: null,
       rejected: null,
+      supportCode: null,
     },
   );
+  assert.equal(parseStatus({ state: "ready", supportCode: "a1b2c3d4" })?.supportCode, "a1b2c3d4");
   assert.deepEqual(parseStatus({ state: "suspended", suspended: { reason: "lapsed", until: null } })?.suspended, {
     reason: "lapsed",
     until: null,
@@ -109,6 +111,11 @@ test("what the rider may use is read, with the traffic left and a pause", () => 
     requestsPerMinute: 60,
   })!;
   assert.equal(trafficLeft(me), 60);
+  assert.equal(me.riderRef, null);
+  assert.equal(
+    parseMe({ riderRef: "rr-0123456789abcdef", traffic: { mode: "open" }, library: {} })?.riderRef,
+    "rr-0123456789abcdef",
+  );
   assert.equal(me.library.usedBytes, 2_097_152);
   const paused = parseMe({
     traffic: { mode: "off", perDay: null, usedToday: 0 },

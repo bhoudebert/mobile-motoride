@@ -1,3 +1,5 @@
+import { detachedRoadbook, type LibraryId } from "../core/serverIdentity.ts";
+import { libraryKeyOf } from "./libraryIdentity.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 import { t } from "../core/i18n/index.ts";
@@ -85,6 +87,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
         ...(problem ? { completion: "pending" as const } : {}),
         ...(picked.stamp ? { serverStamp: picked.stamp } : {}),
         ...(picked.serverId !== undefined ? { serverId: picked.serverId } : {}),
+        ...(picked.serverKey ? { serverKey: picked.serverKey } : {}),
       };
       await saveImported(entry);
       setItems((list) => [entry, ...list.filter((i) => i.roadbook.id !== rb.id)]);
@@ -135,6 +138,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
             name: `${listed.name}.motoride.json`,
             stamp: got.stamp ?? listed.stamp,
             serverId: listed.id,
+            serverKey: await libraryKeyOf(server),
           };
         }, open);
         return "done";
@@ -180,6 +184,7 @@ export function useImport(onImported: (rb: Roadbook) => void) {
       ...(problem ? { completion: "pending" as const } : {}),
       ...(current.serverStamp ? { serverStamp: current.serverStamp } : {}),
       ...(current.serverId !== undefined ? { serverId: current.serverId } : {}),
+      ...(current.serverKey ? { serverKey: current.serverKey } : {}),
     };
     await saveImported(entry);
     setItems((list) => list.map((i) => (i.roadbook.id === id ? entry : i)));
@@ -191,5 +196,18 @@ export function useImport(onImported: (rb: Roadbook) => void) {
     setItems((list) => list.filter((i) => i.roadbook.id !== id));
   }, []);
 
-  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry, fromServer, fetching };
+  /** The copies kept from a server that is not the one in use become roadbooks of the phone only (ADR 0049). */
+  const detach = useCallback(async (current: LibraryId | null) => {
+    const changed: ImportedRoadbook[] = [];
+    for (const item of await listImported()) {
+      const next = detachedRoadbook(item, current);
+      if (!next) continue;
+      await saveImported(next);
+      changed.push(next);
+    }
+    if (changed.length > 0)
+      setItems((list) => list.map((i) => changed.find((c) => c.roadbook.id === i.roadbook.id) ?? i));
+  }, []);
+
+  return { items, notice, dismiss: () => setNotice(null), pick, remove, retry, fromServer, fetching, detach };
 }

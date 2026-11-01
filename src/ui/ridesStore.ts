@@ -1,3 +1,4 @@
+import { detachedRide, type LibraryId } from "../core/serverIdentity.ts";
 import { Directory, File, Paths } from "expo-file-system";
 import {
   parseMeta,
@@ -201,22 +202,32 @@ export async function readRideGpx(id: string): Promise<string | null> {
  * it, marked as on the server (so it is not sent again). Null when the file is not a ride. The track goes first, as for a
  * ride recorded here: a cut leaves a track the list can still rebuild.
  */
-export async function saveDownloaded(id: string, gpx: string, uploadedAt: number): Promise<RideMeta | null> {
+export async function saveDownloaded(
+  id: string,
+  gpx: string,
+  uploadedAt: number,
+  serverKey?: string,
+): Promise<RideMeta | null> {
   const meta = metaFromGpx(id, gpx);
   if (!meta) return null;
-  const next: RideMeta = { ...meta, uploadedAt, serverRideId: id };
+  const next: RideMeta = { ...meta, uploadedAt, serverRideId: id, ...(serverKey ? { serverKey } : {}) };
   await put(`${id}.gpx`, gpx);
   await put(`${id}.json`, serializeMeta(next));
   return next;
 }
 
 /** Remember that a ride is on the rider's server: written beside the ride, never undone by anything the phone does. */
-export async function markUploaded(id: string, serverRideId: string, at: number): Promise<RideMeta | null> {
+export async function markUploaded(
+  id: string,
+  serverRideId: string,
+  at: number,
+  serverKey?: string,
+): Promise<RideMeta | null> {
   try {
     const f = file(`${id}.json`);
     const meta = f.exists ? parseMeta(await f.text()) : null;
     if (!meta) return null;
-    const next: RideMeta = { ...meta, uploadedAt: at, serverRideId };
+    const next: RideMeta = { ...meta, uploadedAt: at, serverRideId, ...(serverKey ? { serverKey } : {}) };
     await put(`${id}.json`, serializeMeta(next));
     return next;
   } catch {
@@ -226,3 +237,18 @@ export async function markUploaded(id: string, serverRideId: string, at: number)
 
 /** The address of a ride's GPX, for the share sheet. */
 export const gpxUri = (id: string): string => file(`${id}.gpx`).uri;
+
+/**
+ * The rides sent to a server that is not the one in use become rides of the phone only (ADR 0049): the recording stays, its
+ * server link and sent mark go. Returns how many changed.
+ */
+export async function detachRides(current: LibraryId | null): Promise<number> {
+  let changed = 0;
+  for (const meta of await listRides()) {
+    const next = detachedRide(meta, current);
+    if (!next) continue;
+    await put(`${meta.id}.json`, serializeMeta(next));
+    changed++;
+  }
+  return changed;
+}
