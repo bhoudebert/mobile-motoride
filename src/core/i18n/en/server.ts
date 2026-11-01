@@ -154,4 +154,7 @@ export const server = {
   "server.info.library.what":
     "The library is the size of your library file on the server: roadbooks, rides sent, notes, ratings and caches. It is checked when a ride is sent or a roadbook is pushed.",
   "server.info.support": "Support code {code}. Quote it when you ask for help.",
+  "server.info.source.open": "Traffic source: open data (the default).",
+  "server.info.source.tomtom": "Traffic source: TomTom.",
+  "server.info.source.host": "Traffic source: chosen by the host of your server.",
 } as const;

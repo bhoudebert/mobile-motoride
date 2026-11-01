@@ -164,4 +164,7 @@ export const server: Translated<typeof English> = {
   "server.info.library.what":
     "La bibliothèque est la taille de votre fichier de bibliothèque sur le serveur : roadbooks, sorties envoyées, notes, évaluations et caches. Elle est vérifiée quand une sortie est envoyée ou un roadbook poussé.",
   "server.info.support": "Code de support {code}. Citez-le quand vous demandez de l'aide.",
+  "server.info.source.open": "Source de la circulation : données ouvertes (par défaut).",
+  "server.info.source.tomtom": "Source de la circulation : TomTom.",
+  "server.info.source.host": "Source de la circulation : choisie par l'hébergeur de votre serveur.",
 };

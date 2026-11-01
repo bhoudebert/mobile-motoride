@@ -108,7 +108,7 @@ export interface Me {
   riderRef: string | null;
   /** Paused: the subscription lapsed or billing is being retried; the library is kept until `until` when it is known. */
   suspended: { reason: string; until: string | null } | null;
-  traffic: { mode: string; perDay: number | null; usedToday: number };
+  traffic: { mode: string; perDay: number | null; usedToday: number; provider: "open" | "tomtom" | null };
   library: { limitMb: number | null; usedBytes: number };
 }
 
@@ -129,6 +129,7 @@ export function parseMe(body: unknown): Me | null {
       mode: traffic.mode,
       perDay: typeof traffic.perDay === "number" ? traffic.perDay : null,
       usedToday: typeof traffic.usedToday === "number" ? traffic.usedToday : 0,
+      provider: traffic.provider === "open" || traffic.provider === "tomtom" ? traffic.provider : null,
     },
     library: {
       limitMb: typeof library.limitMb === "number" ? library.limitMb : null,
@@ -148,3 +149,10 @@ export function parseLinkCode(body: unknown): { code: string; expiresAt: string 
   if (!isObject(body) || typeof body.code !== "string" || typeof body.expiresAt !== "string") return null;
   return /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(body.code) ? { code: body.code, expiresAt: body.expiresAt } : null;
 }
+
+/**
+ * Where the traffic comes from: the plan's own (`open` or `tomtom`), else the provider the server says it uses when the plan
+ * leaves it to the host (`host`), else unknown (null) for a server that does not say.
+ */
+export const trafficSource = (me: Me): "open" | "tomtom" | null =>
+  me.traffic.mode === "open" || me.traffic.mode === "tomtom" ? me.traffic.mode : me.traffic.provider;

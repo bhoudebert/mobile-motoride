@@ -125,7 +125,7 @@ test("what the rider may use is read, with the traffic left and a pause", () => 
   assert.equal(paused.suspended?.reason, "lapsed");
   assert.equal(trafficLeft(paused), null);
   assert.equal(parseMe({ traffic: {} }), null);
-  assert.equal(trafficLeft({ ...me, traffic: { mode: "open", perDay: 10, usedToday: 50 } }), 0);
+  assert.equal(trafficLeft({ ...me, traffic: { mode: "open", perDay: 10, usedToday: 50, provider: null } }), 0);
 });
 
 test("a link code is XXXX-XXXX with its expiry", () => {
@@ -164,4 +164,14 @@ test("a launch offer the sidecar describes is kept, and a plan without one has n
   });
   assert.deepEqual(plans[0]!.launchOffer, { regularPriceEur: 25, text: "Free during launch" });
   assert.equal(plans[1]!.launchOffer, null);
+});
+
+import { trafficSource } from "../src/core/hosted.ts";
+test("the traffic source is the plan's, else what the server says, else unknown", () => {
+  const me = (traffic: Record<string, unknown>) => parseMe({ traffic, library: { limitMb: null, usedBytes: 0 } })!;
+  assert.equal(trafficSource(me({ mode: "tomtom" })), "tomtom");
+  assert.equal(trafficSource(me({ mode: "open" })), "open");
+  assert.equal(trafficSource(me({ mode: "host", provider: "tomtom" })), "tomtom");
+  assert.equal(trafficSource(me({ mode: "host" })), null);
+  assert.equal(trafficSource(me({ mode: "host", provider: "other" })), null);
 });

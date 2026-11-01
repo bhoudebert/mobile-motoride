@@ -258,3 +258,28 @@ test("an older server that has no /me says nothing of its limits, and does not c
   expect(screen.queryByText(/Could not reach your server/)).toBeNull();
   expect(screen.queryByText(/Library/)).toBeNull();
 });
+
+test("the server screen says where the traffic comes from: open data, TomTom, or the host's choice", async () => {
+  await hosted("yes");
+  expect(screen.getByText("Traffic source: open data (the default).")).toBeTruthy();
+});
+
+test("a TomTom plan says TomTom, and a host's own setting says which provider when the server tells", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "tomtom", perDay: null, usedToday: 0 } });
+  expect(screen.getByText("Traffic source: TomTom.")).toBeTruthy();
+});
+
+test("traffic left to the host: its provider when the server says, else the host's choice", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "host", perDay: null, usedToday: 0, provider: "tomtom" } });
+  expect(screen.getByText("Traffic source: TomTom.")).toBeTruthy();
+});
+
+test("traffic left to the host and a server that does not say which: said as the host's choice; traffic off says no source", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "host", perDay: null, usedToday: 0 } });
+  expect(screen.getByText("Traffic source: chosen by the host of your server.")).toBeTruthy();
+});
+
+test("traffic off names no source", async () => {
+  await hosted("yes", { ...ME, traffic: { mode: "off", perDay: null, usedToday: 0 } });
+  expect(screen.queryByText(/Traffic source/)).toBeNull();
+});

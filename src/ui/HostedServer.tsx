@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { t } from "../core/i18n/index.ts";
-import { trafficLeft, type Me } from "../core/hosted.ts";
+import { trafficLeft, trafficSource, type Me } from "../core/hosted.ts";
 import type { ServerSetting } from "../core/liveShare.ts";
 import { getMe, linkCode } from "../services/hostedServer.ts";
 import { accountStatus, deleteAccount } from "../services/sidecar.ts";
@@ -142,6 +142,9 @@ export function HostedServer({ server, onMessage }: { server: ServerSetting; onM
                 ? t("server.mine.traffic.on")
                 : t("server.mine.traffic.left", { count: left })}
           </Text>
+          {me.traffic.mode !== "off" ? (
+            <Text style={styles.detail}>{t(`server.info.source.${trafficSource(me) ?? "host"}`)}</Text>
+          ) : null}
           <Text style={styles.detail}>
             {me.library.limitMb === null
               ? t("server.mine.library.free", { used: mb(me.library.usedBytes) })
