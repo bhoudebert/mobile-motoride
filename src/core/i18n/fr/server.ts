@@ -124,8 +124,8 @@ export const server: Translated<typeof English> = {
   "server.mine.traffic.left_other": "Circulation : {count} requêtes restantes aujourd'hui.",
   "server.mine.traffic.on": "Circulation : activée.",
   "server.mine.traffic.off": "Circulation : désactivée dans votre formule.",
-  "server.mine.library": "Bibliothèque : {used} Mo sur {limit} Mo.",
-  "server.mine.library.free": "Bibliothèque : {used} Mo.",
+  "server.mine.library": "Bibliothèque {used} sur {limit} Mo",
+  "server.mine.library.free": "Bibliothèque {used} Mo",
   "server.mine.paused": "Votre serveur est en pause",
   "server.mine.paused.until":
     "Votre bibliothèque reste sur le serveur jusqu'au {date}. Rien n'y est sauvegardé. Vos sorties et roadbooks sur ce téléphone sont intacts, et l'appli fonctionne sans le serveur.",
@@ -157,4 +157,14 @@ export const server: Translated<typeof English> = {
   "server.delete.offline": "Non supprimé : pas de connexion. Réessayez avec une connexion.",
   "server.delete.failed": "Non supprimé. Réessayez.",
   "server.delete.done": "Votre serveur est supprimé.",
+  "server.info.title": "À propos de votre serveur",
+  "server.info.provider.hosted": "Serveur gratuit d'Adequate Function",
+  "server.info.provider.own": "Votre propre serveur",
+  "server.info.plan": "Formule : {plan}",
+  "server.info.library.what":
+    "La bibliothèque est la taille de votre fichier de bibliothèque sur le serveur : roadbooks, sorties envoyées, notes, évaluations et caches. Elle est vérifiée quand une sortie est envoyée ou un roadbook poussé.",
+  "server.info.support": "Code de support {code}. Citez-le quand vous demandez de l'aide.",
+  "server.info.source.open": "Source de la circulation : données ouvertes (par défaut).",
+  "server.info.source.tomtom": "Source de la circulation : TomTom.",
+  "server.info.source.host": "Source de la circulation : choisie par l'hébergeur de votre serveur.",
 };
