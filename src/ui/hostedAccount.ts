@@ -50,3 +50,10 @@ export async function forgetHosted(): Promise<void> {
     SecureStore.deleteItemAsync(JOURNAL_KEY),
   ]).catch(() => {});
 }
+
+/** A token of this phone's own that replaces the one kept (a recovery that finds this phone's token already used elsewhere). */
+export async function replaceAccountToken(): Promise<string> {
+  const made = newAccountToken((n) => Crypto.getRandomBytes(n));
+  await SecureStore.setItemAsync(TOKEN_KEY, made);
+  return made;
+}

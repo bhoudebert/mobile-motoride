@@ -3,6 +3,7 @@ import { formatNumber, t, type MessageKey } from "../core/i18n/index.ts";
 import type { Plan } from "../core/hosted.ts";
 import type { SidecarFailure } from "../services/sidecar.ts";
 import { colors, fonts, radii, themed } from "./theme.ts";
+import { RecoverServer } from "./RecoverServer.tsx";
 import { useGetServer } from "./useGetServer.ts";
 
 const FAILURE: Record<SidecarFailure["reason"], MessageKey> = {
@@ -10,6 +11,10 @@ const FAILURE: Record<SidecarFailure["reason"], MessageKey> = {
   busy: "server.hosted.err.busy",
   unavailable: "server.hosted.err.unavailable",
   suspended: "server.hosted.err.suspended",
+  emailUnavailable: "server.backup.err.unavailable",
+  badCode: "server.backup.err.badCode",
+  tokenInUse: "server.hosted.err.failed",
+  moved: "server.moved.title",
   rejected: "server.hosted.err.failed",
   failed: "server.hosted.err.failed",
 };
@@ -62,6 +67,7 @@ export function GetServer() {
         >
           <Text style={styles.actionText}>{t("server.hosted.see")}</Text>
         </Pressable>
+        <RecoverServer />
       </View>
     );
   }

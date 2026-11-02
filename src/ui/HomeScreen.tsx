@@ -38,6 +38,7 @@ export function HomeScreen({
   onImport,
   onRides,
   onServer,
+  serverWarning,
   onSafety,
   language = "system",
   onLanguage,
@@ -55,6 +56,7 @@ export function HomeScreen({
   onImport: () => void;
   onRides: () => void;
   onServer: () => void;
+  serverWarning?: boolean;
   onSafety?: () => void;
   /** The language choice and how to change it; the menu offers the item when there is a way (spec languages). */
   language?: LanguageSetting;
@@ -293,6 +295,7 @@ export function HomeScreen({
             setMenu(false);
             onRides();
           }}
+          serverWarning={serverWarning}
           onServer={() => {
             setMenu(false);
             onServer();

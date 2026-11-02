@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Plan, type SetupStep, SETUP_SLOW_MS, STATUS_EVERY_MS } from "../core/hosted.ts";
-import { parseInviteLink } from "../core/liveShare.ts";
-import { joinServer } from "../services/enrol.ts";
-import { accountStatus, createFreeAccount, listPlans, reinvite, type SidecarFailure } from "../services/sidecar.ts";
-import { accountToken, clearJournal, markHosted, readJournal, writeJournal } from "./hostedAccount.ts";
-import { saveServer } from "./serverSetting.ts";
+import { accountStatus, createFreeAccount, listPlans, type SidecarFailure } from "../services/sidecar.ts";
+import { accountToken, clearJournal, readJournal, writeJournal } from "./hostedAccount.ts";
+import { joinHosted } from "./hostedJoin.ts";
 import { hostedServer } from "./settings.ts";
 
 export type GetServerView =
@@ -58,14 +56,8 @@ export function useGetServer(): {
       if (!r.ok) return fail(r.reason, "creating");
       if (r.value.state !== "ready") return fail(r.value.state === "suspended" ? "suspended" : "failed", "creating");
       show({ kind: "setup", step: "connecting", slow: false, failure: null });
-      const invited = await reinvite(base, token);
-      if (!invited.ok) return fail(invited.reason, "connecting");
-      const invitation = invited.value.invitationLink ? parseInviteLink(invited.value.invitationLink) : null;
-      if (!invitation) return fail("failed", "connecting");
-      const joined = await joinServer(invitation, "");
-      if (!joined.ok) return fail(joined.reason === "unreachable" ? "unreachable" : "failed", "connecting");
-      await markHosted("new");
-      await saveServer({ url: invitation.url, token: joined.token });
+      const failure = await joinHosted(base, token, "new");
+      if (failure) return fail(failure, "connecting");
       await clearJournal();
       show({ kind: "closed" });
     } finally {

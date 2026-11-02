@@ -18,6 +18,7 @@ export function HomeMenu({
   onImport,
   onRides,
   onServer,
+  serverWarning = false,
   onSafety,
   onClose,
   language = "system",
@@ -35,6 +36,8 @@ export function HomeMenu({
   onImport: () => void;
   onRides: () => void;
   onServer: () => void;
+  /** A server the app made has no backup email: a warning beside Server. */
+  serverWarning?: boolean;
   /** Without it the menu has no safety item. */
   onSafety?: () => void;
   onClose: () => void;
@@ -77,7 +80,12 @@ export function HomeMenu({
         {onSafety ? (
           <Item label={t("home.menu.safety")} onPress={onSafety} icon={<Text style={styles.glyph}>✚</Text>} />
         ) : null}
-        <Item label={t("home.menu.server")} onPress={onServer} icon={<Text style={styles.glyph}>⇄</Text>} />
+        <Item
+          label={t("home.menu.server")}
+          warning={serverWarning ? t("server.backup.warn") : undefined}
+          onPress={onServer}
+          icon={<Text style={styles.glyph}>⇄</Text>}
+        />
         <Item label={t("home.menu.import")} onPress={onImport} icon={<Text style={styles.glyph}>⇩</Text>} />
         <Item
           label={voiceName(voice)}
@@ -133,11 +141,13 @@ const themeChoice = (setting: ThemeSetting, scheme: Scheme): string =>
 function Item({
   label,
   hint,
+  warning,
   icon,
   onPress,
 }: {
   label: string;
   hint?: string;
+  warning?: string;
   icon: React.ReactNode;
   onPress: () => void;
 }) {
@@ -146,16 +156,18 @@ function Item({
       style={styles.item}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={hint ? `${label}. ${hint}` : label}
+      accessibilityLabel={[label, warning, hint].filter(Boolean).join(". ")}
     >
       <View style={styles.icon}>{icon}</View>
       <Text style={styles.itemText}>{label}</Text>
+      {warning ? <Text style={styles.warning}>⚠</Text> : null}
     </Pressable>
   );
 }
 
 const styles = themed(() =>
   StyleSheet.create({
+    warning: { color: colors.limitRed, fontSize: 18, paddingLeft: 8 },
     overlay: { ...StyleSheet.absoluteFill, flexDirection: "row" },
     scrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(20, 30, 24, 0.5)" },
     panel: {
