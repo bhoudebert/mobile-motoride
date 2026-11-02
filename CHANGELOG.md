@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.6.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.5.0...v1.6.0) (2026-11-02)
+
+
+### Features
+
+* **limits:** show the limit of the road under a rider off the roadbook ([#61](https://github.com/bhoudebert/mobile-motoride/issues/61)) ([e107dff](https://github.com/bhoudebert/mobile-motoride/commit/e107dff591262ac82a9f9181cd825261181aa840))
+* **ride:** skip a point by itself when the rider is nearer a later one ([#60](https://github.com/bhoudebert/mobile-motoride/issues/60)) ([684fe76](https://github.com/bhoudebert/mobile-motoride/commit/684fe7621bb1552306eead7a00130963510661f6))
+* **rides:** save a roadbook as a file with the share sheet ([#77](https://github.com/bhoudebert/mobile-motoride/issues/77)) ([d45ab2a](https://github.com/bhoudebert/mobile-motoride/commit/d45ab2ac73e7245b8d8814c76195e04ab536f062))
+* **rides:** save a roadbook file straight to a folder of the phone ([#78](https://github.com/bhoudebert/mobile-motoride/issues/78)) ([bd6b73a](https://github.com/bhoudebert/mobile-motoride/commit/bd6b73a2ee5b4f6a11d9522044fa71abb27da965))
+* **rides:** send one roadbook from its own row ([#76](https://github.com/bhoudebert/mobile-motoride/issues/76)) ([80b3a6b](https://github.com/bhoudebert/mobile-motoride/commit/80b3a6b766d410cf8fb1e9f35636de4335a1b9d6))
+* **rides:** send the roadbooks that are only on the phone to the server ([#75](https://github.com/bhoudebert/mobile-motoride/issues/75)) ([b88b7bd](https://github.com/bhoudebert/mobile-motoride/commit/b88b7bd6d120c92f96564f4785e589fa9a5f4d4c))
+* **server:** add a backup email and recover a server by email ([#81](https://github.com/bhoudebert/mobile-motoride/issues/81)) ([61ed5d9](https://github.com/bhoudebert/mobile-motoride/commit/61ed5d9bd789e205fca76bf0670770c733bec65c))
+* **server:** get a free hosted server from the app, behind a build switch ([#62](https://github.com/bhoudebert/mobile-motoride/issues/62)) ([376c0f8](https://github.com/bhoudebert/mobile-motoride/commit/376c0f8794c390f910c1334f13c4f40e6968c54f))
+
+
+### Bug Fixes
+
+* **ride:** ride the roadbook again when the rider meets its road before the rejoin point ([#58](https://github.com/bhoudebert/mobile-motoride/issues/58)) ([f9e4f34](https://github.com/bhoudebert/mobile-motoride/commit/f9e4f34598885a1c6a85ffefb70f208b8d7f2f79))
+* **server:** drop the coming-soon line where Get a server is offered ([#69](https://github.com/bhoudebert/mobile-motoride/issues/69)) ([8b8ae37](https://github.com/bhoudebert/mobile-motoride/commit/8b8ae370f767675167dc4d5357e6cf264380035a))
+* **server:** one card for a phone roadbook and the same name on the server ([#79](https://github.com/bhoudebert/mobile-motoride/issues/79)) ([7ac9aca](https://github.com/bhoudebert/mobile-motoride/commit/7ac9aca24db018699e7b8c05ccc220a87c062c83))
+* **server:** tell the result above the block it concerns ([#72](https://github.com/bhoudebert/mobile-motoride/issues/72)) ([c25cfff](https://github.com/bhoudebert/mobile-motoride/commit/c25cfff0cc371c5a544f914fac50df2801c93216))
+* **server:** turn copies of a server that is gone into roadbooks and rides of the phone ([#71](https://github.com/bhoudebert/mobile-motoride/issues/71)) ([c5f08cc](https://github.com/bhoudebert/mobile-motoride/commit/c5f08cc24e891dc62c86ce6f4d95a0e2ed3a0f24))
+
 ## [1.5.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.4.0...v1.5.0) (2026-10-31)
 
 
