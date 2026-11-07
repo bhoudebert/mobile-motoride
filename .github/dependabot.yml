@@ -21,6 +21,8 @@ updates:
             "@types/*",
           ]
     ignore:
+      # Must stay on the exact react version, and react is pinned by the Expo SDK (npm ci fails with ERESOLVE otherwise).
+      - dependency-name: react-test-renderer
       # typescript-eslint's peer range stops below TypeScript 6.1: wait for one that supports 7.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
