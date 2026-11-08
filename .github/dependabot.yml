@@ -23,6 +23,10 @@ updates:
     ignore:
       # Must stay on the exact react version, and react is pinned by the Expo SDK (npm ci fails with ERESOLVE otherwise).
       - dependency-name: react-test-renderer
+      # 58.0.4 does not compile on iOS with the expo-modules-core that Expo SDK 58.0.x pins (UIViewController not found, release 1.6.1).
+      # Take the version Expo asks for (`npx expo install --check`), and drop this when the SDK moves.
+      - dependency-name: expo-screen-orientation
+        versions: ["58.0.4"]
       # typescript-eslint's peer range stops below TypeScript 6.1: wait for one that supports 7.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
