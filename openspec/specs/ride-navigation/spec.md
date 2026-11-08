@@ -160,7 +160,7 @@ The demo SHALL be pausable: a Pause button SHALL freeze the position, the instru
 
 ### Requirement: Approach to the start
 
-When the rider taps Start and the first fix is more than 150 m from the roadbook line, the app SHALL guide the rider to the start of the roadbook before the roadbook itself. It SHALL route from the rider's position to the roadbook's first point on the motorcycle profile of the public Valhalla service, and ride the approach and the roadbook as one line, so instructions, corner warnings, the bearing and the camera work on the approach exactly as on the roadbook. The rider SHALL see "To the start" with the distance to it while on the approach, and the approach SHALL be drawn dashed apart from the roadbook line. The first fix SHALL be used at once: the camera SHALL follow the rider from the moment the approach is ready, never show the roadbook overview of a place the rider is not at.
+When the rider taps Start and the first fix is more than 150 m from the roadbook line, the app SHALL guide the rider to the start of the roadbook before the roadbook itself. It SHALL route from the rider's position to the roadbook's first point on the motorcycle profile of the public Valhalla service, and ride the approach and the roadbook as one line, so instructions, corner warnings, the bearing and the camera work on the approach exactly as on the roadbook. The rider SHALL see "To the start" with the distance to it while on the approach, and the approach SHALL be drawn apart from the roadbook line, solid like it when routed, dashed when it is a straight line. The first fix SHALL be used at once: the camera SHALL follow the rider from the moment the approach is ready, never show the roadbook overview of a place the rider is not at.
 
 When the first fix is within 150 m of the roadbook line the app SHALL join the roadbook at the nearest point and not route.
 
@@ -203,22 +203,37 @@ While on the roadbook and moving at 10 km/h or more, when the GPS heading is kno
 
 ### Requirement: Back to the route
 
-When the rider is off route, the app SHALL work out the point of the roadbook to rejoin: the nearest point of the line, 150 m further along it, never behind the rider's progress. At once, with no network, the instruction SHALL read the distance to it and the direction to ride relative to the rider's heading ("Rejoin the route, 450 m, ahead left"), with an arrow turned the same way. When the phone is online the app SHALL ask the public Valhalla service once for a route from the rider to that point (ADR 0012), at most once every 30 seconds while off route and only when the rider has moved 50 m since the last request (at once again when the rider is 150 m from where the last was made, and after 5, 10 and then every 15 seconds while no route was found, whatever the rider's movement), and on success SHALL ride that route and then the rest of the roadbook as one line, with instructions, corner warnings and the camera working on it as on the approach, shown dashed, and the HUD reading "Back to the route". Without a route it SHALL keep the direction guidance (an arrow always towards the point to reach, never none), SHALL NOT flag the rider off route on it, and SHALL ask for the route again as above. The part of the roadbook already ridden SHALL be dropped, so the distance remaining is true.
+When the rider is off route, the app SHALL work out where to go to. A rider more than 500 m from the line, who is not on a missed turn but on their own way, SHALL be sent to a route point of the roadbook: the one cheapest to go to among those not yet reached, the finish kept for when none else is left. The cost is the straight-line distance, up to twice that when the point lies behind the rider's heading, so the nearest point ahead wins and a U-turn is chosen only when the point behind is much nearer. A later point SHALL be preferred to the next one only when it costs 70 % of it or less, and the points before the one chosen SHALL be dropped as for a skip. A rider within 500 m of the line has missed a turn: the point to rejoin is the nearest point of the line, 150 m further along it, never behind the rider's progress. At once, with no network, the instruction SHALL read the distance to the point and the direction to ride relative to the rider's heading ("Rejoin the route, 450 m, ahead left"), with an arrow turned the same way, and the rider's arrow on the map SHALL follow the rider's heading, not the direction of the line. When the phone is online the app SHALL ask the public Valhalla service once for a motorcycle route from the rider to that point (ADR 0012), sending the rider's heading when it is known so that the route starts in the direction of travel when the road allows, at most once every 30 seconds while off route and only when the rider has moved 50 m since the last request (at once again when the rider is 150 m from where the last was made, and after 5, 10 and then every 15 seconds while no route was found, whatever the rider's movement). On success it SHALL ride that route and then the rest of the roadbook as one line, with instructions, corner warnings, danger zones, the speed limit of the road under the rider and the camera working on it as on the roadbook, drawn like the roadbook's line, not dashed, with the 3 km ahead of the rider bright and with bold chevrons as on the roadbook, and the HUD reading "To" the point, or "Back to the route" for a missed turn. When it sends the rider to a route point it SHALL say so aloud ("Heading for 3. Cassel") once for each point. Without a route it SHALL keep the direction guidance (an arrow always towards the point to reach, never none) and a dashed straight line, SHALL NOT flag the rider off route on it, and SHALL ask for the route again as above. The part of the roadbook already ridden SHALL be dropped, so the distance remaining is true. While the rider is off route the next route point SHALL stay skippable, counted from the last place the rider was on the line, not from the nearest point of a loop that closes on itself.
 
 #### Scenario: Missed junction
 
 - **WHEN** the rider takes a wrong turn and is 300 m off the line
 - **THEN** the instruction gives the distance and the side to rejoin, and, online, the route replaces it within a few seconds
 
+#### Scenario: A fuel stop far from the route
+
+- **WHEN** the rider, riding to the start of a roadbook or along it, leaves it for 3 km to put fuel in the bike and is then 4 km from the line, heading towards a route point
+- **THEN** the app sends the rider to the cheapest route point ahead of them, with a route that starts in their direction of travel, drawn as a solid line with its instructions and speed limits, and says "Heading for" that point; it does not point back to where the rider left the line, and the skip button stays available
+
+#### Scenario: A point behind that is much nearer
+
+- **WHEN** the rider is 300 m from a route point behind them and 5 km from every point ahead
+- **THEN** the app goes to the point behind, and says so
+
+#### Scenario: Loop that closes on itself
+
+- **WHEN** the rider is off route near the place where the loop starts and ends
+- **THEN** the target does not hop between the end of the loop and its beginning as the nearest point of the line changes
+
 #### Scenario: Back on the road before the rejoin point
 
 - **WHEN** the rider, given a way back to a point 150 m further along, meets the road of the roadbook again before that point
-- **THEN** the whole roadbook is ridden again from there: the line is green with its white chevrons, the instruction and the speed limit are those of the roadbook, and nothing shows the rider as off route or on a dashed way back
+- **THEN** the whole roadbook is ridden again from there: the line is green with its white chevrons, the instruction and the speed limit are those of the roadbook, and nothing shows the rider as off route
 
-#### Scenario: Dashes only before the ride has begun
+#### Scenario: Dashes only for a straight line
 
-- **WHEN** the rider is on the roadbook line
-- **THEN** it is never drawn as the dashed way to the start; the dashes belong to the approach to the start of a ride that has not begun, and to a way back that has not been reached
+- **WHEN** the rider is on the roadbook line, or on a routed way to the start or to a route point
+- **THEN** it is drawn as a solid route line; dashes are for a straight line to a point, which is no road
 
 ### Requirement: Scripted GPS in development builds
 

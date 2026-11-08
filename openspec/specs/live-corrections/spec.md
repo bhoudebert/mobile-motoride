@@ -32,22 +32,12 @@ While riding with GPS, the rider SHALL be able to skip the next route point: the
 
 ### Requirement: Skipping by itself
 
-A rider who has left the route and rides their own way SHALL NOT be pulled back to the point the roadbook was heading for. While the rider is off route, when they are nearer a route point further on (up to three after the next one) than the next one by at least 100 m, and their heading is within 70 degrees of the direction of that point (or unknown, as at a standstill), the app SHALL drop the next point and every one before the nearer one, and SHALL route from where the rider is to the nearer one, as for a skip. It SHALL announce it aloud, show it as a skip with the Undo, and SHALL NOT do it again for 20 seconds. It SHALL NOT do it on a rider who is on the route, in the demo, or in a scripted ride.
+A rider who has left the route and rides their own way SHALL NOT be pulled back to the point the roadbook was heading for. The app SHALL send an off-route rider to the route point cheapest to go to, as spec ride-navigation ("Back to the route") says, dropping the points before it, and SHALL announce it aloud and route from where the rider is, as for a skip.
 
 #### Scenario: Nearer 3 than 2
 
 - **WHEN** the rider, off route and heading towards point 3, is 400 m from point 3 and 900 m from point 2, which has not been reached
-- **THEN** the app announces "Skipping 2, heading for 3" and the route goes from the rider to point 3
-
-#### Scenario: Between two points
-
-- **WHEN** the rider is off route and about as near point 2 as point 3
-- **THEN** nothing is skipped and the route still goes to point 2
-
-#### Scenario: Heading away
-
-- **WHEN** the rider is nearer point 3 but heading away from it
-- **THEN** nothing is skipped
+- **THEN** the app announces "Heading for 3" and the route goes from the rider to point 3
 
 ### Requirement: Two taps, at any speed
 
@@ -60,7 +50,7 @@ Skipping SHALL ask for a confirmation naming the point skipped and the target, a
 
 ### Requirement: The new route
 
-The route SHALL be requested from the public Valhalla service, once per skip, as for the approach (ADR 0008, ADR 0012), and ridden with the rest of the roadbook as one line, dashed, with instructions, corner warnings, danger zones and the speed limit working on it. Without a route within 10 seconds the app SHALL fall back to a straight line to the target and say so, as for the approach. The new ride SHALL be announced aloud ("Skipping 2. Mont des Cats, heading for 3. Cassel") and shown as "To 3. Cassel" until the target is reached.
+The route SHALL be requested from the public Valhalla service, once per skip, as for the approach (ADR 0008, ADR 0012), and ridden with the rest of the roadbook as one line, solid like the roadbook, with instructions, corner warnings, danger zones and the speed limit working on it. Without a route within 10 seconds the app SHALL fall back to a straight line to the target and say so, as for the approach. The new ride SHALL be announced aloud ("Skipping 2. Mont des Cats, heading for 3. Cassel") and shown as "To 3. Cassel" until the target is reached.
 
 #### Scenario: No route in time
 
