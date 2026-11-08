@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.1...v1.6.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** pin expo-screen-orientation to 58.0.3, 58.0.4 breaks the iOS build ([#95](https://github.com/bhoudebert/mobile-motoride/issues/95)) ([1e54e17](https://github.com/bhoudebert/mobile-motoride/commit/1e54e1721ec0e7f253e65efcd653f0799498d380))
+
 ## [1.6.1](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.0...v1.6.1) (2026-11-08)
 
 
