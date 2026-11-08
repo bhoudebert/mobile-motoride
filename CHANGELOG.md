@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.0...v1.6.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **ride:** go to the cheapest route point when off route, with normal navigation on the way ([#93](https://github.com/bhoudebert/mobile-motoride/issues/93)) ([fb148d2](https://github.com/bhoudebert/mobile-motoride/commit/fb148d22e2bef6d32a026e19bfb885a997f1e85a))
+
 ## [1.6.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.5.0...v1.6.0) (2026-11-02)
 
 
