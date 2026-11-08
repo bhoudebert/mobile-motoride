@@ -1,4 +1,4 @@
-import { createContext, forwardRef, useContext, useImperativeHandle, type ReactNode } from "react";
+import { createContext, forwardRef, useContext, useEffect, useImperativeHandle, type ReactNode } from "react";
 import { View } from "react-native";
 
 /** Fake MapLibre: renders its children, records the props and exposes the camera and map calls. */
@@ -11,6 +11,8 @@ export const lastMap: { props: any } = { props: null };
 export const sources: Record<string, any> = {};
 /** The props each layer was drawn with, by id. */
 export const layers: Record<string, any> = {};
+/** The layers on the map from bottom to top: a layer that mounts later is above the ones already there, as in MapLibre. */
+export const stack: string[] = [];
 
 export const Map = forwardRef(function Map(props: any, ref) {
   lastMap.props = props;
@@ -38,6 +40,12 @@ export function GeoJSONSource({ id, data, children }: { id: string; data: unknow
 export function Layer(props: { id: string; source?: string; [key: string]: unknown }) {
   const { id, source } = props;
   layers[id] = props;
+  useEffect(() => {
+    stack.push(id);
+    return () => {
+      stack.splice(stack.lastIndexOf(id), 1);
+    };
+  }, [id]);
   if (!useContext(InSource) && !source) throw new Error(`Layer ${id} is not inside a source and names none`);
   return <View testID={`layer-${id}`} />;
 }
@@ -72,6 +80,7 @@ export const OfflineManager = {
 };
 
 export function resetMapMock() {
+  stack.length = 0;
   offline.packs = [];
   offline.progress = [];
   offline.errors = [];

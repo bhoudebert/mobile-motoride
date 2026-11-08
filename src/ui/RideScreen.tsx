@@ -1084,7 +1084,15 @@ export function RideScreen({
               />
             </GeoJSONSource>
             {rider ? (
-              <GeoJSONSource id="rider" data={rider}>
+              // MapLibre puts a layer that mounts later above the ones already there: the rider mounts again whenever
+              // one of those appears, so the arrow is always on top, never under a chevron.
+              <GeoJSONSource
+                key={[nextLine, approach, traffic.stretches.length > 0, fuel.stops.length > 0, places.selected]
+                  .map((x) => (x ? 1 : 0))
+                  .join("")}
+                id="rider"
+                data={rider}
+              >
                 <Layer
                   id="rider"
                   type="symbol"
