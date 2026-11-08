@@ -54,3 +54,25 @@ test("without a GPS fix or in the demo there is nothing to skip", async () => {
   });
   expect(demo.result.current.skip.plan).toBeNull();
 });
+
+test("a rider far from the route is sent to a route point with their heading, and the skip stays offered", async () => {
+  const rb = skippableRoadbook();
+  const start = at(rb, 100);
+  location.state.position = { latitude: start[0], longitude: start[1] };
+  const { result } = await renderHook(() => useRide(rb, "gps"));
+  await flush();
+  await act(async () => location.pushFix(start[0], start[1], 20, 1000, 90));
+  const road = at(rb, 1500);
+  const far: [number, number] = [road[0] + 0.03, road[1]]; // about 3 km north of the road, heading east
+  route.mockResolvedValue([far, at(rb, 2000)]);
+  for (let i = 0; i < 4; i++)
+    await act(async () => location.pushFix(far[0], far[1] + i * 0.0003, 20, 2000 + i * 1000, 90));
+  await flush();
+  expect(route).toHaveBeenCalled();
+  const [, , options] = route.mock.calls[0]!;
+  expect(options.headingDeg).toBeGreaterThan(60);
+  expect(options.headingDeg).toBeLessThan(120);
+  expect(result.current.ride.approachName).toMatch(/^\d\. /);
+  expect(result.current.ride.approachDirect).toBe(false);
+  expect(result.current.skip.plan).not.toBeNull();
+});

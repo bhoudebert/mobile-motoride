@@ -117,6 +117,7 @@ export const ride = {
   "ride.legend.youDetail": "The yellow arrow points the way you ride.",
   "ride.legend.zoom": "Corner dots show when you zoom in.",
 
+  "ride.rejoin.say": "Heading for {target}",
   "ride.skip.button": "Skip {name}",
   "ride.skip.label": "SKIP\nSTEP",
   "ride.skip.busy": "Finding a new route…",

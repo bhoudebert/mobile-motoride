@@ -13,6 +13,7 @@ import {
 import { countryAt, policyOf, spanText, stricter } from "./cameraPolicy.ts";
 import { isOver, limitAt, ZONE_LOOKAHEAD_M, type SpeedLimit } from "./limits.ts";
 import { REJOIN_AHEAD_M } from "./approach.ts";
+import { chooseRejoinTarget } from "./rejoin.ts";
 import { bearingAt, pointAt, snapToLine } from "./track.ts";
 import type { Corner, Fix, LatLon, PreparedRoadbook } from "./types.ts";
 import { t } from "./i18n/index.ts";
@@ -87,10 +88,14 @@ export interface Rejoin {
   distanceM: number;
   /** Bearing from the rider to the target, degrees from north. */
   bearingDeg: number;
+  /** The route point it leads to, for a rider far from the roadbook; null for the nearest point of the line. */
+  name: string | null;
 }
 
 export interface NavState {
   progressM: number;
+  /** Where on the line the rider last was on it: while lost, `progressM` is only the nearest point of the line. */
+  reachedM: number;
   remainingM: number;
   distanceToLineM: number;
   offRoute: boolean;
@@ -365,18 +370,22 @@ export function createNavigator(rb: PreparedRoadbook, options: NavigatorOptions 
       // Off route: the point of the line to rejoin, never behind where the rider was on it.
       let rejoin: Rejoin | null = null;
       if (offRoute) {
-        const atM = Math.min(Math.max(snap.progressM, lastOnRouteM) + REJOIN_AHEAD_M, rb.totalM);
+        // Far from the roadbook: the route point cheapest to go to (spec ride-navigation, "Back to the route").
+        const point = chooseRejoinTarget(rb, lastOnRouteM, pos, heading);
+        const atM = point ? point.atM : Math.min(Math.max(snap.progressM, lastOnRouteM) + REJOIN_AHEAD_M, rb.totalM);
         const targetPoint = pointAt(rb.roadbook.line, rb.cumulativeM, atM);
         rejoin = {
           atM,
           target: targetPoint,
           distanceM: haversineM(pos, targetPoint),
           bearingDeg: bearingDeg(pos, targetPoint),
+          name: point?.name ?? null,
         };
       }
 
       return {
         progressM,
+        reachedM: lastOnRouteM,
         remainingM: Math.max(0, rb.totalM - progressM),
         distanceToLineM: snap.offsetM,
         offRoute,
@@ -395,7 +404,8 @@ export function createNavigator(rb: PreparedRoadbook, options: NavigatorOptions 
         }),
         phase: approaching ? "approach" : "ride",
         toStartM,
-        bearingDeg: lineBearing,
+        // Lost, the line's direction is that of some far-off nearest point: the arrow follows the rider, else the target.
+        bearingDeg: offRoute ? (heading ?? rejoin?.bearingDeg ?? lineBearing) : lineBearing,
         position: offRoute ? pos : pointAt(rb.roadbook.line, rb.cumulativeM, progressM),
         speedLimit,
         speedKmh: fix.speedMps === null || fix.speedMps < 0 ? null : fix.speedMps * 3.6,

@@ -1,9 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { RideScreen } from "../../src/ui/RideScreen.tsx";
+import { routeToStart } from "../../src/services/valhalla.ts";
 import { resetFiles } from "./filesystem.mock.ts";
 import * as location from "./location.mock.ts";
-import { layers, resetMapMock, sources } from "./maplibre.mock.tsx";
+import { layers, resetMapMock, sources, stack } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
 import { at, bareRoadbook, first } from "./helpers.ts";
 
@@ -82,6 +83,27 @@ test("the 3 km just ahead of the rider are drawn again on top, bright, with bold
   const later = sources["line-next"].geometry.coordinates as [number, number][];
   expect(near(later[0]!, 20_000)).toBeLessThan(0.001);
   expect(later).not.toEqual(first10);
+});
+
+test("the rider's arrow stays the top layer when the bright stretch comes back after being lost", async () => {
+  const rb = first();
+  (routeToStart as jest.Mock).mockImplementation(() => new Promise(() => {}));
+  const [lat, lon] = at(rb, 1_000);
+  location.state.position = { latitude: lat, longitude: lon };
+  await render(<RideScreen rb={rb} onBack={() => {}} />);
+  await flush(30);
+  await fireEvent.press(screen.getByText("Start"));
+  await flush(30);
+  const [la, lo] = at(rb, 5_000);
+  await act(async () => location.pushFix(la, lo, 20, 1000));
+  expect(stack).toContain("line-next-chevrons");
+  // Lost: the bright stretch goes, the rider stays.
+  for (let i = 0; i < 4; i++) await act(async () => location.pushFix(la + 0.01, lo, 20, 2000 + i * 1000));
+  expect(stack).not.toContain("line-next-chevrons");
+  // Back on the road: the stretch mounts after the rider, which must still end up on top.
+  await act(async () => location.pushFix(la, lo, 20, 7000));
+  expect(stack).toContain("line-next-chevrons");
+  expect(stack[stack.length - 1]).toBe("rider");
 });
 
 test("the map marks where a roadbook begins and ends: one mark for a loop, a start and a finish for a road", async () => {

@@ -141,6 +141,20 @@ test("routeToStart says who it is to the public Valhalla server: a User-Agent an
   assert.equal(headers["X-Client-Id"], "motoride");
 });
 
+test("routeToStart sends the rider's heading, so the route starts in their direction of travel", async () => {
+  let body: any = null;
+  const spy = (async (_url: string, init: { body: string }) => {
+    body = JSON.parse(init.body);
+    return { ok: false };
+  }) as any;
+  await routeToStart([50.4, 3.1], [50.45, 3.2], { fetchImpl: spy, headingDeg: 87.6 });
+  assert.equal(body.locations[0].heading, 88);
+  assert.equal(body.locations[0].heading_tolerance, 60);
+  assert.equal(body.locations[1].heading, undefined);
+  await routeToStart([50.4, 3.1], [50.45, 3.2], { fetchImpl: spy });
+  assert.equal(body.locations[0].heading, undefined, "no heading, nothing sent");
+});
+
 test("routeToStart gives null on an HTTP error, a bad body, a network error and a timeout", async () => {
   const from: LatLon = [50.4, 3.1];
   const to: LatLon = [50.45, 3.2];
