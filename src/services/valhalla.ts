@@ -10,6 +10,8 @@ export const CLIENT_ID = "motoride";
 export interface RouteOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** The rider's heading: the route starts in that direction when the road allows, rather than sending them back. */
+  headingDeg?: number;
 }
 
 /**
@@ -17,7 +19,7 @@ export interface RouteOptions {
  * when it cannot be had in time: the caller falls back to a straight line.
  */
 export async function routeToStart(from: LatLon, to: LatLon, options: RouteOptions = {}): Promise<LatLon[] | null> {
-  const { fetchImpl = fetch, timeoutMs = 10_000 } = options;
+  const { fetchImpl = fetch, timeoutMs = 10_000, headingDeg } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -31,7 +33,11 @@ export async function routeToStart(from: LatLon, to: LatLon, options: RouteOptio
       },
       body: JSON.stringify({
         locations: [
-          { lat: from[0], lon: from[1] },
+          {
+            lat: from[0],
+            lon: from[1],
+            ...(headingDeg === undefined ? {} : { heading: Math.round(headingDeg) % 360, heading_tolerance: 60 }),
+          },
           { lat: to[0], lon: to[1] },
         ],
         costing: "motorcycle",

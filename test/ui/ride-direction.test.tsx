@@ -4,7 +4,7 @@ import { RideScreen } from "../../src/ui/RideScreen.tsx";
 import { routeToStart } from "../../src/services/valhalla.ts";
 import { traceLimit } from "../../src/services/liveLimit.ts";
 import * as location from "./location.mock.ts";
-import { resetMapMock } from "./maplibre.mock.tsx";
+import { resetMapMock, sources } from "./maplibre.mock.tsx";
 import { flush } from "./flush.ts";
 import { at, limitedRoadbook, endRide } from "./helpers.ts";
 import type { LatLon, PreparedRoadbook } from "../../src/core/types.ts";
@@ -89,6 +89,24 @@ test("off route it asks once for a road route back, and rides it dashed with 'Ba
   await push(away, 40, 5000, 0);
   expect(screen.getByText(/^Back to the route · /)).toBeTruthy();
   expect(screen.queryByText(/^Off route · /)).toBeNull();
+});
+
+test("a routed way back shows the bright stretch ahead like the roadbook, and a straight line does not", async () => {
+  const rb = limitedRoadbook({ cameras: false });
+  const here = at(rb, 1000);
+  const away = north(here);
+  route.mockResolvedValue([away, [away[0] - 0.0009, away[1] + 0.001], at(rb, 1250)]);
+  await start(rb, here);
+  await push(here, 40, 1000, 90);
+  await push(away, 40, 2000, 0);
+  await push(away, 40, 3000, 0);
+  await push(away, 40, 4000, 0);
+  await flush();
+  await push(away, 40, 5000, 0);
+  const next = (sources["line-next"] as any).geometry.coordinates as [number, number][];
+  // It starts at the rider, on the way back, not on the roadbook.
+  expect(next[0]![1]).toBeCloseTo(away[0], 3);
+  expect(next[0]![0]).toBeCloseTo(away[1], 3);
 });
 
 test("it does not ask again within 30 seconds, or before moving 50 m, then does", async () => {

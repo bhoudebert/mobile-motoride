@@ -267,10 +267,8 @@ export function RideScreen({
     name: rb.roadbook.name,
     onStopped: () => setShareWanted(false),
   });
-  const { permission, prep, ride, nav, speedMps, fix, warning, zone, finished, skip, join, routingTo } = useRide(
-    rb,
-    mode,
-    {
+  const { permission, prep, ride, rideOf, nav, speedMps, fix, warning, zone, finished, skip, join, routingTo } =
+    useRide(rb, mode, {
       paused,
       replay,
       // A scripted GPS ride plays its script as written: the chosen start point does not apply to it.
@@ -280,8 +278,7 @@ export function RideScreen({
       onSaved: onRideSaved,
       liveShare: liveShare.sharer,
       motion: motionNow,
-    },
-  );
+    });
   // A place the rider looks for in the next 60 km of the roadbook (spec places-search).
   const places = usePlaces(roadbook, nav?.progressM ?? 0);
   // A crash or a fall on a ride on the phone's GPS: the alert, and the followers told (spec crash-detection).
@@ -346,18 +343,23 @@ export function RideScreen({
   const shareRidden = nav && nav.phase === "ride" ? ridden(nav.progressM - ride.approachM, rb.totalM) : 0;
   // The 3 km just ahead are drawn again on top, bright and with bold chevrons: where the road is ridden out and back, or
   // crosses itself, only the way to ride now shows there (ADR 0046).
-  const stretchFrom = nav && nav.phase === "ride" ? nextStretch(nav.progressM - ride.approachM, rb.totalM).fromM : -1;
+  // It follows the line the rider rides: the roadbook, or a routed way to its start or to a route point, which is
+  // navigation like any other. A straight line, which is no road, and a rider lost, have none.
+  const stretchFrom =
+    nav && rideOf === ride && !nav.offRoute && !(nav.phase === "approach" && ride.approachDirect)
+      ? nextStretch(nav.progressM, ride.totalM).fromM
+      : -1;
   const nextLine = useMemo(() => {
     if (stretchFrom < 0) return null;
-    const { fromM, toM } = nextStretch(stretchFrom, rb.totalM);
-    const points = sliceLine(rb.roadbook.line, rb.cumulativeM, fromM, toM);
+    const { fromM, toM } = nextStretch(stretchFrom, ride.totalM);
+    const points = sliceLine(ride.roadbook.line, ride.cumulativeM, fromM, toM);
     if (points.length < 2) return null;
     return {
       type: "Feature" as const,
       properties: {},
       geometry: { type: "LineString" as const, coordinates: points.map(([lat, lon]) => [lon, lat]) },
     };
-  }, [stretchFrom, rb]);
+  }, [stretchFrom, ride]);
   const rideColor = colors.route;
   const doneColor = colors.routeDone;
   const lineGradient = useMemo(
@@ -1003,8 +1005,14 @@ export function RideScreen({
                 <Layer
                   id="approach"
                   type="line"
-                  paint={{ "line-color": colors.hazard, "line-width": 5, "line-dasharray": [2, 1.5] }}
-                  layout={{ "line-join": "round" }}
+                  // A routed way is a road like the roadbook's: solid, in the route colour. Only a straight line, which is
+                  // no road, stays dashed in the hazard colour (spec ride-navigation, "Approach to the start").
+                  paint={
+                    ride.approachDirect
+                      ? { "line-color": colors.hazard, "line-width": 5, "line-dasharray": [2, 1.5] }
+                      : { "line-color": colors.route, "line-width": 8 }
+                  }
+                  layout={{ "line-join": "round", "line-cap": "round" }}
                 />
                 <Layer
                   id="approach-arrows"

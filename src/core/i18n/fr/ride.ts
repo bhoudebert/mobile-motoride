@@ -120,6 +120,7 @@ export const ride: Translated<typeof English> = {
   "ride.legend.youDetail": "La flèche jaune indique votre sens de marche.",
   "ride.legend.zoom": "Les points de virage apparaissent quand vous zoomez.",
 
+  "ride.rejoin.say": "En route vers {target}",
   "ride.skip.button": "Sauter {name}",
   "ride.skip.label": "SAUTER\nÉTAPE",
   "ride.skip.busy": "Recherche d'un nouvel itinéraire…",

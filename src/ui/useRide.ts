@@ -13,7 +13,6 @@ import type { MotionReading } from "../core/instruments.ts";
 import { replayFixAt, type ReplayPhase } from "../core/replay.ts";
 import {
   joinOptions,
-  planAutoSkip,
   planSkip,
   START_HERE_M,
   type JoinOptions,
@@ -65,6 +64,8 @@ export interface RideState {
   /** The roadbook as ridden: with the approach to the start in front of it when there is one. */
   ride: PreparedRoadbook;
   nav: NavState | null;
+  /** The ride `nav` was computed on: `nav` belongs to `ride` only when they are the same. */
+  rideOf: PreparedRoadbook | null;
   speedMps: number | null;
   /** The last position, for the instruments (spec instruments). */
   fix: Fix | null;
@@ -112,8 +113,6 @@ const REROUTE_RETRY_MS = 5_000;
 const REROUTE_RETRY_MAX_MS = 15_000;
 /** A rider who has moved this far since the last request is asked for again, whatever the delay. */
 const REROUTE_FAR_M = 150;
-/** After a skip by itself, none for this long, so a rider between two points is not moved back and forth. */
-const AUTO_SKIP_PAUSE_MS = 20_000;
 
 const timeout = <T>(ms: number): Promise<T | null> => new Promise((resolve) => setTimeout(() => resolve(null), ms));
 
@@ -180,7 +179,7 @@ export function useRide(
   const wasOver = useRef(false);
   const lastVibration = useRef<number | null>(null);
   const lastReroute = useRef<{ time: number; pos: LatLon; failures: number } | null>(null);
-  const lastAutoSkip = useRef<number | null>(null);
+  const lastRejoinName = useRef<string | null>(null);
   const liveState = useRef(newLiveLimitState());
   const liveLimit = useRef<{ limit: SpeedLimit; time: number } | null>(null);
   const liveAsking = useRef(false);
@@ -237,18 +236,7 @@ export function useRide(
       setRide(rb);
       return;
     }
-    // Off the plan and nearer a later route point, heading to it: the rider chose their way, drop the points between.
-    if (mode === "gps" && nav.offRoute && !skipping.current && !replay) {
-      const sinceAuto = lastAutoSkip.current === null ? Infinity : fix.time - lastAutoSkip.current;
-      const auto =
-        sinceAuto >= AUTO_SKIP_PAUSE_MS
-          ? planAutoSkip(ride, nav.progressM, [fix.lat, fix.lon], travelHeading(fix.headingDeg, fix.speedMps))
-          : null;
-      if (auto) {
-        lastAutoSkip.current = fix.time;
-        skipTo(auto);
-      }
-    }
+    if (!nav.offRoute) lastRejoinName.current = null;
     recorder.current?.add(fix, nav.remainingM, motion?.current ?? null);
     if (mode === "gps" && !replay) liveShare?.current?.add(fix);
     if (nav.warning) {
@@ -284,7 +272,7 @@ export function useRide(
       zone: shownZone.current,
       finished: false,
     });
-    if (mode === "gps" && nav.offRoute && nav.rejoin) maybeRejoin(fix, nav.rejoin.atM);
+    if (mode === "gps" && nav.offRoute && nav.rejoin) maybeRejoin(fix, nav.rejoin.atM, nav.rejoin.name ?? undefined);
     // A straight line to the route stands in for a way that was not found: ask for the way again, sooner and sooner.
     else if (mode === "gps" && ride.approachDirect && ride.approachTarget === "route")
       maybeRejoin(fix, ride.approachM, ride.approachName);
@@ -309,7 +297,10 @@ export function useRide(
     // The target is on the whole roadbook, whatever the current approach put in front of it.
     const joinM = ride.joinM + Math.max(0, rejoinAtM - ride.approachM);
     const target = pointAt(rb.roadbook.line, rb.cumulativeM, joinM);
-    void routeToStart(here, target).then((route) => {
+    if (name && name !== lastRejoinName.current) say("skip", t("ride.rejoin.say", { target: name }));
+    lastRejoinName.current = name ?? null;
+    const heading = travelHeading(fix.headingDeg, fix.speedMps);
+    void routeToStart(here, target, heading === null ? {} : { headingDeg: heading }).then((route) => {
       rerouting.current = false;
       if (runId.current !== currentRun || epoch.current !== epochAt) return;
       if (lastReroute.current) lastReroute.current.failures = route ? 0 : failures + 1;
@@ -321,8 +312,11 @@ export function useRide(
     });
   };
 
+  // Lost, the progress is only the nearest point of the line, often the end of a loop: the last place on it counts.
   const plan =
-    mode === "gps" && prep === "ready" && live.nav && live.rideOf === ride ? planSkip(ride, live.nav.progressM) : null;
+    mode === "gps" && prep === "ready" && live.nav && live.rideOf === ride
+      ? planSkip(ride, live.nav.offRoute ? live.nav.reachedM : live.nav.progressM)
+      : null;
 
   /** Skip the next route point: a route from here to the one after it, ridden with the rest of the roadbook. */
   const confirm = () => {
