@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.3](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.2...v1.6.3) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ride:** rejoin the nearest place of the line ahead, and ask for the way back at once ([#99](https://github.com/bhoudebert/mobile-motoride/issues/99)) ([5e8cc8a](https://github.com/bhoudebert/mobile-motoride/commit/5e8cc8a2e8aa23a813c96be6ad6c4a38b692098b))
+
 ## [1.6.2](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.1...v1.6.2) (2026-11-08)
 
 
