@@ -33,30 +33,34 @@ function recorded(name: string): Fix[] {
 }
 
 for (const ride of ["2026-11-08-fuel-detour-a", "2026-11-08-fuel-detour-b"]) {
-  test(`${ride}: a rider far from the route is always sent to a route point, not the nearest bit of the line`, () => {
+  test(`${ride}: a rider far from the route is sent to a place of the line, which does not hop about`, () => {
     const nav = createNavigator(coutiches);
-    const targets = new Set<string>();
+    const targets: number[] = [];
     let far = 0;
     for (const fix of recorded(ride)) {
       const s = nav.update(fix);
       if (!s.offRoute || s.distanceToLineM <= REJOIN_NEAR_M) continue;
       far++;
       assert.ok(s.rejoin, "a rider off route has a place to go to");
-      const stop = waypoints.find((w) => haversineM([w.lat, w.lon], s.rejoin!.target) < 30);
-      assert.ok(stop, `the target ${s.rejoin.target} is a route point`);
-      assert.equal(s.rejoin.name, stop.name);
-      targets.add(stop.name);
+      assert.ok(
+        waypoints.some((w) => w.name === s.rejoin!.name),
+        `${s.rejoin.name} is a route point`,
+      );
+      if (targets[targets.length - 1] !== s.rejoin.atM) targets.push(s.rejoin.atM);
     }
     assert.ok(far > 20, "the ride spends time far from the route");
-    // It does not hop between the end of the loop and its start as the nearest point of the line flips.
-    assert.ok(targets.size <= 2, `targets seen: ${[...targets].join(" | ")}`);
+    // The place moves as the rider does, but it settles: a few changes over a ride of an hour, not one a minute.
+    assert.ok(targets.length <= 40, `targets seen: ${targets.length}`);
   });
 
   test(`${ride}: the next point can be skipped all along, off route or not`, () => {
     const nav = createNavigator(coutiches);
     for (const fix of recorded(ride)) {
       const s = nav.update(fix);
-      assert.ok(planSkip(coutiches, s.reachedM), `no skip offered at ${fix.lat},${fix.lon} (reached ${s.reachedM})`);
+      assert.ok(
+        planSkip(coutiches, s.rejoin?.atM ?? s.reachedM),
+        `no skip offered at ${fix.lat},${fix.lon} (reached ${s.reachedM})`,
+      );
     }
   });
 }
@@ -79,29 +83,40 @@ function cumulative(line: LatLon[]): number[] {
 }
 const off = (m: number, northM: number): LatLon => unproject([m, northM], REF);
 
-test("a rider heading for a later point is sent there, not back to the next one", () => {
+test("a rider who missed the start and went far along is sent to the nearest place of the line, not back to the start", () => {
   const rb = road();
-  // 3 km north of the road, level with 4.5 km along it, heading east: Point 3 (6 km) is ahead, Point 2 (4 km) behind.
-  const pos = off(4500, 3000);
-  const choice = chooseRejoinTarget(rb, 1900, pos, 90);
-  assert.equal(choice?.name, "Point 3");
+  // Never on the road (reached 0), 3 km north of it level with 4.5 km along it, heading east: Point 1 (2 km) is behind.
+  const choice = chooseRejoinTarget(rb, 0, off(4500, 3000), 90);
+  assert.ok(choice);
+  assert.ok(choice.atM > 4400 && choice.atM < 6000, `joins at ${choice.atM}`);
+  assert.equal(choice.name, "Point 3", "the next point is the one in front");
 });
 
-test("a rider whose next point is the nearest ahead goes to it", () => {
+test("a rider level with the finish is sent there, whatever points were skipped", () => {
   const rb = road();
-  const choice = chooseRejoinTarget(rb, 2500, off(2600, 3000), 90);
-  assert.equal(choice?.name, "Point 2");
+  const choice = chooseRejoinTarget(rb, 0, off(7900, 3000), 90);
+  assert.ok(choice && choice.atM > 7500, `joins at ${choice?.atM}`);
+  assert.equal(choice.name, "Finish");
 });
 
-test("the nearest point is kept even if the rider heads away from it, when the others are further still", () => {
+test("a place the rider already passed costs more than one of the same distance ahead", () => {
   const rb = road();
-  // Heading west, away from every point: Point 1 is still the nearest and the least behind.
-  assert.equal(chooseRejoinTarget(rb, 100, off(1500, 2000), 270)?.name, "Point 1");
+  // Last on the road at 6 km, now 3 km north of it level with 5 km: the nearest place is behind, 6 km is ahead.
+  const choice = chooseRejoinTarget(rb, 6000, off(5000, 3000), null);
+  assert.ok(choice && choice.atM >= 5900, `joins at ${choice?.atM}`);
 });
 
-test("the finish is not a place to rejoin while a route point remains", () => {
+test("the place being ridden to is kept unless another costs clearly less", () => {
   const rb = road();
-  assert.notEqual(chooseRejoinTarget(rb, 5900, off(7800, 3000), 90)?.name, "Finish");
+  const pos = off(4000, 3000);
+  const first = chooseRejoinTarget(rb, 0, pos, 90);
+  assert.ok(first);
+  // The rider drifts east a little: the nearest place moves with them, the one ridden to stays.
+  const kept = chooseRejoinTarget(rb, 0, off(4300, 3000), 90, 3800);
+  assert.equal(kept?.atM, 3800);
+  // Much nearer another place: it takes over.
+  const moved = chooseRejoinTarget(rb, 0, off(7000, 1000), 90, 3800);
+  assert.ok(moved && moved.atM > 6500, `joins at ${moved?.atM}`);
 });
 
 test("close to the line it is left to the nearest-point rejoin", () => {

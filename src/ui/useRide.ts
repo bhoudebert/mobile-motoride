@@ -24,7 +24,13 @@ import { travelHeading } from "../core/heading.ts";
 import { dueForLimit, LIVE_LIMIT_FRESH_MS, newLiveLimitState } from "../core/liveLimit.ts";
 import { isOver, type SpeedLimit } from "../core/limits.ts";
 import { traceLimit } from "../services/liveLimit.ts";
-import { createNavigator, type CornerWarning, type NavState, type ZoneWarning } from "../core/navigator.ts";
+import {
+  createNavigator,
+  OFF_ROUTE_M,
+  type CornerWarning,
+  type NavState,
+  type ZoneWarning,
+} from "../core/navigator.ts";
 import { DEMO_SPEED_MPS, demoStartM, simulatedFix } from "../core/simulate.ts";
 import type { Fix, LatLon, PreparedRoadbook } from "../core/types.ts";
 import { routeToStart } from "../services/valhalla.ts";
@@ -236,7 +242,12 @@ export function useRide(
       setRide(rb);
       return;
     }
-    if (!nav.offRoute) lastRejoinName.current = null;
+    if (!nav.offRoute) {
+      lastRejoinName.current = null;
+      // Leaving the road again asks for the way back at once, not after the wait of the last one: only a rider who was
+      // on a road to ask again from, not one still looking for the first fixes of a new way back.
+      if (!ride.approachDirect && nav.distanceToLineM <= OFF_ROUTE_M) lastReroute.current = null;
+    }
     recorder.current?.add(fix, nav.remainingM, motion?.current ?? null);
     if (mode === "gps" && !replay) liveShare?.current?.add(fix);
     if (nav.warning) {
@@ -315,7 +326,7 @@ export function useRide(
   // Lost, the progress is only the nearest point of the line, often the end of a loop: the last place on it counts.
   const plan =
     mode === "gps" && prep === "ready" && live.nav && live.rideOf === ride
-      ? planSkip(ride, live.nav.offRoute ? live.nav.reachedM : live.nav.progressM)
+      ? planSkip(ride, live.nav.offRoute ? (live.nav.rejoin?.atM ?? live.nav.reachedM) : live.nav.progressM)
       : null;
 
   /** Skip the next route point: a route from here to the one after it, ridden with the rest of the roadbook. */

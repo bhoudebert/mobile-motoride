@@ -76,3 +76,26 @@ test("a rider far from the route is sent to a route point with their heading, an
   expect(result.current.ride.approachDirect).toBe(false);
   expect(result.current.skip.plan).not.toBeNull();
 });
+
+test("a rider who leaves the way back asks for another at once, not after the wait of the last one", async () => {
+  const rb = skippableRoadbook();
+  const start = at(rb, 100);
+  location.state.position = { latitude: start[0], longitude: start[1] };
+  const { result } = await renderHook(() => useRide(rb, "gps"));
+  await flush();
+  await act(async () => location.pushFix(start[0], start[1], 20, 1000, 90));
+  const road = at(rb, 1500);
+  const far: [number, number] = [road[0] + 0.03, road[1]];
+  const back = at(rb, 2000);
+  route.mockResolvedValue([far, back]);
+  for (let i = 0; i < 4; i++) await act(async () => location.pushFix(far[0], far[1], 20, 2000 + i * 1000, 90));
+  await flush();
+  expect(route).toHaveBeenCalledTimes(1);
+  expect(result.current.ride.approachM).toBeGreaterThan(0);
+  // On the way back for a few seconds, then 120 m beside it: off it again, well within the 30 s of the last request.
+  for (let i = 0; i < 2; i++) await act(async () => location.pushFix(far[0], far[1], 20, 7000 + i * 1000, 90));
+  const beside: [number, number] = [far[0], far[1] + 0.0016];
+  for (let i = 0; i < 4; i++) await act(async () => location.pushFix(beside[0], beside[1], 20, 9000 + i * 1000, 90));
+  await flush();
+  expect(route.mock.calls.length).toBeGreaterThanOrEqual(2);
+});
