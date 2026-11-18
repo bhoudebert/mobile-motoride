@@ -179,6 +179,7 @@ export function createNavigator(rb: PreparedRoadbook, options: NavigatorOptions 
   const warned = new Set<number>();
   let progressM: number | null = null;
   let lastOnRouteM = 0;
+  let rejoinAtM: number | null = null;
   let farFixes = 0;
   let wrongFixes = 0;
   let lastTime: number | null = null;
@@ -369,9 +370,11 @@ export function createNavigator(rb: PreparedRoadbook, options: NavigatorOptions 
 
       // Off route: the point of the line to rejoin, never behind where the rider was on it.
       let rejoin: Rejoin | null = null;
-      if (offRoute) {
+      if (!offRoute) rejoinAtM = null;
+      else {
         // Far from the roadbook: the route point cheapest to go to (spec ride-navigation, "Back to the route").
-        const point = chooseRejoinTarget(rb, lastOnRouteM, pos, heading);
+        const point = chooseRejoinTarget(rb, lastOnRouteM, pos, heading, rejoinAtM);
+        rejoinAtM = point ? point.atM : null;
         const atM = point ? point.atM : Math.min(Math.max(snap.progressM, lastOnRouteM) + REJOIN_AHEAD_M, rb.totalM);
         const targetPoint = pointAt(rb.roadbook.line, rb.cumulativeM, atM);
         rejoin = {

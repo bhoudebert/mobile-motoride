@@ -32,12 +32,12 @@ While riding with GPS, the rider SHALL be able to skip the next route point: the
 
 ### Requirement: Skipping by itself
 
-A rider who has left the route and rides their own way SHALL NOT be pulled back to the point the roadbook was heading for. The app SHALL send an off-route rider to the route point cheapest to go to, as spec ride-navigation ("Back to the route") says, dropping the points before it, and SHALL announce it aloud and route from where the rider is, as for a skip.
+A rider who has left the route and rides their own way SHALL NOT be pulled back to the point the roadbook was heading for. The app SHALL send an off-route rider to the place of the line cheapest to go to, as spec ride-navigation ("Back to the route") says, dropping the route points before it, and SHALL announce it aloud and route from where the rider is, as for a skip.
 
 #### Scenario: Nearer 3 than 2
 
-- **WHEN** the rider, off route and heading towards point 3, is 400 m from point 3 and 900 m from point 2, which has not been reached
-- **THEN** the app announces "Heading for 3" and the route goes from the rider to point 3
+- **WHEN** the rider, off route and heading towards point 3, is 400 m from the line near point 3 and 900 m from the line near point 2, which has not been reached
+- **THEN** the app announces "Back to the route, next 3" and the route goes from the rider to the line near point 3
 
 ### Requirement: Two taps, at any speed
 

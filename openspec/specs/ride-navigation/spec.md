@@ -203,7 +203,7 @@ While on the roadbook and moving at 10 km/h or more, when the GPS heading is kno
 
 ### Requirement: Back to the route
 
-When the rider is off route, the app SHALL work out where to go to. A rider more than 500 m from the line, who is not on a missed turn but on their own way, SHALL be sent to a route point of the roadbook: the one cheapest to go to among those not yet reached, the finish kept for when none else is left. The cost is the straight-line distance, up to twice that when the point lies behind the rider's heading, so the nearest point ahead wins and a U-turn is chosen only when the point behind is much nearer. A later point SHALL be preferred to the next one only when it costs 70 % of it or less, and the points before the one chosen SHALL be dropped as for a skip. A rider within 500 m of the line has missed a turn: the point to rejoin is the nearest point of the line, 150 m further along it, never behind the rider's progress. At once, with no network, the instruction SHALL read the distance to the point and the direction to ride relative to the rider's heading ("Rejoin the route, 450 m, ahead left"), with an arrow turned the same way, and the rider's arrow on the map SHALL follow the rider's heading, not the direction of the line. When the phone is online the app SHALL ask the public Valhalla service once for a motorcycle route from the rider to that point (ADR 0012), sending the rider's heading when it is known so that the route starts in the direction of travel when the road allows, at most once every 30 seconds while off route and only when the rider has moved 50 m since the last request (at once again when the rider is 150 m from where the last was made, and after 5, 10 and then every 15 seconds while no route was found, whatever the rider's movement). On success it SHALL ride that route and then the rest of the roadbook as one line, with instructions, corner warnings, danger zones, the speed limit of the road under the rider and the camera working on it as on the roadbook, drawn like the roadbook's line, not dashed, with the 3 km ahead of the rider bright and with bold chevrons as on the roadbook, and the HUD reading "To" the point, or "Back to the route" for a missed turn. When it sends the rider to a route point it SHALL say so aloud ("Heading for 3. Cassel") once for each point. Without a route it SHALL keep the direction guidance (an arrow always towards the point to reach, never none) and a dashed straight line, SHALL NOT flag the rider off route on it, and SHALL ask for the route again as above. The part of the roadbook already ridden SHALL be dropped, so the distance remaining is true. While the rider is off route the next route point SHALL stay skippable, counted from the last place the rider was on the line, not from the nearest point of a loop that closes on itself.
+When the rider is off route, the app SHALL work out where to go to. A rider more than 500 m from the line, who is not on a missed turn but on their own way, SHALL be sent to the place of the roadbook's line that is cheapest to go to, not to a route point: the straight-line distance, up to twice that when the place lies behind the rider's heading, and half as much again for a place of the line the rider already passed, so that the nearest place ahead wins, a rider who skipped the start is sent on and not back to it, and a U-turn is chosen only when the place behind is much nearer. On a loop that comes back to its start, the last leg costs half as much again until the rider has reached it, so a rider who has not ridden the loop is not sent to its finish. The place being ridden to SHALL be kept unless another costs 60 % of it or less, so it does not hop about. The route points before that place SHALL count as passed, as for a skip, and the next one met from it is the one named. A rider within 500 m of the line has missed a turn: the point to rejoin is the nearest point of the line, 150 m further along it, never behind the rider's progress. At once, with no network, the instruction SHALL read the distance to the point and the direction to ride relative to the rider's heading ("Rejoin the route, 450 m, ahead left"), with an arrow turned the same way, and the rider's arrow on the map SHALL follow the rider's heading, not the direction of the line. When the phone is online the app SHALL ask the public Valhalla service once for a motorcycle route from the rider to that point (ADR 0012), sending the rider's heading when it is known so that the route starts in the direction of travel when the road allows, at once when the rider leaves the road, then at most once every 30 seconds while off route and only when the rider has moved 50 m since the last request (at once again when the rider is 150 m from where the last was made, and after 5, 10 and then every 15 seconds while no route was found, whatever the rider's movement). On success it SHALL ride that route and then the rest of the roadbook as one line, with instructions, corner warnings, danger zones, the speed limit of the road under the rider and the camera working on it as on the roadbook, drawn like the roadbook's line, not dashed, with the 3 km ahead of the rider bright and with bold chevrons as on the roadbook, and the HUD reading "To" the point, or "Back to the route" for a missed turn. When it sends the rider to a far place of the line it SHALL say so aloud, with the route point met next from there ("Back to the route, next 3. Cassel"), once for each point. Without a route it SHALL keep the direction guidance (an arrow always towards the point to reach, never none) and a dashed straight line, SHALL NOT flag the rider off route on it, and SHALL ask for the route again as above. The part of the roadbook already ridden SHALL be dropped, so the distance remaining is true. While the rider is off route the next route point SHALL stay skippable, counted from the place of the line the rider is sent to, not from the nearest point of a loop that closes on itself.
 
 #### Scenario: Missed junction
 
@@ -212,18 +212,28 @@ When the rider is off route, the app SHALL work out where to go to. A rider more
 
 #### Scenario: A fuel stop far from the route
 
-- **WHEN** the rider, riding to the start of a roadbook or along it, leaves it for 3 km to put fuel in the bike and is then 4 km from the line, heading towards a route point
-- **THEN** the app sends the rider to the cheapest route point ahead of them, with a route that starts in their direction of travel, drawn as a solid line with its instructions and speed limits, and says "Heading for" that point; it does not point back to where the rider left the line, and the skip button stays available
+- **WHEN** the rider, riding to the start of a roadbook or along it, leaves it for 3 km to put fuel in the bike and is then 4 km from the line, heading towards a part of it
+- **THEN** the app sends the rider to the cheapest place of the line ahead of them, with a route that starts in their direction of travel, drawn as a solid line with its instructions and speed limits, and says "Back to the route, next" the route point met from there; it does not point back to where the rider left the line, and the skip button stays available
 
-#### Scenario: A point behind that is much nearer
+#### Scenario: The start was missed, the rider is far along
 
-- **WHEN** the rider is 300 m from a route point behind them and 5 km from every point ahead
-- **THEN** the app goes to the point behind, and says so
+- **WHEN** the rider never rode the first leg of an 80 km roadbook from A to B, and after 30 km on their own way is level with the middle of the leg
+- **THEN** the app sends the rider to the nearest place of the line, forward, and names B as the next point; it does not send them back to A
+
+#### Scenario: A place behind that is much nearer
+
+- **WHEN** the rider is 300 m from a place of the line behind them and 5 km from every place ahead
+- **THEN** the app goes to the place behind, and says so
 
 #### Scenario: Loop that closes on itself
 
 - **WHEN** the rider is off route near the place where the loop starts and ends
-- **THEN** the target does not hop between the end of the loop and its beginning as the nearest point of the line changes
+- **THEN** the target does not hop between the end of the loop and its beginning as the nearest point of the line changes, and a rider who has not ridden the loop is not sent to its finish
+
+#### Scenario: Leaving the way back again
+
+- **WHEN** the rider leaves the way back they were given, within 30 seconds of asking for it
+- **THEN** a new route is asked for at once, so the green line comes back without waiting
 
 #### Scenario: Back on the road before the rejoin point
 
