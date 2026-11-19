@@ -28,6 +28,7 @@ const roadbookRecent = (): Recent => ({
 const handlers = {
   onOpenRoadbook: jest.fn(),
   onRoute: jest.fn(),
+  onChoose: jest.fn(),
   onSearch: jest.fn(),
   onRoadbooks: jest.fn(),
   onClearRecents: jest.fn(),

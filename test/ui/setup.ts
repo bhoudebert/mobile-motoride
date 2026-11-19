@@ -18,7 +18,17 @@ jest.mock("expo-splash-screen", () => ({
   hideAsync: jest.fn(() => Promise.resolve()),
 }));
 jest.mock("expo-font", () => ({ useFonts: () => [true, null], isLoaded: () => true, loadAsync: async () => {} }));
-jest.mock("../../src/services/valhalla.ts", () => ({ routeToStart: jest.fn() }));
+// One road by default, from `routeToStart`: a test that wants several routes sets `routesToPlace`.
+jest.mock("../../src/services/valhalla.ts", () => {
+  const routeToStart = jest.fn();
+  return {
+    routeToStart,
+    routesToPlace: jest.fn(async (from: unknown, to: unknown) => {
+      const line = await routeToStart(from, to);
+      return line ? [{ kind: "fastest", line, timeS: 600, lengthM: 10_000 }] : [];
+    }),
+  };
+});
 jest.mock("../../src/services/liveLimit.ts", () => ({ traceLimit: jest.fn(() => Promise.resolve(null)) }));
 jest.mock("expo-file-system", () => require("./filesystem.mock.ts"));
 jest.mock("expo-document-picker", () => require("./picker.mock.ts"));

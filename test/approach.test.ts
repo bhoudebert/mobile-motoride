@@ -7,7 +7,7 @@ import { approachFeature } from "../src/core/geojson.ts";
 import { decodePolyline } from "../src/core/polyline.ts";
 import { prepareRoadbook } from "../src/core/roadbook.ts";
 import { pointAt } from "../src/core/track.ts";
-import { routeToStart } from "../src/services/valhalla.ts";
+import { routesToPlace, routeToStart } from "../src/services/valhalla.ts";
 import { drawLine, fixAt } from "./helpers/path.ts";
 import { encodePolyline as encode } from "./helpers/polyline.ts";
 import type { LatLon } from "../src/core/types.ts";
@@ -172,4 +172,53 @@ test("routeToStart gives null on an HTTP error, a bad body, a network error and 
       init.signal?.addEventListener("abort", () => reject(new Error("aborted"))),
     )) as any;
   assert.equal(await routeToStart(from, to, { fetchImpl: hang, timeoutMs: 20 }), null);
+});
+
+test("routesToPlace asks the fastest, the one without motorway and the shortest, and reads their time and length", async () => {
+  const bodies: any[] = [];
+  const pts: LatLon[] = [
+    [50.4, 3.1],
+    [50.41, 3.12],
+  ];
+  const fetchImpl = (async (_url: string, init: RequestInit) => {
+    bodies.push(JSON.parse(String(init.body)));
+    return {
+      ok: true,
+      json: async () => ({
+        trip: { legs: [{ shape: encode(pts) }], summary: { time: 600 + bodies.length, length: 12.5 } },
+      }),
+    };
+  }) as unknown as typeof fetch;
+  const routes = await routesToPlace([50.4, 3.1], [50.41, 3.12], { fetchImpl });
+  assert.deepEqual(
+    routes.map((r) => r.kind),
+    ["fastest", "noMotorway", "shortest"],
+  );
+  assert.equal(routes[0]!.lengthM, 12_500);
+  assert.ok(routes[0]!.timeS > 600);
+  const options = bodies.map((b) => b.costing_options.motorcycle);
+  assert.deepEqual(options, [{ use_highways: 1 }, { use_highways: 0 }, { shortest: true }]);
+});
+
+test("routesToPlace leaves out a way that failed, and gives none when all fail", async () => {
+  let n = 0;
+  const pts: LatLon[] = [
+    [50.4, 3.1],
+    [50.41, 3.12],
+  ];
+  const flaky = (async () => {
+    n++;
+    if (n === 2) return { ok: false };
+    return { ok: true, json: async () => ({ trip: { legs: [{ shape: encode(pts) }] } }) };
+  }) as unknown as typeof fetch;
+  const routes = await routesToPlace([50.4, 3.1], [50.41, 3.12], { fetchImpl: flaky });
+  assert.deepEqual(
+    routes.map((r) => r.kind),
+    ["fastest", "shortest"],
+  );
+  assert.ok(routes[0]!.timeS > 0, "a route with no summary still has a time");
+  const down = (async () => {
+    throw new Error("offline");
+  }) as unknown as typeof fetch;
+  assert.deepEqual(await routesToPlace([50.4, 3.1], [50.41, 3.12], { fetchImpl: down }), []);
 });

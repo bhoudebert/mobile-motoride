@@ -5,7 +5,7 @@ import { searchable, type Place } from "../core/destination.ts";
 import { t } from "../core/i18n/index.ts";
 import type { PreparedRoadbook } from "../core/types.ts";
 import { searchPlaces } from "../services/places.ts";
-import { useGoTo } from "./useGoTo.ts";
+import { useGoTo, type GoChoice } from "./useGoTo.ts";
 import { BackButton } from "./BackButton.tsx";
 import { colors, fonts, themed } from "./theme.ts";
 
@@ -16,9 +16,11 @@ type Status =
 export function DestinationScreen({
   onBack,
   onRoute,
+  onChoose,
 }: {
   onBack: () => void;
   onRoute: (rb: PreparedRoadbook, place: Place) => void;
+  onChoose: (choice: GoChoice) => void;
 }) {
   const [query, setQuery] = useState("");
   const [places, setPlaces] = useState<Place[]>([]);
@@ -34,7 +36,7 @@ export function DestinationScreen({
     return () => sub.remove();
   }, [onBack]);
 
-  const go = useGoTo(onRoute);
+  const go = useGoTo(onRoute, onChoose);
   const goStatus = go.status;
 
   const search = async () => {
