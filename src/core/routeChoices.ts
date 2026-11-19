@@ -4,8 +4,8 @@ import type { LatLon } from "./types.ts";
 
 // ---- The routes offered to a rider going to a place (spec destination-routing, ADR 0053)
 
-/** The three ways asked for, in the order that names a route when two follow the same road. */
-export const ROUTE_KINDS = ["fastest", "noMotorway", "shortest"] as const;
+/** The ways asked for, in the order that names a route when two follow the same road; `alternative` is another road of the best route. */
+export const ROUTE_KINDS = ["fastest", "noMotorway", "shortest", "alternative"] as const;
 export type RouteKind = (typeof ROUTE_KINDS)[number];
 
 /** A route as the routing service answers it. */
@@ -26,6 +26,9 @@ export interface RouteChoice extends RouteCandidate {
   /** `timeS` and `delayS`. */
   totalS: number;
 }
+
+/** At most this many routes are offered. */
+export const MAX_CHOICES = 3;
 
 /** Two routes are one road when their lengths are within this share and nearly all of one lies near the other. */
 const SAME_LENGTH_SHARE = 0.05;

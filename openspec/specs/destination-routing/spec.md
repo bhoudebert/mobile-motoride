@@ -41,7 +41,7 @@ Choosing a place SHALL ask for the position of the phone (the location permissio
 
 ### Requirement: Choose between routes
 
-Choosing a place SHALL ask for up to three motorcycle routes from the position of the phone to the place, in parallel: the **fastest** (motorways allowed), the one **without motorway**, and the **shortest** by distance. A route that could not be had SHALL be dropped; routes that follow nearly the same road (about the same length and most of their line within 150 m of the other) SHALL be shown once, under the name of the first of the three above. With one route left, the ride SHALL open at once as before. With several, a screen SHALL show them on a map and as cards, one card each with its name, its time and its distance, and for the ones that are not the first, how much longer or shorter than it. The route that takes the least time SHALL be selected when the screen opens and drawn thick in the route green; the others SHALL be drawn thinner in another colour, their card carrying the same colour. Pressing a card or a line SHALL select that route, and the Start button SHALL open the ride on the selected route as in "Route from here". Back SHALL return to the results.
+Choosing a place SHALL ask for up to three motorcycle routes from the position of the phone to the place, in parallel: the **fastest** (motorways allowed), the one **without motorway**, and the **shortest** by distance, and the other roads Valhalla gives for the fastest (named "Another road"), which fill the choice where the three ways follow the same road (a short trip in town). At most three routes SHALL be offered, the three ways before the other roads. A route that could not be had SHALL be dropped; routes that follow nearly the same road (about the same length and most of their line within 150 m of the other) SHALL be shown once, under the name of the first of the three above. With one route left, the ride SHALL open at once as before. With several, a screen SHALL show them on a map and as cards, one card each with its name, its time and its distance, and for the ones that are not the first, how much longer or shorter than it. The route that takes the least time SHALL be selected when the screen opens and drawn thick in the route green; the others SHALL be drawn thinner in another colour, their card carrying the same colour. Pressing a card or a line SHALL select that route, and the Start button SHALL open the ride on the selected route as in "Route from here". Back SHALL return to the results.
 
 When the rider has a server with a traffic source and traffic is on (spec traffic), the points of each route (at most 8, spaced 2 to 10 km over the first 60 km) SHALL be sent to the server's `/traffic`, and the time of each route SHALL be that of the route plus the delay of its jams: a `slow` point costs the 10 km it stands for 1.4 times its time, a `heavy` one 2.5 times. A route with a `closed` point SHALL say so on its card and SHALL be selected only when every route is closed. The card SHALL say how much of the time is traffic ("+8 min traffic"). Without traffic (no server, no traffic source, off, or not answered in time) nothing SHALL be said of it and the routes SHALL be ranked by their own time. The app never talks to a traffic provider (ADR 0040).
 
@@ -54,6 +54,11 @@ When the rider has a server with a traffic source and traffic is on (spec traffi
 
 - **WHEN** the rider presses the card of the route without motorway and then Start
 - **THEN** the ride opens named "To Rue du Mont des Carliers 3" on that route
+
+#### Scenario: A short trip, the same road three ways
+
+- **WHEN** the fastest, the one without motorway and the shortest follow the same road, and Valhalla gives another road for it
+- **THEN** two routes are offered: the fastest, and "Another road"
 
 #### Scenario: A short trip with one road
 

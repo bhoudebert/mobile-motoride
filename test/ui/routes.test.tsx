@@ -135,3 +135,13 @@ test("a card says how much of its time is traffic, and when it is closed ahead",
   expect(screen.getByText("Closed ahead")).toBeTruthy();
   expect(screen.getAllByText(/^\+/).length).toBeGreaterThan(0);
 });
+
+test("another road of the best route is offered as such when the three ways are the same road", async () => {
+  const [fast] = three();
+  routes.mockResolvedValue([fast, { ...fast!, kind: "noMotorway" }, { ...three()[1]!, kind: "alternative" }]);
+  await choosePlace();
+  expect(screen.getByText("Choose your route")).toBeTruthy();
+  expect(screen.getByText("Fastest")).toBeTruthy();
+  expect(screen.getByText("Another road")).toBeTruthy();
+  expect(screen.queryByText("No motorway")).toBeNull();
+});

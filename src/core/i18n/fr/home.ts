@@ -35,6 +35,7 @@ export const home: Translated<typeof English> = {
   "home.routes.fastest": "Le plus rapide",
   "home.routes.noMotorway": "Sans autoroute",
   "home.routes.shortest": "Le plus court",
+  "home.routes.alternative": "Autre route",
   "home.routes.line": "{time} · {distance}",
   "home.routes.slower": "+{time}",
   "home.routes.traffic": "dont {time} de trafic",

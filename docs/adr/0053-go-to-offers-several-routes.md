@@ -14,6 +14,9 @@ the rider's server, as the levels of a few points.
 - **Three profiles, asked in parallel**: fastest (motorways allowed), without motorway (`use_highways: 0`), shortest
   (`shortest: true`). Each answer gives the line, the time and the distance of Valhalla's summary. A failed one is dropped; routes
   on nearly the same road are merged (about the same length, most of the line within 150 m).
+- **Other roads fill the choice.** The three ways often follow the same road on a short trip (Coutiches to Tournai: 27 min, 20.8 km
+  each on the public Valhalla). The fastest is also asked with `alternates: 2`; those roads are offered as "Another road" after the
+  three ways, at most three routes in all (the same trip then offers 27 min / 20.8 km and 32 min / 38 km).
 - **Ranked by time with traffic.** With a server that has a traffic source, up to 8 points per route over its first 60 km go to
   `/traffic`; a `slow` point stretches the time of the part of the route it stands for by 1.4, a `heavy` one by 2.5, a `closed` one
   makes the route last. The route with the least time is the default. Without traffic, it is the least time of the route.

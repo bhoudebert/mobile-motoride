@@ -222,3 +222,33 @@ test("routesToPlace leaves out a way that failed, and gives none when all fail",
   }) as unknown as typeof fetch;
   assert.deepEqual(await routesToPlace([50.4, 3.1], [50.41, 3.12], { fetchImpl: down }), []);
 });
+
+test("routesToPlace adds the other roads Valhalla gives for the best route, as alternatives", async () => {
+  const pts = (n: number): LatLon[] => [
+    [50.4, 3.1],
+    [50.41 + n / 100, 3.12],
+  ];
+  const requests: any[] = [];
+  const fetchImpl = (async (_u: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    requests.push(body);
+    const trip = (n: number, time: number) => ({
+      legs: [{ shape: encode(pts(n)) }],
+      summary: { time, length: 10 + n },
+    });
+    return {
+      ok: true,
+      json: async () => ({
+        trip: trip(0, 600),
+        ...(body.alternates ? { alternates: [{ trip: trip(1, 800) }, { trip: trip(2, 900) }] } : {}),
+      }),
+    };
+  }) as unknown as typeof fetch;
+  const routes = await routesToPlace([50.4, 3.1], [50.41, 3.12], { fetchImpl });
+  assert.deepEqual(
+    routes.map((r) => r.kind),
+    ["fastest", "noMotorway", "shortest", "alternative", "alternative"],
+  );
+  assert.equal(requests.filter((r) => r.alternates).length, 1, "only the best route is asked for other roads");
+  assert.equal(routes[3]!.timeS, 800);
+});

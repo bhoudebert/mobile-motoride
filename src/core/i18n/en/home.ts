@@ -32,6 +32,7 @@ export const home = {
   "home.routes.fastest": "Fastest",
   "home.routes.noMotorway": "No motorway",
   "home.routes.shortest": "Shortest",
+  "home.routes.alternative": "Another road",
   "home.routes.line": "{time} · {distance}",
   "home.routes.slower": "+{time}",
   "home.routes.traffic": "{time} of traffic",

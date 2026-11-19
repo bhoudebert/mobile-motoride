@@ -1,5 +1,5 @@
 import type { ServerSetting } from "../core/liveShare.ts";
-import { choicePoints, distinctRoutes, rankRoutes, type RouteChoice } from "../core/routeChoices.ts";
+import { choicePoints, distinctRoutes, MAX_CHOICES, rankRoutes, type RouteChoice } from "../core/routeChoices.ts";
 import type { LatLon } from "../core/types.ts";
 import { fetchCapabilities } from "./capabilities.ts";
 import { fetchTraffic } from "./traffic.ts";
@@ -28,7 +28,7 @@ export async function chooseRoutes(
   options: ChooseOptions = {},
 ): Promise<RouteChoice[]> {
   const { fetchImpl, trafficTimeoutMs = 6000 } = options;
-  const routes = distinctRoutes(await routesToPlace(from, to, fetchImpl ? { fetchImpl } : {}));
+  const routes = distinctRoutes(await routesToPlace(from, to, fetchImpl ? { fetchImpl } : {})).slice(0, MAX_CHOICES);
   const { server } = use;
   if (routes.length < 2 || !server || !use.enabled) return rankRoutes(routes, null);
   const net = { timeoutMs: trafficTimeoutMs, ...(fetchImpl ? { fetchImpl } : {}) };
