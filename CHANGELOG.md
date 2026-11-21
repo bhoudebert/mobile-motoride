@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.3...v1.7.0) (2026-11-21)
+
+
+### Features
+
+* **destination:** offer fastest, no-motorway and shortest routes, ranked with traffic ([#101](https://github.com/bhoudebert/mobile-motoride/issues/101)) ([2c1478c](https://github.com/bhoudebert/mobile-motoride/commit/2c1478c0cda910307d805f2deb71280d29629c49))
+
 ## [1.6.3](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.2...v1.6.3) (2026-11-18)
 
 
