@@ -93,7 +93,7 @@ test("far from the roadbook: it routes to the start once and shows the way there
   await fireEvent.press(screen.getByText("Go to the start"));
   await flush();
   expect(route).toHaveBeenCalledTimes(1);
-  expect(route).toHaveBeenCalledWith(rider, start);
+  expect(route).toHaveBeenCalledWith(rider, start, { server: null });
   expect(screen.getByTestId("source-approach")).toBeTruthy();
   expect(screen.getByTestId("layer-approach-arrows")).toBeTruthy();
   expect(screen.getByTestId("source-line")).toBeTruthy();

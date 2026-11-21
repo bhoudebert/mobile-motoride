@@ -52,7 +52,7 @@ Demo button feeds the same navigator with fixes from `simulatedFix`, so everythi
 
 ## Approach to the start
 
-Away from the roadbook, Start asks the public Valhalla service for one route to the roadbook's first point
+Away from the roadbook, Start asks the rider's server (else the public Valhalla service, ADR 0054) for one route to the roadbook's first point
 (`src/services/valhalla.ts`, ADR 0008) and rides approach + roadbook as one line (`withApproach`). The navigator
 reports `phase` (`approach` or `ride`) and `toStartM`. Without a route it falls back to a straight line that cannot
 be left. Only `src/services/` touches the network; `src/core/` stays pure.

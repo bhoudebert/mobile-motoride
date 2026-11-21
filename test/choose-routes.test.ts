@@ -16,6 +16,8 @@ function world(opts: { traffic: boolean; level?: string; trafficOk?: boolean }) 
   const calls: string[] = [];
   const fetchImpl = (async (url: string, init?: RequestInit) => {
     calls.push(url);
+    // An older server: no routes, so the public service answers (ADR 0054).
+    if (url.endsWith("/route") && url.includes("srv.example")) return { ok: false, status: 404 };
     if (url.includes("valhalla")) {
       const costing = JSON.parse(String(init?.body)).costing_options?.motorcycle ?? {};
       const line = costing.use_highways === 0 ? back : motorway;
@@ -57,7 +59,7 @@ test("without a server the routes are ranked by their own time and traffic is no
 test("traffic turned off asks nothing of the server", async () => {
   const w = world({ traffic: true, level: "heavy" });
   await chooseRoutes(from, to, { server, enabled: false }, { fetchImpl: w.fetchImpl });
-  assert.ok(!w.calls.some((u) => u.includes("srv.example")));
+  assert.ok(!w.calls.some((u) => u.endsWith("/health") || u.endsWith("/traffic")));
 });
 
 test("a server without traffic is asked its health only", async () => {

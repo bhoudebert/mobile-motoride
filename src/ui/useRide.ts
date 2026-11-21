@@ -34,6 +34,7 @@ import {
 import { DEMO_SPEED_MPS, demoStartM, simulatedFix } from "../core/simulate.ts";
 import type { Fix, LatLon, PreparedRoadbook } from "../core/types.ts";
 import { routeToStart } from "../services/valhalla.ts";
+import { useServer } from "./serverSetting.ts";
 import { DANGER_ZONES } from "./settings.ts";
 
 export type Permission = "unknown" | "granted" | "denied";
@@ -150,6 +151,10 @@ export function useRide(
     liveShare,
     motion,
   } = options;
+  // The rider's server routes the way back first (ADR 0054); read when a route is asked, not a reason to ask again.
+  const server = useServer();
+  const serverNow = useRef(server);
+  serverNow.current = server;
   const savedRef = useRef(onSaved);
   savedRef.current = onSaved;
   // The mode of the moment, for callbacks made before it changed.
@@ -311,7 +316,10 @@ export function useRide(
     if (name && name !== lastRejoinName.current) say("skip", t("ride.rejoin.say", { target: name }));
     lastRejoinName.current = name ?? null;
     const heading = travelHeading(fix.headingDeg, fix.speedMps);
-    void routeToStart(here, target, heading === null ? {} : { headingDeg: heading }).then((route) => {
+    void routeToStart(here, target, {
+      server: serverNow.current,
+      ...(heading === null ? {} : { headingDeg: heading }),
+    }).then((route) => {
       rerouting.current = false;
       if (runId.current !== currentRun || epoch.current !== epochAt) return;
       if (lastReroute.current) lastReroute.current.failures = route ? 0 : failures + 1;
@@ -343,7 +351,7 @@ export function useRide(
     const here: LatLon = [fix.lat, fix.lon];
     const target = pointAt(rb.roadbook.line, rb.cumulativeM, plan.joinM);
     const previous = ride;
-    void routeToStart(here, target).then((route) => {
+    void routeToStart(here, target, { server: serverNow.current }).then((route) => {
       skipping.current = false;
       setBusy(false);
       if (runId.current !== currentRun || epoch.current !== epochAt) return;
@@ -372,7 +380,7 @@ export function useRide(
   const toStart = async (pos: LatLon, run: number) => {
     setRoutingTo(null);
     setPrep("routing");
-    const route = await routeToStart(pos, rb.roadbook.line[0]!);
+    const route = await routeToStart(pos, rb.roadbook.line[0]!, { server: serverNow.current });
     if (runId.current !== run) return;
     setRide(route ? withApproach(rb, route, false) : withApproach(rb, [pos], true));
     setPrep("ready");
@@ -387,7 +395,7 @@ export function useRide(
     }
     setRoutingTo(point.name);
     setPrep("routing");
-    const route = await routeToStart(pos, target);
+    const route = await routeToStart(pos, target, { server: serverNow.current });
     if (runId.current !== run) return;
     setRide(
       route

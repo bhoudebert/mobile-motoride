@@ -28,8 +28,11 @@ export async function chooseRoutes(
   options: ChooseOptions = {},
 ): Promise<RouteChoice[]> {
   const { fetchImpl, trafficTimeoutMs = 6000 } = options;
-  const routes = distinctRoutes(await routesToPlace(from, to, fetchImpl ? { fetchImpl } : {})).slice(0, MAX_CHOICES);
   const { server } = use;
+  const routes = distinctRoutes(await routesToPlace(from, to, { server, ...(fetchImpl ? { fetchImpl } : {}) })).slice(
+    0,
+    MAX_CHOICES,
+  );
   if (routes.length < 2 || !server || !use.enabled) return rankRoutes(routes, null);
   const net = { timeoutMs: trafficTimeoutMs, ...(fetchImpl ? { fetchImpl } : {}) };
   const caps = await fetchCapabilities(server, net);
