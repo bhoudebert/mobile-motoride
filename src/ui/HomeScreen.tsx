@@ -13,7 +13,7 @@ import { HomeMenu } from "./HomeMenu.tsx";
 import { LocateIcon, MenuIcon, PinIcon, RoadIcon, SearchIcon } from "./icons.tsx";
 import { basemapStyle, ATTRIBUTION } from "./mapStyle.ts";
 import { colors, fonts, lift, radii, themed } from "./theme.ts";
-import { useGoTo } from "./useGoTo.ts";
+import { useGoTo, type GoChoice } from "./useGoTo.ts";
 import { useHere } from "./useHere.ts";
 import { useVoiceMode } from "./voice.ts";
 
@@ -32,6 +32,7 @@ export function HomeScreen({
   recents,
   onOpenRoadbook,
   onRoute,
+  onChoose,
   onSearch,
   onRoadbooks,
   onClearRecents,
@@ -50,6 +51,7 @@ export function HomeScreen({
   recents: Recent[];
   onOpenRoadbook: (rb: PreparedRoadbook) => void;
   onRoute: (rb: PreparedRoadbook, place: Place) => void;
+  onChoose: (choice: GoChoice) => void;
   onSearch: () => void;
   onRoadbooks: () => void;
   onClearRecents: () => void;
@@ -71,7 +73,7 @@ export function HomeScreen({
   const [menu, setMenu] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
-  const go = useGoTo(onRoute);
+  const go = useGoTo(onRoute, onChoose);
   const camera = useRef<CameraRef>(null);
   const touch = useRef<{ y: number; x: number } | null>(null);
   const { height } = useWindowDimensions();

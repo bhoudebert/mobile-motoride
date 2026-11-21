@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import type { Place } from "./src/core/destination.ts";
 import { prepareRoadbook } from "./src/core/roadbook.ts";
 import type { PreparedRoadbook } from "./src/core/types.ts";
@@ -9,6 +10,8 @@ import spaceGroteskBold from "./assets/fonts/SpaceGrotesk-Bold.ttf";
 import spaceGroteskMedium from "./assets/fonts/SpaceGrotesk-Medium.ttf";
 import jetBrainsMono from "./assets/fonts/JetBrainsMono-Regular.ttf";
 import { DestinationScreen } from "./src/ui/DestinationScreen.tsx";
+import { RoutesScreen } from "./src/ui/RoutesScreen.tsx";
+import { rideToPlace, type GoChoice } from "./src/ui/useGoTo.ts";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "./src/ui/ErrorBoundary.tsx";
 import { HomeScreen, roadbookDetail } from "./src/ui/HomeScreen.tsx";
@@ -74,6 +77,8 @@ export default function App() {
   }, [ready]);
 
   const [screen, setScreen] = useState<Screen>({ name: "home" });
+  // The routes to a place to choose from stand over the screen that asked, so Back finds its results as they were.
+  const [choice, setChoice] = useState<GoChoice | null>(null);
   const { recents, remember, clear } = useRecents();
   // What happened on its own: a ride that was saved. The import's own messages come first.
   const [info, setInfo] = useState<ImportNotice>(null);
@@ -227,7 +232,7 @@ export default function App() {
         </SwipeBack>
       ) : screen.name === "search" ? (
         <SwipeBack onBack={home}>
-          <DestinationScreen onBack={home} onRoute={openRoute} />
+          <DestinationScreen onBack={home} onRoute={openRoute} onChoose={setChoice} />
         </SwipeBack>
       ) : screen.name === "roadbooks" ? (
         <SwipeBack onBack={home}>
@@ -271,6 +276,7 @@ export default function App() {
           recents={recents}
           onOpenRoadbook={(rb) => openRoadbook(rb, "home")}
           onRoute={openRoute}
+          onChoose={setChoice}
           onSearch={() => setScreen({ name: "search" })}
           onRoadbooks={() => setScreen({ name: "roadbooks" })}
           onClearRecents={() => void clear()}
@@ -286,6 +292,19 @@ export default function App() {
           onTheme={look.change}
         />
       )}
+      {choice ? (
+        <View style={StyleSheet.absoluteFill}>
+          <RoutesScreen
+            place={choice.place}
+            routes={choice.routes}
+            onBack={() => setChoice(null)}
+            onStart={(route) => {
+              setChoice(null);
+              openRoute(rideToPlace(choice.place, choice.from, route.line), choice.place);
+            }}
+          />
+        </View>
+      ) : null}
     </SafeAreaProvider>
   );
 }
