@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.7.0...v1.8.0) (2026-11-21)
+
+
+### Features
+
+* **routing:** ask the rider's server for routes before the public Valhalla ([#104](https://github.com/bhoudebert/mobile-motoride/issues/104)) ([afa5419](https://github.com/bhoudebert/mobile-motoride/commit/afa54193bbef525d98004e1a4b87e0a613de45c4))
+
 ## [1.7.0](https://github.com/bhoudebert/mobile-motoride/compare/v1.6.3...v1.7.0) (2026-11-21)
 
 
