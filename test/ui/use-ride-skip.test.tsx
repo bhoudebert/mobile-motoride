@@ -4,6 +4,7 @@ import { useRide } from "../../src/ui/useRide.ts";
 import * as location from "./location.mock.ts";
 import { flush } from "./flush.ts";
 import { at, skippableRoadbook } from "./helpers.ts";
+import { resetServerSetting, saveServer } from "../../src/ui/serverSetting.ts";
 
 const route = routeToStart as jest.Mock;
 
@@ -98,4 +99,22 @@ test("a rider who leaves the way back asks for another at once, not after the wa
   for (let i = 0; i < 4; i++) await act(async () => location.pushFix(beside[0], beside[1], 20, 9000 + i * 1000, 90));
   await flush();
   expect(route.mock.calls.length).toBeGreaterThanOrEqual(2);
+});
+
+test("the way back is asked of the rider's server, with its token", async () => {
+  resetServerSetting();
+  await saveServer({ url: "https://ride.example.org", token: "mrt_abc" });
+  const rb = skippableRoadbook();
+  const start = at(rb, 100);
+  location.state.position = { latitude: start[0], longitude: start[1] };
+  await renderHook(() => useRide(rb, "gps"));
+  await flush();
+  await act(async () => location.pushFix(start[0], start[1], 20, 1000, 90));
+  const road = at(rb, 1500);
+  const far: [number, number] = [road[0] + 0.03, road[1]];
+  for (let i = 0; i < 4; i++) await act(async () => location.pushFix(far[0], far[1], 20, 2000 + i * 1000, 90));
+  await flush();
+  expect(route).toHaveBeenCalled();
+  expect(route.mock.calls[0]![2].server).toEqual({ url: "https://ride.example.org", token: "mrt_abc" });
+  resetServerSetting();
 });

@@ -1,5 +1,6 @@
 import { decodePolyline } from "../core/polyline.ts";
 import { type RouteCandidate, type RouteKind } from "../core/routeChoices.ts";
+import type { ServerSetting } from "../core/liveShare.ts";
 import { cumulativeDistances } from "../core/track.ts";
 import type { LatLon } from "../core/types.ts";
 
@@ -14,6 +15,18 @@ export interface RouteOptions {
   timeoutMs?: number;
   /** The rider's heading: the route starts in that direction when the road allows, rather than sending them back. */
   headingDeg?: number;
+  /** The rider's server: routes are asked of it first (ADR 0054), and of the public service when it cannot answer. */
+  server?: ServerSetting | null;
+}
+
+/** Servers that answered "no such route" (an older agentRide): not asked again until the app restarts. */
+const serversWithoutRoute = new Set<string>();
+/** The server is given this long before the public service is tried. */
+const SERVER_TIMEOUT_MS = 6000;
+
+/** For tests: forget the servers found without `/route`. */
+export function resetServersWithoutRoute(): void {
+  serversWithoutRoute.clear();
 }
 
 interface Costing {
@@ -49,46 +62,65 @@ async function requestRoutes(
   options: RouteOptions,
   alternates = 0,
 ): Promise<Answer[]> {
-  const { fetchImpl = fetch, timeoutMs = 10_000, headingDeg } = options;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetchImpl(ROUTE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": USER_AGENT,
-        "X-Client-Id": CLIENT_ID,
-        Accept: "application/json",
+  const { fetchImpl = fetch, timeoutMs = 10_000, headingDeg, server } = options;
+  const body = JSON.stringify({
+    locations: [
+      {
+        lat: from[0],
+        lon: from[1],
+        ...(headingDeg === undefined ? {} : { heading: Math.round(headingDeg) % 360, heading_tolerance: 60 }),
       },
-      body: JSON.stringify({
-        locations: [
-          {
-            lat: from[0],
-            lon: from[1],
-            ...(headingDeg === undefined ? {} : { heading: Math.round(headingDeg) % 360, heading_tolerance: 60 }),
-          },
-          { lat: to[0], lon: to[1] },
-        ],
-        costing: "motorcycle",
-        ...(Object.keys(costing).length ? { costing_options: { motorcycle: costing } } : {}),
-        ...(alternates > 0 ? { alternates } : {}),
-        directions_type: "none",
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) return [];
-    const body = (await res.json()) as { trip?: Trip; alternates?: { trip?: Trip }[] };
-    const all = [
-      answerOf(body.trip),
-      ...(Array.isArray(body.alternates) ? body.alternates.map((a) => answerOf(a?.trip)) : []),
-    ];
-    return all.filter((a): a is Answer => a !== null);
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(timer);
+      { lat: to[0], lon: to[1] },
+    ],
+    costing: "motorcycle",
+    ...(Object.keys(costing).length ? { costing_options: { motorcycle: costing } } : {}),
+    ...(alternates > 0 ? { alternates } : {}),
+    directions_type: "none",
+  });
+  const ask = async (url: string, headers: Record<string, string>, ms: number): Promise<Response | null> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetchImpl(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
+        body,
+        signal: controller.signal,
+      });
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  const read = async (res: Response): Promise<Answer[] | null> => {
+    try {
+      const json = (await res.json()) as { trip?: Trip; alternates?: { trip?: Trip }[] };
+      const all = [
+        answerOf(json.trip),
+        ...(Array.isArray(json.alternates) ? json.alternates.map((a) => answerOf(a?.trip)) : []),
+      ];
+      return all.filter((a): a is Answer => a !== null);
+    } catch {
+      return null;
+    }
+  };
+  if (server && !serversWithoutRoute.has(server.url)) {
+    const res = await ask(
+      `${server.url}/route`,
+      { Authorization: `Bearer ${server.token}` },
+      Math.min(timeoutMs, SERVER_TIMEOUT_MS),
+    );
+    if (res?.status === 404 || res?.status === 405) serversWithoutRoute.add(server.url);
+    // The server found no road between the places: the public service would not either.
+    else if (res?.status === 422) return [];
+    else if (res?.ok) {
+      const answers = await read(res);
+      if (answers) return answers;
+    }
   }
+  const res = await ask(ROUTE_URL, { "User-Agent": USER_AGENT, "X-Client-Id": CLIENT_ID }, timeoutMs);
+  return res?.ok ? ((await read(res)) ?? []) : [];
 }
 
 /**

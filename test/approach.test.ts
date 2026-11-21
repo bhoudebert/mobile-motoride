@@ -7,7 +7,7 @@ import { approachFeature } from "../src/core/geojson.ts";
 import { decodePolyline } from "../src/core/polyline.ts";
 import { prepareRoadbook } from "../src/core/roadbook.ts";
 import { pointAt } from "../src/core/track.ts";
-import { routesToPlace, routeToStart } from "../src/services/valhalla.ts";
+import { resetServersWithoutRoute, routesToPlace, routeToStart } from "../src/services/valhalla.ts";
 import { drawLine, fixAt } from "./helpers/path.ts";
 import { encodePolyline as encode } from "./helpers/polyline.ts";
 import type { LatLon } from "../src/core/types.ts";
@@ -251,4 +251,99 @@ test("routesToPlace adds the other roads Valhalla gives for the best route, as a
   );
   assert.equal(requests.filter((r) => r.alternates).length, 1, "only the best route is asked for other roads");
   assert.equal(routes[3]!.timeS, 800);
+});
+
+// ---- Routes come from the rider's server first (ADR 0054)
+
+const serverSetting = { url: "https://ride.example.org", token: "mrt_abc" };
+const tripBody = (pts: LatLon[]) => ({ trip: { legs: [{ shape: encode(pts) }], summary: { time: 600, length: 5 } } });
+const reply = (status: number, body: unknown = {}) =>
+  ({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as Response;
+const PTS: LatLon[] = [
+  [50.4, 3.1],
+  [50.45, 3.2],
+];
+
+test("a rider with a server gets the route from it, with their token, and the public service is not called", async () => {
+  resetServersWithoutRoute();
+  const urls: string[] = [];
+  let auth = "";
+  const fetchImpl = (async (url: string, init: RequestInit) => {
+    urls.push(url);
+    auth = (init.headers as Record<string, string>)["Authorization"] ?? "";
+    return reply(200, tripBody(PTS));
+  }) as unknown as typeof fetch;
+  const line = await routeToStart(PTS[0]!, PTS[1]!, { fetchImpl, server: serverSetting });
+  assert.equal(line?.length, 2);
+  assert.deepEqual(urls, ["https://ride.example.org/route"]);
+  assert.equal(auth, "Bearer mrt_abc");
+});
+
+test("a server without /route sends the route to the public service, and is not asked again", async () => {
+  resetServersWithoutRoute();
+  const urls: string[] = [];
+  const fetchImpl = (async (url: string) => {
+    urls.push(url);
+    return url.startsWith(serverSetting.url) ? reply(404) : reply(200, tripBody(PTS));
+  }) as unknown as typeof fetch;
+  assert.equal((await routeToStart(PTS[0]!, PTS[1]!, { fetchImpl, server: serverSetting }))?.length, 2);
+  assert.equal((await routeToStart(PTS[0]!, PTS[1]!, { fetchImpl, server: serverSetting }))?.length, 2);
+  assert.deepEqual(
+    urls.map((u) => new URL(u).hostname),
+    ["ride.example.org", "valhalla1.openstreetmap.de", "valhalla1.openstreetmap.de"],
+  );
+});
+
+test("a busy, down or silent server falls back to the public service, and is asked again next time", async () => {
+  resetServersWithoutRoute();
+  for (const failure of [() => reply(503), () => reply(429), () => Promise.reject(new Error("offline"))]) {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return url.startsWith(serverSetting.url) ? failure() : reply(200, tripBody(PTS));
+    }) as unknown as typeof fetch;
+    assert.equal((await routeToStart(PTS[0]!, PTS[1]!, { fetchImpl, server: serverSetting }))?.length, 2);
+    assert.equal(urls.length, 2);
+  }
+  // A server that only answers late.
+  const slow = (async (url: string, init: RequestInit) =>
+    url.startsWith(serverSetting.url)
+      ? new Promise<Response>((_, reject) => init.signal?.addEventListener("abort", () => reject(new Error("aborted"))))
+      : reply(200, tripBody(PTS))) as unknown as typeof fetch;
+  assert.equal(
+    (await routeToStart(PTS[0]!, PTS[1]!, { fetchImpl: slow, server: serverSetting, timeoutMs: 30 }))?.length,
+    2,
+  );
+});
+
+test("a server that finds no road between the places is believed: the public service is not asked", async () => {
+  resetServersWithoutRoute();
+  const urls: string[] = [];
+  const fetchImpl = (async (url: string) => {
+    urls.push(url);
+    return reply(422, { error: "no_route" });
+  }) as unknown as typeof fetch;
+  assert.equal(await routeToStart(PTS[0]!, PTS[1]!, { fetchImpl, server: serverSetting }), null);
+  assert.equal(urls.length, 1);
+});
+
+test("the three ways go to the server in the same request the public service gets", async () => {
+  resetServersWithoutRoute();
+  const sent: Array<{ url: string; body: any }> = [];
+  const fetchImpl = (async (url: string, init: RequestInit) => {
+    sent.push({ url, body: JSON.parse(String(init.body)) });
+    return reply(200, tripBody(PTS));
+  }) as unknown as typeof fetch;
+  await routesToPlace(PTS[0]!, PTS[1]!, { fetchImpl, server: serverSetting });
+  assert.equal(sent.length, 3);
+  assert.ok(sent.every((s) => s.url === "https://ride.example.org/route"));
+  const ways = sent.map((s) => JSON.stringify(s.body.costing_options?.motorcycle)).sort();
+  assert.deepEqual(
+    ways,
+    [
+      JSON.stringify({ shortest: true }),
+      JSON.stringify({ use_highways: 0 }),
+      JSON.stringify({ use_highways: 1 }),
+    ].sort(),
+  );
 });

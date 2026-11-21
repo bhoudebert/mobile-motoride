@@ -80,6 +80,20 @@ When the rider has a server with a traffic source and traffic is on (spec traffi
 - **WHEN** the server has no traffic source, or does not answer within a few seconds
 - **THEN** the routes are ranked by their own time and no card mentions traffic
 
+### Requirement: Routes come from the rider's server first
+
+Every route the app asks for (to a place, to the start of a roadbook, the way back after a skip or a missed turn) SHALL be asked of the rider's server first (`POST /route` with the rider's token, ADR 0054), and of the public Valhalla service only when the rider has no server, the server has no `/route` (404 or 405: remembered until the app restarts, so it is not asked again on every route), cannot answer within 6 seconds, or answers an error. A server that answers 422 (no road between the places) SHALL be believed: no second request is made to the public service. The request SHALL be the same one the public service gets (motorcycle costing, `use_highways`, `shortest`, `alternates`, the rider's heading); the answer is read the same way.
+
+#### Scenario: A server with routes
+
+- **WHEN** the rider has a server that answers `/route` and chooses a place
+- **THEN** the three routes are asked of that server with the rider's token, and the public service is not called
+
+#### Scenario: An older server
+
+- **WHEN** the rider's server answers 404 to `/route`
+- **THEN** the route is asked of the public service, and the server is not asked again until the app restarts
+
 ### Requirement: Leave the search
 
 The search screen SHALL have a Back control that returns to the list, and the phone's Back button SHALL do the same.

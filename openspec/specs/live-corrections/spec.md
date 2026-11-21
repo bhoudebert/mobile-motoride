@@ -50,7 +50,7 @@ Skipping SHALL ask for a confirmation naming the point skipped and the target, a
 
 ### Requirement: The new route
 
-The route SHALL be requested from the public Valhalla service, once per skip, as for the approach (ADR 0008, ADR 0012), and ridden with the rest of the roadbook as one line, solid like the roadbook, with instructions, corner warnings, danger zones and the speed limit working on it. Without a route within 10 seconds the app SHALL fall back to a straight line to the target and say so, as for the approach. The new ride SHALL be announced aloud ("Skipping 2. Mont des Cats, heading for 3. Cassel") and shown as "To 3. Cassel" until the target is reached.
+The route SHALL be requested from the rider's server, else the public Valhalla service (ADR 0054), once per skip, as for the approach (ADR 0008, ADR 0012), and ridden with the rest of the roadbook as one line, solid like the roadbook, with instructions, corner warnings, danger zones and the speed limit working on it. Without a route within 10 seconds the app SHALL fall back to a straight line to the target and say so, as for the approach. The new ride SHALL be announced aloud ("Skipping 2. Mont des Cats, heading for 3. Cassel") and shown as "To 3. Cassel" until the target is reached.
 
 #### Scenario: No route in time
 
